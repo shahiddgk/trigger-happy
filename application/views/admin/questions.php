@@ -44,7 +44,7 @@
                                     $splits = explode(",", json_decode($data['options'])); ?>
                             <tr>
                                 <td><?= $key+1; ?></td>
-                                <td width="45%" class="cstm-title"><?= $data['title'] ?></td>
+                                <td width="45%" class="cstm-title"><?= $data['title'] .'<br>'. $data['sub_title']  ?></td>
                                 <?php if(!empty($data['options'])){ ?>
                                     <td class="cstm-td">
                                         <?php  foreach($splits as $split){ ?>
@@ -54,7 +54,7 @@
                                 <?php } else{ ?>
                                     <td></td>
                                <?php } ?>
-                                <td><?= ucfirst($data['response_type']); ?></td>
+                                <td><?= ucwords(str_replace("_", " ", $data['response_type'])); ?></td>
                                 <td class="d-flex">
                                     <a href="<?= base_url('admin/edit_question/').$data['id']; ?>" class="nav-link">
                                         <i data-feather="edit"></i>

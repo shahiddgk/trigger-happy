@@ -15,10 +15,15 @@
 					<form class="cmxform" method="post" action="<?= base_url('admin/insert_question'); ?>">
 						<fieldset>
 							<div class="form-group">
-								<label for="name">Question Title</label>
+								<label for="name">Title</label>
 								<input id="name" class="form-control" name="q_title" type="text">
 							</div>
+							<div class="form-group">
+								<label for="name">Sub Title</label>
+								<input id="name" class="form-control" name="sub_title" type="text">
+							</div>
 							<hr>
+							<label for="name">Response Type</label>
 							<div class="form-group form-check-inline">
 								<div class="form-check">
 									<label class="form-check-label">
@@ -40,6 +45,18 @@
 										Check Box?
 									</label>
 								</div>
+								&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+								<div class="form-check">
+									<label class="form-check-label">
+										<input type="radio" class="form-check-input" name="res_type" value="timer">
+										Timer?
+									</label>
+								</div>
+							</div>
+							
+							<div class="form-group" id="textLength" style="display:none;">
+								<label for="name">Text Length</label>
+								<input class="form-control" name="text_length" type="number">
 							</div>
 							<hr>
 							<div class="form-group tags_option">
@@ -56,14 +73,14 @@
 
 </div>
 
-<!-- <script>
-	$(function () {
-		$(".chk_open_text").click(function() {
-			if($(this).is(":checked")) {
-				$(".tags_option").hide(200);
+<script type="text/javascript">
+	$(document).ready(function() {
+		$("input[name='res_type']").click(function() {
+			if ($(this).val() == "open_text") {
+				$("#textLength").show();
 			} else {
-				$(".tags_option").show(300);
+				$("#textLength").hide();
 			}
 		});
 	});
-</script> -->
+</script>

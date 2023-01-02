@@ -13,26 +13,28 @@ class Api extends REST_Controller {
 		header('Content-Type: application/json');
 	}
 
-	public function sign_up_post(){
+	public function signup_post(){
 
-		$result = $this->common_model->select_where("*", "users", array('email'=>$_POST['email']));
+		$name	=	$_POST['name'];
+		$email	=	$_POST['email'];
+		$password	=	$_POST['password'];
+		$result = $this->common_model->select_where("*", "users", array('email'=>$email));
 		if(count($result->result_array())>0){
 			$response['error'] = 'Already signed up';
-			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
 		else{
-				$data['name'] = $_POST['name'];
-				$data['email'] = $_POST['email'];
-				$data['password'] = sha1($_POST['password']);
+				$data['name'] = $name;
+				$data['email'] = $email;
+				$data['password'] = sha1($password);
 				$data['type'] = 'user';
 				$data['status'] = 'active';
 				$result = $this->common_model->insert_array('users', $data);
 			if($result){
-				$response['message'] = 'user registration successful';
+				$response['user_signup'] = 'TRUE';
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			}
 			else{
-				$response['error'] = 'user registration error';
+				$response['user_signup'] = 'FALSE';
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			}
 		}
@@ -91,27 +93,34 @@ class Api extends REST_Controller {
 				$this->input->set_cookie($cookiePassword);
 			}
 
-			$response['message'] = 'login success';
+			$response['user_login'] = 'TRUE';
 			$response['user_session'] = $_SESSION;
 			$response['user_cookie'] = $_COOKIE;
 			$this->set_response($response, REST_Controller::HTTP_OK);
 			
 		}
 		else{
-			$response['error'] = 'login failed';
+			$response['user_login'] = 'FALSE';
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		} 
 	}
 
 	public function questions_get(){
-		$response['questions'] = $this->common_model->select_all_order_by('*', 'questions','id','ASC')->result_array();
-		if($response['questions']){
-			$this->set_response($response, REST_Controller::HTTP_OK);
+		$questions = $this->common_model->select_all_order_by('*', 'questions','id','ASC')->result_array();
+		if($questions){
+
+			foreach ($questions as $key=>$question) {
+				if(!empty($question['options'])){
+					$options = explode(",", json_decode($question['options']));
+					$questions[$key]['options'] = $options;
+				}
+			}
+			$response['questions'] = $questions;
 		}
 		else{
 			$response['error'] = 'data not found';
-			$this->set_response($response, REST_Controller::HTTP_OK);
 		} 
+		$this->set_response($response, REST_Controller::HTTP_OK);
 	}
 
 

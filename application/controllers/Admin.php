@@ -1,6 +1,12 @@
 <?php
+ob_start();
+defined('BASEPATH') OR exit('No direct script access allowed');
+class Admin extends CI_Controller {
 
-class Admin extends CI_Controller{
+	public function __construct()
+	{
+		parent::__construct();
+	}
 
     public function index(){
         $this->load->view('admin/login');
@@ -31,6 +37,10 @@ class Admin extends CI_Controller{
 
 		$data['title'] = $this->input->post('q_title');
 		$data['response_type'] = $this->input->post('res_type');
+		$data['sub_title'] = $this->input->post('sub_title');
+		if($_POST['res_type'] == 'open_text'){
+			$data['text_length'] = $this->input->post('text_length');
+		}
 		if(!empty($_POST['q_options'])){
 			$data['options']= json_encode($this->input->post('q_options'));
 		}
@@ -49,13 +59,16 @@ class Admin extends CI_Controller{
 	}
 
 	public function update_question($id){
-
-		// echo "<pre>"; print_r($_POST); exit;
 		$data['title'] = $this->input->post('q_title');
 		$data['response_type'] = $this->input->post('res_type');
-		if(!empty($_POST['q_options'])){
-			$data['options']= json_encode($this->input->post('q_options'));
+		$data['sub_title'] = $this->input->post('sub_title');
+		if($_POST['res_type'] == 'open_text'){
+			$data['text_length'] = $this->input->post('text_length');
 		}
+		if(!empty($_POST['q_options'])){
+			$json_options = json_encode($this->input->post('q_options'));
+		}
+		$data['options'] = $json_options;
 		$this->common_model->update_array(array('id'=> $id), 'questions', $data);
 
 		redirect('admin/questions'); 
@@ -70,28 +83,24 @@ class Admin extends CI_Controller{
     public function login(){
 		$email	=	$this->input->post('email');
 		$password	=	$this->input->post('password');
-			
-		$data = $this->common_model->select_where("*","users", array('email'=>$email,'password'=>sha1($password)))->row_array();
-		// echo "<pre>";print_r($data); exit();
-		
+		$data = $this->common_model->select_where("*","users", array('email'=>$email, 'password'=>sha1($password), 'type'=>'admin'))->row_array();
 		if(!empty($data)){
 			if($data['status']=='inactive'){
 				echo "inactive"; exit;
 			} 
 
 			$data = array(
-			   'user_logged_in'  =>  TRUE,
-			   'userid' => $data['id'],
-			   'usertype' => $data['type'],
-			   'username' => $data['name'],
-			   'useremail' => $data['email']
-		   	);
-		   
-			$this->session->set_userdata($data);
+				'user_logged_in'  =>  TRUE,
+				'userid' => $data['id'],
+				'usertype' => $data['type'],
+				'username' => $data['name'],
+				'useremail' => $data['email']
+			);
 			
-			$this->session->set_flashdata('flash_message', 'Login successfully.');
-			redirect('admin/dashboard'); 
-			
+			$this->session->set_userdata($data);	
+
+ 			$this->session->set_flashdata('flash_message', 'Login successfully.');
+			redirect(site_url('admin/dashboard'));
 		}
 		else{
 			$this->session->set_flashdata('error_message', 'Login error.');
