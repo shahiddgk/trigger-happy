@@ -16,7 +16,7 @@
 						<fieldset>
 							<div class="form-group">
 								<label for="name">Title</label>
-								<input id="name" class="form-control" name="q_title" type="text">
+								<input id="name" class="form-control" name="q_title" type="text" required>
 							</div>
 							<div class="form-group">
 								<label for="name">Sub Title</label>

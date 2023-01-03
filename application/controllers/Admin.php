@@ -13,8 +13,9 @@ class Admin extends CI_Controller {
     }
 
 	public function dashboard(){
+		$data['num_rows'] = $this->common_model->select_where_table_rows('*', 'users', array('type'=>'user'));
         $this->load->view('admin/include/header');
-        $this->load->view('admin/dashboard');
+        $this->load->view('admin/dashboard', $data);
         $this->load->view('admin/include/footer');
     }
 	
@@ -34,7 +35,7 @@ class Admin extends CI_Controller {
     }
 
 	public function insert_question(){
-
+		$json_options = 'NULL';
 		$data['title'] = $this->input->post('q_title');
 		$data['response_type'] = $this->input->post('res_type');
 		$data['sub_title'] = $this->input->post('sub_title');
@@ -42,8 +43,9 @@ class Admin extends CI_Controller {
 			$data['text_length'] = $this->input->post('text_length');
 		}
 		if(!empty($_POST['q_options'])){
-			$data['options']= json_encode($this->input->post('q_options'));
+			$json_options = json_encode($this->input->post('q_options'));
 		}
+		$data['options'] = $json_options;
 		$this->db->insert('questions', $data);
 
 		redirect('admin/questions'); 
@@ -58,7 +60,38 @@ class Admin extends CI_Controller {
         $this->load->view('admin/include/footer');
 	}
 
+	public function edit_profile(){
+		$data['page_title'] = 'Edit Profile';
+		$data['user_data'] = $this->common_model->select_where("*" , 'users', array('id'=> $this->session->userdata('userid')))->row_array();
+		$this->load->view('admin/include/header');
+        $this->load->view('admin/edit_profile', $data);
+        $this->load->view('admin/include/footer');
+	}
+
+	public function update_profile(){
+		$id = $this->input->post('user_id');
+		$data['name'] = $this->input->post('name');
+		$data['email'] = $this->input->post('email');
+		if(!empty($_POST['password'])){
+			$data['password'] = sha1($this->input->post('password'));
+		}
+		if($_FILES['profile_img']['name']!=''){
+
+			$image  =  $_FILES['profile_img']['name'];
+			$data['image']  =  $image;
+			$temp   =  $_FILES['profile_img']['tmp_name'];
+			if (!file_exists('./uploads/profile')) {
+				mkdir('./uploads/profile', 0755, true);
+			} 
+			$path= './uploads/profile/'.$image;
+			move_uploaded_file($temp,$path);
+		}
+		$this->common_model->update_array(array('id'=> $id), 'users', $data);
+		redirect('admin/dashboard'); 
+	}
+
 	public function update_question($id){
+		$json_options = 'NULL';
 		$data['title'] = $this->input->post('q_title');
 		$data['response_type'] = $this->input->post('res_type');
 		$data['sub_title'] = $this->input->post('sub_title');
@@ -94,7 +127,8 @@ class Admin extends CI_Controller {
 				'userid' => $data['id'],
 				'usertype' => $data['type'],
 				'username' => $data['name'],
-				'useremail' => $data['email']
+				'useremail' => $data['email'],
+				'userimage' => $data['image']
 			);
 			
 			$this->session->set_userdata($data);	
@@ -118,7 +152,18 @@ class Admin extends CI_Controller {
 		redirect(site_url()); 
 	}
 
+	public function users_list(){
+		$data['page_title'] = 'Users List';
+		$data['users'] = $this->common_model->select_where_ASC_DESC('*', 'users', array('type'=>'user'), 'id','ASC')->result_array();
+        $this->load->view('admin/include/header');
+        $this->load->view('admin/users', $data);
+        $this->load->view('admin/include/footer');
+    }
 
+	public function delete_user($id){
+		$this->common_model->delete_where(array('id'=> $id), 'users');
+		redirect('admin/users_list'); 
+	}
 
 }
 

@@ -34,7 +34,7 @@
                                 <th>Sr.</th>
                                 <th>Question Title</th>
                                 <th>Options</th>
-                                <th>Answer Type</th>
+                                <th>Response Type</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -45,7 +45,7 @@
                             <tr>
                                 <td><?= $key+1; ?></td>
                                 <td width="45%" class="cstm-title"><?= $data['title'] .'<br>'. $data['sub_title']  ?></td>
-                                <?php if(!empty($data['options'])){ ?>
+                                <?php if($data['options'] != 'NULL'){ ?>
                                     <td class="cstm-td">
                                         <?php  foreach($splits as $split){ ?>
                                             <a href="#" class="badge badge-primary"><?= $split ?></a>
