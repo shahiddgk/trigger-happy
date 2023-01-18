@@ -1,18 +1,3 @@
-<style>
-    .cstm-td{
-        display: contents;
-    }
-    td.cstm-td a{
-        margin: 4px;
-    }
-    .cstm-title{
-        overflow-wrap: break-word;
-        word-wrap: break-word;
-        hyphens: auto;
-        white-space: normal!important; 
-    }
-</style>
-
 <div class="page-content">
 
     <nav class="page-breadcrumb">
@@ -46,7 +31,7 @@
                                 <td><?= $key+1; ?></td>
                                 <td width="45%" class="cstm-title"><?= $data['title'] .'<br>'. $data['sub_title']  ?></td>
                                 <?php if($data['options'] != 'NULL'){ ?>
-                                    <td class="cstm-td">
+                                    <td class="cstm-options">
                                         <?php  foreach($splits as $split){ ?>
                                             <a href="#" class="badge badge-primary"><?= $split ?></a>
                                         <?php }  ?>

@@ -1,0 +1,12 @@
+.cstm-options{
+  display: contents;
+}
+td.cstm-options a{
+  margin: 4px;
+}
+.cstm-title{
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+  white-space: normal!important; 
+}

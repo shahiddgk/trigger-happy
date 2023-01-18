@@ -15,7 +15,7 @@
 	<link rel="stylesheet" href="<?= base_url()?>assets/admin/vendors/flag-icon-css/css/flag-icon.min.css">
 	<!-- endinject -->
   <!-- Layout styles -->  
-	<link rel="stylesheet" href="<?= base_url()?>assets/admin/css/demo_1/style.css">
+	<link rel="stylesheet" href="<?= base_url()?>assets/admin/css/style.css">
   <!-- End layout styles -->
   <link rel="shortcut icon" href="<?= base_url()?>assets/admin/images/favicon.png" />
 </head>

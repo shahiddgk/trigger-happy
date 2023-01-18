@@ -34,8 +34,12 @@ else{
 	<link rel="stylesheet" href="<?= base_url()?>assets/admin/fonts/feather-font/css/iconfont.css">
 	<link rel="stylesheet" href="<?= base_url()?>assets/admin/vendors/flag-icon-css/css/flag-icon.min.css">
 	<!-- endinject -->
+	<!-- DataTable -->
+	<link rel="stylesheet" href="<?= base_url()?>assets/admin/vendors/datatables.net-bs4/dataTables.bootstrap4.css">
+	<!-- DataTable End -->
   <!-- Layout styles -->  
-	<link rel="stylesheet" href="<?= base_url()?>assets/admin/css/demo_1/style.css">
+	<link rel="stylesheet" href="<?= base_url()?>assets/admin/css/style.css">
+	<link rel="stylesheet" href="<?= base_url()?>assets/admin/css/custom.css">
   <!-- End layout styles -->
   <link rel="shortcut icon" href="<?= base_url()?>assets/admin/images/favicon.png" />
   <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
@@ -97,7 +101,7 @@ else{
 				<a href="<?= base_url('admin/users_list') ?>" class="nav-link">Users</a>
 			</li>
 			<li class="nav-item">
-				<!-- <a href="#" class="nav-link">User Response</a> -->
+				<a href="<?= base_url('admin/users_response') ?>" class="nav-link">User Response</a>
 			</li>
 		</ul>
 		</div>

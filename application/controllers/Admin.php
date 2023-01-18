@@ -160,6 +160,14 @@ class Admin extends CI_Controller {
         $this->load->view('admin/include/footer');
     }
 
+	public function users_response(){
+		$data['page_title'] = 'Users Response';
+		$data['answers'] = $this->common_model->get_users_resposne();
+        $this->load->view('admin/include/header');
+        $this->load->view('admin/answers', $data);
+        $this->load->view('admin/include/footer');
+    }
+
 	public function delete_user($id){
 		$this->common_model->delete_where(array('id'=> $id), 'users');
 		redirect('admin/users_list'); 

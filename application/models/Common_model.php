@@ -431,7 +431,17 @@ class Common_model extends  CI_Model {
 	}
 			
 
+	function get_users_resposne(){
+		$this->db->select('answers.*, questions.title, users.name');
+		$this->db->from('answers');
+		$this->db->join('questions', 'answers.question_id = questions.id', 'left');
+		$this->db->join('users', 'answers.user_id = users.id', 'left');
+		// $this->db->group_by('answers.user_id');
+		$this->db->order_by('answers.created_at', 'ASC');
+		$query = $this->db->get();
+		return $query->result_array();
 
+	}
 
 }
 ?>

@@ -26,6 +26,24 @@
             <script src="<?= base_url()?>assets/admin/vendors/moment/moment.min.js"></script>
             <script src="<?= base_url()?>assets/admin/vendors/tempusdominus-bootstrap-4/tempusdominus-bootstrap-4.js"></script>
             <!-- end plugin js for this page -->
+
+            <!-- CKeditor simplemde-->
+            <script src="https://cdn.ckeditor.com/ckeditor5/35.4.0/classic/ckeditor.js"></script>
+            <script>
+                ClassicEditor
+                .create( document.querySelector( '#editor1' ) )
+                .then( editor => {
+                        // console.log( editor );
+                } )
+                .catch( error => {
+                        // console.error( error );
+                } );
+            </script>
+            <!-- CKeditor simplemde-->
+            <!-- DataTAble -->
+            <script src="<?= base_url()?>assets/admin/vendors/datatables.net/jquery.dataTables.js"></script>
+            <script src="<?= base_url()?>assets/admin/vendors/datatables.net-bs4/dataTables.bootstrap4.js"></script>
+            <script src="<?= base_url()?>assets/admin/js/data-table.js"></script>
             <!-- inject:js -->
             <script src="<?= base_url()?>assets/admin/vendors/feather-icons/feather.min.js"></script>
             <script src="<?= base_url()?>assets/admin/js/template.js"></script>
