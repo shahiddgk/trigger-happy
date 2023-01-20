@@ -247,4 +247,32 @@ class Api extends REST_Controller {
 		$this->set_response($response, REST_Controller::HTTP_OK);
 	}
 
+	public function delete_user_get()
+	{
+		$user_id = $_GET['user_id'];
+		if(!empty($user_id)){
+			$this->db->delete('users', array('id'=>$user_id));
+			if($this->db->affected_rows()> 0){
+				$response = [
+					'status' => 200,
+					'message' => 'user deleted successfully'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}else{
+				$response = [
+					'status' => 400,
+					'message' => 'user not found'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+    
+	}
+
 }
