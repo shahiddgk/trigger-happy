@@ -17,30 +17,16 @@
                         <thead>
                             <tr>
                                 <th>Sr.</th>
-                                <th>Questions</th>
-                                <th>Options</th>
-                                <th>Text</th>
-                                <th>Dated</th>
+                                <th>Response Dated</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if(isset($answers)){
                                 foreach($answers as $key => $data){
-                                    $splits = explode(",", trim($data['options'], '[]'));?>
+                                  $date =   date('Y-m-d', strtotime($data['created_at'])); ?>
                                 <tr>
                                     <td><?= $key+1; ?></td>
-                                    <td width="45%" class="cstm-title"><?= $data['title'] ?></td>
-                                    <?php if ($splits[0]==''){ ?>
-                                        <td></td>
-                                    <?php } else{ ?>
-                                        <td>
-                                            <?php  foreach($splits as $split){ ?>
-                                                <a href="#" class="badge badge-primary"><?= $split ?></a>
-                                            <?php }  ?>
-                                        </td>
-                                    <?php } ?>
-                                    <td><?= $data['text'] ?></td>
-                                    <td><?= $data['created_at'] ?></td>
+                                    <td><a href="<?= base_url('admin/date_respose/'.$data['user_id'].'/'. $date); ?>"><?=  $date ?></a></td>
                                 </tr>
                             <?php  } } ?>
                         </tbody>

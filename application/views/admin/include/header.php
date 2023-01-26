@@ -100,9 +100,9 @@ else{
 			<li class="nav-item">
 				<a href="<?= base_url('admin/users_list') ?>" class="nav-link">Users</a>
 			</li>
-			<li class="nav-item">
+			<!-- <li class="nav-item">
 				<a href="<?= base_url('admin/users_response') ?>" class="nav-link">User Response</a>
-			</li>
+			</li> -->
 		</ul>
 		</div>
 	</li>

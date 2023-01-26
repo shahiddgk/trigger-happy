@@ -160,9 +160,17 @@ class Admin extends CI_Controller {
         $this->load->view('admin/include/footer');
     }
 
-	public function users_response(){
+	public function users_response($id = null){
 		$data['page_title'] = 'Users Response';
-		$data['answers'] = $this->common_model->get_users_resposne();
+		$data['answers'] = $this->common_model->get_resposne_combo($id);
+        $this->load->view('admin/include/header');
+        $this->load->view('admin/answers_combo', $data);
+        $this->load->view('admin/include/footer');
+    }
+
+	public function date_respose($user_id = null, $date = null){
+		$data['page_title'] = 'Users Response';
+		$data['answers'] = $this->common_model->get_date_vise_resposne($user_id, $date);
         $this->load->view('admin/include/header');
         $this->load->view('admin/answers', $data);
         $this->load->view('admin/include/footer');

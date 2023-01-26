@@ -27,7 +27,7 @@
                                 foreach($users as $key => $data){ ?>
                             <tr>
                                 <td><?= $key+1; ?></td>
-                                <td><?= $data['name'] ?></td>
+                                <td><a data-toggle="tooltip" title="User Response" href="<?= base_url('admin/users_response/').$data['id'] ?>"><?= $data['name'] ?></a></td>
                                 <td><?= $data['email'] ?></td>
                                 <td class="d-flex">
                                     <a href="<?= base_url('admin/delete_user/').$data['id']; ?>" class="nav-link">

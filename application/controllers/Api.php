@@ -20,7 +20,11 @@ class Api extends REST_Controller {
 		$password	=	$_POST['password'];
 		$result = $this->common_model->select_where("*", "users", array('email'=>$email))->result_array();
 		if($result){
-			$response['error'] = 'Already signed up';
+			$response = [
+				'status' => 400,
+				'message' => 'Already signed up'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 		else{
 				$data['name'] = $name;
@@ -30,13 +34,23 @@ class Api extends REST_Controller {
 				$data['status'] = 'active';
 				$result = $this->common_model->insert_array('users', $data);
 			if($result){
-				$response['user_signup'] = 'TRUE';
+				
+				$response = [
+					'status' => 200,
+					'message' => 'success',
+					'user_signup' => 'TRUE'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
 			}
 			else{
-				$response['user_signup'] = 'FALSE';
+				$response = [
+					'status' => 400,
+					'message' => 'failed to sign up',
+					'user_signup' => 'FALSE'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 			}
 		}
-		$this->set_response($response, REST_Controller::HTTP_OK);
 	}
 
    	public function login_post(){
@@ -60,45 +74,21 @@ class Api extends REST_Controller {
 				'useremail' => $row->email,
 				'userid' => $row->id
 			);
-			
-			if($_POST['rememberme']=='on')   
-			{
-				$cookieUsername = array(
-					'name'   => 'frontuser',
-					'value'  => $email,
-					'expire' => time()+1000,
-					'path'   => '/',
-					'secure' => false
-				);
-				$cookiePassword = array(
-					'name'   => 'frontpass',
-					'value'  => $password,
-					'expire' => time()+1000,
-					'path'   => '/',
-					'secure' => false
-				);
-				$check_rem = array(
-					'name'   => 'user_rememeber',
-					'value'  => 1,
-					'expire' => time()+1000,
-					'path'   => '/',
-					'secure' => false
-				);
-			
-				$this->input->set_cookie($cookieUsername);
-				$this->input->set_cookie($check_rem);
-				$this->input->set_cookie($cookiePassword);
-			}
 
-			$response['user_login'] = 'TRUE';
-			$response['user_session'] = $user_data;
-			$response['user_cookie'] = $_COOKIE;
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'user_session' => $user_data
+			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
-			
 		}
 		else{
-			$response['user_login'] = 'FALSE';
-			$this->set_response($response, REST_Controller::HTTP_OK);
+			$response = [
+				'status' => 400,
+				'message' => 'failed to login',
+				'user_login' => 'FALSE'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		} 
 	}
 
@@ -112,10 +102,20 @@ class Api extends REST_Controller {
 					$questions[$key]['options'] = $options;
 				}
 			}
-			$response['questions'] = $questions;
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'questions' => $questions
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+			
 		}
 		else{
-			$response['error'] = 'data not found';
+			$response = [
+				'status' => 400,
+				'message' => 'no data available'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		} 
 		$this->set_response($response, REST_Controller::HTTP_OK);
 	}
@@ -140,8 +140,13 @@ class Api extends REST_Controller {
 						'authID' => $valid_user['social_auth_id'],
 						'userid' => $valid_user['id']
 					);
-					$response['user_login'] = 'TRUE';
-					$response['user_session'] = $user_data;
+					$response = [
+						'status' => 200,
+						'message' => 'User already exists',
+						'user_login' => 'TRUE',
+						'user_session' => $user_data
+					];
+					$this->set_response($response, REST_Controller::HTTP_OK);
 				}
 				elseif(empty($valid_user['social_auth_id'])){
 					$data['social_auth_id'] = $auth_id;
@@ -154,44 +159,59 @@ class Api extends REST_Controller {
 						'authID' => $auth_id,
 						'userid' => $valid_user['id']
 					);
-					$response['login_session'] = $data;
+					$response = [
+						'status' => 200,
+						'message' => 'New social user created',
+						'user_login' => 'TRUE',
+						'user_session' => $data
+					];
+					$this->set_response($response, REST_Controller::HTTP_OK);
 				}
 				else{
-					$response['error'] = 'Invalid Auth id';
+					$response = [
+						'status' => 400,
+						'message' => 'Invalid Auth id'
+					];
+					$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 				}
-				$this->set_response($response, REST_Controller::HTTP_OK);
 			}
 			else{
-					$data['name'] = $name;
-					$data['email'] = $email;
-					$data['social_auth_id'] = $auth_id;
-					$data['type'] = 'user';
-					$data['status'] = 'active';
-					$insert = $this->common_model->insert_array('users', $data);
-					if($insert){
-						$result = $this->common_model->select_where("*", "users", array('social_auth_id'=>$auth_id));
-						if($result->num_rows()>0){
-							$row = $result->row();
-							$user_data = array(
-								'user_logged_in'  =>  TRUE,
-								'usertype' => $row->type,
-								'username' => $row->name,
-								'useremail' => $row->email,
-								'authID' => $row->social_auth_id,
-								'userid' => $row->id
-							);
-							$response['message'] = 'New social user created';
-							$response['user_login'] = 'TRUE';
-							$response['user_session'] = $user_data;
-						}
+				$data['name'] = $name;
+				$data['email'] = $email;
+				$data['social_auth_id'] = $auth_id;
+				$data['type'] = 'user';
+				$data['status'] = 'active';
+				$insert = $this->common_model->insert_array('users', $data);
+				if($insert){
+					$result = $this->common_model->select_where("*", "users", array('social_auth_id'=>$auth_id));
+					if($result->num_rows()>0){
+						$row = $result->row();
+						$user_data = array(
+							'user_logged_in'  =>  TRUE,
+							'usertype' => $row->type,
+							'username' => $row->name,
+							'useremail' => $row->email,
+							'authID' => $row->social_auth_id,
+							'userid' => $row->id
+						);
+						$response = [
+							'status' => 200,
+							'message' => 'New social user created',
+							'user_login' => 'TRUE',
+							'user_session' => $user_data
+						];
+						$this->set_response($response, REST_Controller::HTTP_OK);
 					}
-				$this->set_response($response, REST_Controller::HTTP_OK);
+				}
 			}
 		}
 		else{
-			$response['error'] = 'Invalid User';
+			$response = [
+				'status' => 400,
+				'message' => 'invalid user'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
-		$this->set_response($response, REST_Controller::HTTP_OK);
 	}
 
 
@@ -200,9 +220,21 @@ class Api extends REST_Controller {
 		$user_id = $_POST['user_id'];
 		$created_at = $_POST['created_at'];
 		$result = $this->common_model->select_where("*", "answers", array('user_id'=>$user_id,'question_id'=>$question_id,'created_at'=>$created_at))->row_array();
-
-		$response['single_answer'] = $result;
-		$this->set_response($response, REST_Controller::HTTP_OK);
+		if($result){
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'single_answer' => $result
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}
+		else{
+			$response = [
+				'status' => 400,
+				'message' => 'user not found'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
 	}
 
 	public function user_response_post(){
@@ -212,12 +244,19 @@ class Api extends REST_Controller {
 		$data['text'] = $_POST['text'];
 		$insert = $this->common_model->insert_array('answers', $data);
 		if($insert){
-			$response['message'] = 'Success';
+			$response = [
+				'status' => 200,
+				'message' => 'data inserted successfully'
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
 		else{
-			$response['error'] = 'Error inserting';
+			$response = [
+				'status' => 400,
+				'message' => 'Error inserting'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
-		$this->set_response($response, REST_Controller::HTTP_OK);
 	}
 
 	public function change_password_post(){
@@ -228,23 +267,42 @@ class Api extends REST_Controller {
 		if($auth_id){
 			$result = $this->common_model->update_array(array('id'=> $user_id,'social_auth_id'=>$auth_id), 'users', $update);
 			if($this->db->affected_rows()> 0){
-				$response['success'] = 'Password changed';
+				$response = [
+					'status' => 200,
+					'message' => 'Password changed'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
 			}else{
-				$response['error'] = 'No change in password';
+				$response = [
+					'status' => 400,
+					'message' => 'No change in password'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 			}
 		}
 		elseif($old_password){
 			$result = $this->common_model->update_array(array('id'=> $user_id,'password'=>sha1($old_password)), 'users', $update);
 			if($this->db->affected_rows()> 0){
-				$response['success'] = 'Password changed';
+				$response = [
+					'status' => 200,
+					'message' => 'Password changed'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
 			}else{
-				$response['error'] = 'No change in password';
+				$response = [
+					'status' => 400,
+					'message' => 'No change in password'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 			}
 		}
 		else{
-            $response['error'] = 'Invalid parameters';
+			$response = [
+				'status' => 400,
+				'message' => 'Invalid parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
-		$this->set_response($response, REST_Controller::HTTP_OK);
 	}
 
 	public function delete_user_get()

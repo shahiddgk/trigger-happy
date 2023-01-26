@@ -430,14 +430,23 @@ class Common_model extends  CI_Model {
 		
 	}
 			
+	function get_resposne_combo($id){
+		$this->db->select('*');
+		$this->db->from('answers');
+		$this->db->where('user_id =', $id);
+		$this->db->group_by('DATE(created_at)');
+		$this->db->order_by('created_at', 'ASC');
+		$query = $this->db->get();
+		return $query->result_array();
+	}
 
-	function get_users_resposne(){
+	function get_date_vise_resposne($id, $date){
 		$this->db->select('answers.*, questions.title, users.name');
 		$this->db->from('answers');
 		$this->db->join('questions', 'answers.question_id = questions.id', 'left');
 		$this->db->join('users', 'answers.user_id = users.id', 'left');
-		// $this->db->group_by('answers.user_id');
-		$this->db->order_by('answers.created_at', 'ASC');
+		$this->db->where('answers.user_id =', $id);
+		$this->db->where('DATE(answers.created_at) =', $date);
 		$query = $this->db->get();
 		return $query->result_array();
 
