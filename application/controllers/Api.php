@@ -270,10 +270,9 @@ class Api extends REST_Controller {
 		$email = $_POST['email'];
 		$user_id = $_POST['user_id'];
 		$answers = json_decode($_POST['answers'], true);
-		$response_id =  random_string('numeric',8);
-
+	
 		if($answers){
-			$this->set_response($answers, REST_Controller::HTTP_OK);
+			$response_id =  random_string('numeric',8);     
 			foreach ($answers as $key =>  $answer)
 			{
 				if($answer['type'] == 'radio_btn'){
@@ -304,7 +303,7 @@ class Api extends REST_Controller {
 			}
 
 			if($insert){
-				$response = $this->common_model->get_resposne_by_response_id($response_id); 
+				$response = $this->common_model-> $this->common_model->select_two_tab_join_where("a.* , q.title",'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id'=>$response_id)); 
 			
 				if($response->num_rows()>0) {
 

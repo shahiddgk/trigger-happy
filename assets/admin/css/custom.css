@@ -1,6 +1,11 @@
 .cstm-options{
   display: contents;
 }
+.cstm-response{
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
 td.cstm-options a{
   margin: 4px;
 }

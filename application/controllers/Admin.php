@@ -160,18 +160,19 @@ class Admin extends CI_Controller {
         $this->load->view('admin/include/footer');
     }
 
-	public function users_response($id = null){
-		$data['page_title'] = 'Users Response';
-		$data['answers'] = $this->common_model->get_resposne_combo($id)->result_array();
+	public function date_group($id = null){
+		$data['page_title'] = 'Date Group';
+		
+		$data['answers'] = $this->common_model->select_where_ASC_DESC_Group_by("*",'answers', array('user_id'=>$id), 'created_at' , 'DESC', 'DATE(created_at)')->result_array();
         $this->load->view('admin/include/header');
-        $this->load->view('admin/answers_combo', $data);
+        $this->load->view('admin/date_group', $data);
         $this->load->view('admin/include/footer');
     }
-
-	public function date_respose($user_id = null, $date = null){
+	
+	public function get_response($response_id = null){
 		$data['page_title'] = 'Users Response';
-		$data['answers'] = $this->common_model->get_date_vise_resposne($user_id, $date);
-        $this->load->view('admin/include/header');
+		$data['answers'] = $this->common_model->select_two_tab_join_where("a.* , q.title",'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id'=>$response_id))->result_array();
+		$this->load->view('admin/include/header');
         $this->load->view('admin/answers', $data);
         $this->load->view('admin/include/footer');
     }

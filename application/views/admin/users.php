@@ -28,7 +28,7 @@
                             if(isset($users)){
                                 foreach($users as $key => $user){
                                     $count = '0';
-                                    $count =  $this->common_model->get_resposne_combo($user['id'])->num_rows();
+                                    $count =  $this->common_model->select_where_ASC_DESC_Group_by("*",'answers', array('user_id'=>$user['id']), '' , '', 'response_id')->num_rows();
                                     $users[$key]['count'] = $count;
                                 }
 
@@ -39,7 +39,7 @@
                                 foreach($users as $key => $data){ ?>
                                 <tr>
                                     <td><?= $key+1; ?></td>
-                                    <td><a data-toggle="tooltip" title="User Response" href="<?= base_url('admin/users_response/').$data['id'] ?>"><?= $data['name'] .' ('. $data['count'].')' ?></a></td>
+                                    <td><a data-toggle="tooltip" title="User Response" href="<?= base_url('admin/date_group/').$data['id'] ?>"><?= $data['name'] .' ('. $data['count'].')' ?></a></td>
                                     <td><?= $data['email'] ?></td>
                                     <td class="d-flex">
                                         <a href="<?= base_url('admin/delete_user/').$data['id']; ?>" class="nav-link">

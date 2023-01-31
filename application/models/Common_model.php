@@ -230,14 +230,12 @@ class Common_model extends  CI_Model {
 	}
 	
 	
-	function join_two_tab_where_numrow( $select, $from, $jointable, $condition, $where ){
+	function select_two_tab_join_where( $select, $from, $jointable, $condition, $where ){
 		$this->db->select($select);
 		$this->db->from( $from );
-		$this->db->join( $jointable , $condition );
+		$this->db->join( $jointable , $condition, 'left' );
 		$this->db->where( $where );
-		$query=$this->db->get();
-		return $query->num_rows();
-
+		return   $this->db->get();
 	}
 	
 	
@@ -429,36 +427,5 @@ class Common_model extends  CI_Model {
 		return $result;	
 		
 	}
-			
-	function get_resposne_combo($id){
-		$this->db->select('*');
-		$this->db->from('answers');
-		$this->db->where('user_id =', $id);
-		$this->db->group_by('DATE(created_at)');
-		$this->db->order_by('created_at', 'ASC');
-		return $this->db->get();
-		
-	}
-
-	function get_date_vise_resposne($id, $date){
-		$this->db->select('answers.*, questions.title, users.name');
-		$this->db->from('answers');
-		$this->db->join('questions', 'answers.question_id = questions.id', 'left');
-		$this->db->join('users', 'answers.user_id = users.id', 'left');
-		$this->db->where('answers.user_id =', $id);
-		$this->db->where('DATE(answers.created_at) =', $date);
-		$query = $this->db->get();
-		return $query->result_array();
-
-	}
-
-	function get_resposne_by_response_id($response_id){
-		$this->db->select('answers.*, questions.title');
-		$this->db->from('answers');
-		$this->db->join('questions', 'answers.question_id = questions.id', 'left');
-		$this->db->where('answers.response_id =', $response_id);
-		return $this->db->get();
-	}
-
 }
 ?>
