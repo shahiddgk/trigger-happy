@@ -29,7 +29,7 @@
                                     $splits = explode(",", trim($data['options'], '[]'));?>
                                 <tr>
                                     <td><?= $key+1; ?></td>
-                                    <td width="45%" class="cstm-title"><?= $data['title'] ?></td>
+                                    <td width="40%" class="cstm-title"><?= $data['title'] ?></td>
                                     <?php if ($splits[0]==''){ ?>
                                         <td></td>
                                     <?php } else{ ?>
@@ -39,7 +39,7 @@
                                             <?php }  ?>
                                         </td>
                                     <?php } ?>
-                                    <td><?= $data['text'] ?></td>
+                                    <td width="40%" class="cstm-title"><?= $data['text'] ?></td>
                                     <td><?= $data['created_at'] ?></td>
                                 </tr>
                             <?php  } } ?>

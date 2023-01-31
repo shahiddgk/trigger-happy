@@ -162,7 +162,7 @@ class Admin extends CI_Controller {
 
 	public function users_response($id = null){
 		$data['page_title'] = 'Users Response';
-		$data['answers'] = $this->common_model->get_resposne_combo($id);
+		$data['answers'] = $this->common_model->get_resposne_combo($id)->result_array();
         $this->load->view('admin/include/header');
         $this->load->view('admin/answers_combo', $data);
         $this->load->view('admin/include/footer');

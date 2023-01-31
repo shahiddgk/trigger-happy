@@ -436,8 +436,8 @@ class Common_model extends  CI_Model {
 		$this->db->where('user_id =', $id);
 		$this->db->group_by('DATE(created_at)');
 		$this->db->order_by('created_at', 'ASC');
-		$query = $this->db->get();
-		return $query->result_array();
+		return $this->db->get();
+		
 	}
 
 	function get_date_vise_resposne($id, $date){
@@ -450,6 +450,14 @@ class Common_model extends  CI_Model {
 		$query = $this->db->get();
 		return $query->result_array();
 
+	}
+
+	function get_resposne_by_response_id($response_id){
+		$this->db->select('answers.*, questions.title');
+		$this->db->from('answers');
+		$this->db->join('questions', 'answers.question_id = questions.id', 'left');
+		$this->db->where('answers.response_id =', $response_id);
+		return $this->db->get();
 	}
 
 }

@@ -11,6 +11,11 @@ class Api extends REST_Controller {
 		// creating object of TokenHandler class at first
 		$this->tokenHandler = new TokenHandler();
 		header('Content-Type: application/json');
+		
+		$this->load->library('email');
+		$this->config->load('email', TRUE);
+		$this->smtp_user =  $this->config->item('smtp_user', 'email');
+
 	}
 
 	public function signup_post(){
@@ -18,7 +23,7 @@ class Api extends REST_Controller {
 		$name	=	$_POST['name'];
 		$email	=	$_POST['email'];
 		$password	=	$_POST['password'];
-		$result = $this->common_model->select_where("*", "users", array('email'=>$email))->result_array();
+		$result = $this->common_model->select_where("*", "users", array('email'=>$email , 'type'=>'user'))->result_array();
 		if($result){
 			$response = [
 				'status' => 400,
@@ -58,7 +63,7 @@ class Api extends REST_Controller {
 		$email	=	$_POST['email'];
 		$password	=	$_POST['password'];
 			
-		$data['login'] = $this->common_model->select_where("*","users", array('email'=>$email,'password'=>sha1($password)));
+		$data['login'] = $this->common_model->select_where("*","users", array('email'=>$email,'password'=>sha1($password), 'type'=>'user'));
 		
 		if($data['login']->num_rows()>0){
 			$row = $data['login']->row();
@@ -127,7 +132,7 @@ class Api extends REST_Controller {
 		$auth_id	=	$_POST['auth_id'];
 
 		if(!empty($auth_id)){
-			$result = $this->common_model->select_where("*", "users", array('email'=>$email));
+			$result = $this->common_model->select_where("*", "users", array('email'=>$email, 'type'=>'user'));
 			if($result->num_rows()>0){
 				$valid_user = $result->row_array();
 				
@@ -257,6 +262,158 @@ class Api extends REST_Controller {
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
+	}
+
+	public function response_submit_mail_post(){
+
+		$name = $_POST['name'];
+		$email = $_POST['email'];
+		$user_id = $_POST['user_id'];
+		$answers = json_decode($_POST['answers'], true);
+		$response_id =  random_string('numeric',8);
+
+		if($answers){
+			$this->set_response($answers, REST_Controller::HTTP_OK);
+			foreach ($answers as $key =>  $answer)
+			{
+				if($answer['type'] == 'radio_btn'){
+					$optins = implode(",",$answer['answer']);
+					$data['question_id'] = $key;
+					$data['options'] =  $optins;
+					$data['text'] = '';
+					$data['user_id'] = $user_id;
+					$data['response_id'] = $response_id;
+				}
+				else if($answer['type'] == 'check_box'){
+					$checks = implode(",",$answer['answer']);
+					$data['question_id'] = $key;
+					$data['options'] = $checks ;
+					$data['text'] = '';
+					$data['user_id'] = $user_id;
+					$data['response_id'] = $response_id;
+				}
+				else if($answer['type'] == 'open_text'){
+					$data['question_id'] = $key;
+					$data['options'] = '';
+					$data['text'] = trim(json_encode($answer['answer']), '[""]');
+					$data['user_id'] = $user_id;
+					$data['response_id'] = $response_id;
+				}
+
+				$insert = $this->common_model->insert_array('answers', $data);
+			}
+
+			if($insert){
+				$response = $this->common_model->get_resposne_by_response_id($response_id); 
+			
+				if($response->num_rows()>0) {
+
+					$data['answers'] = $response->result_array();
+					$subject = 'Response Submit Confirmation';
+					$message = "Dear <b>" .$name. " </b> <br>";
+					$message .= "Your answers for Burgeon have been successfully submitted. <br> <hr>";
+					$message .= '<table>';
+					foreach ( $data['answers'] as $key => $value ){
+						$no = $key+1 ;
+						$message .= "<tr> <td> <b>Question ".$no." : </b> " . strip_tags($value['title']). " </td> </tr>";
+						$message .= "<tr> <td> <b>Answer: </b> ". $text = $value['options'] ? strip_tags($value['options']) : strip_tags($value['text']). "</td> </tr>";
+						$message .= "<tr><td><hr></td></tr>";
+					}
+					$message .= '</table>';
+						$this->email->set_newline("\r\n");
+						$this->email->set_mailtype('html');
+						$this->email->from($this->smtp_user, 'Burgeon');
+						$this->email->to($email);
+						$this->email->subject($subject);
+						$this->email->message($message);
+					if($this->email->send())
+					{
+						$response = [
+							'status' => 200,
+							'message' => 'mail sent successfully'
+						];
+						$this->set_response($response, REST_Controller::HTTP_OK);
+					}
+					else
+					{
+						$error = $this->email->print_debugger();
+						$response = [
+							'status' => 500,
+							'message' => $error
+						];
+						$this->set_response($response, REST_Controller::HTTP_INTERNAL_SERVER_ERROR);
+					}
+				}
+				else{
+					$response = [
+						'status' => 200,
+						'message' => 'data inserted'
+					];
+					$this->set_response($response, REST_Controller::HTTP_OK);
+				}
+			}
+			else{
+				$response = [
+					'status' => 400,
+					'message' => 'Error inserting'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+		}
+		else{
+			$response = [
+				'status' => 400,
+				'message' => 'Invalid json format'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function forgot_password_post()
+	{
+		$email = $_POST['email'];
+		$response = $this->common_model->select_where("id", "users", array('email'=>$email , 'type'=>'user')); 
+	
+		if($response->num_rows()>0) {
+			$row = $response->row();
+			$new_pass =  random_string('alpha',8);
+			$data['password'] = sha1($new_pass);
+			$this->common_model->update_array(array('id'=>$row->id), 'users', $data);
+		
+			
+			$this->load->library('email');
+			$this->email->set_newline("\r\n");
+			$this->email->set_mailtype('html');
+			$this->email->from($this->smtp_user, 'Burgeon');
+			$this->email->to($email);
+			$this->email->subject('Password Reset');
+			$this->email->message('Here is your new password: <b>'. $new_pass . '</b>');
+
+			if($this->email->send())
+			{
+				$response = [
+					'status' => 200,
+					'message' => 'please check your email'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}
+			else
+			{
+				$response = [
+					'status' => 500,
+					'message' => 'password reset failed'
+				];
+				$this->set_response($response, REST_Controller::HTTP_INTERNAL_SERVER_ERROR);
+			}
+		}
+		else{
+			$response = [
+				'status' => 400,
+				'message' => 'invalid user'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+    
 	}
 
 	public function change_password_post(){
