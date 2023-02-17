@@ -34,6 +34,14 @@ class Api extends REST_Controller {
 		else{
 				$data['name'] = $name;
 				$data['email'] = $email;
+				
+				if(isset($_POST['time_zone'])){
+					$data['time_zone'] = $_POST['time_zone'];
+				}
+				if(isset($_POST['device_token'])){
+					$data['device_token'] = $_POST['device_token'];
+				}
+					
 				$data['password'] = sha1($password);
 				$data['type'] = 'user';
 				$data['status'] = 'active';
@@ -66,18 +74,30 @@ class Api extends REST_Controller {
 		$data['login'] = $this->common_model->select_where("*","users", array('email'=>$email,'password'=>sha1($password), 'type'=>'user'));
 		
 		if($data['login']->num_rows()>0){
-			$row = $data['login']->row();
-			if($row->status=='inactive'){
+			$row = $data['login']->row_array();
+			$valid_token  =  $row['device_token'];
+
+			if($row['status']=='inactive'){
 				$response['error'] = 'inactive user';
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			} 
+			if(!empty($_POST['device_token'])){
+				$device_token	=	$_POST['device_token'];
+				$this->common_model->update_array(array('id'=> $row['id']), 'users', array('device_token'=>$device_token));
+
+				if($this->db->affected_rows()> 0){
+					$valid_token  =  $device_token;
+				}
+			}
 
 			$user_data = array(
 				'user_logged_in'  =>  TRUE,
-				'usertype' => $row->type,
-				'username' => $row->name,
-				'useremail' => $row->email,
-				'userid' => $row->id
+				'usertype' => $row['type'],
+				'username' => $row['name'],
+				'useremail' => $row['email'],
+				'timezone' => $row['time_zone'],
+				'devicetoken' => $valid_token,
+				'userid' => $row['id']
 			);
 
 			$response = [
@@ -130,6 +150,8 @@ class Api extends REST_Controller {
 		$name	    =	$_POST['name'];
 		$email	    =	$_POST['email'];
 		$auth_id	=	$_POST['auth_id'];
+		$time_zone	=	$_POST['time_zone'];
+		$device_token	=	$_POST['device_token'];
 
 		if(!empty($auth_id)){
 			$result = $this->common_model->select_where("*", "users", array('email'=>$email, 'type'=>'user'));
@@ -142,6 +164,8 @@ class Api extends REST_Controller {
 						'usertype' => $valid_user['type'],
 						'username' => $valid_user['name'],
 						'useremail' => $valid_user['email'],
+						'timezone' => $valid_user['time_zone'],
+						'devicetoken' => $valid_user['device_token'],
 						'authID' => $valid_user['social_auth_id'],
 						'userid' => $valid_user['id']
 					);
@@ -161,6 +185,8 @@ class Api extends REST_Controller {
 						'usertype' => $valid_user['type'],
 						'username' => $valid_user['name'],
 						'useremail' => $valid_user['email'],
+						'timezone' => $valid_user['time_zone'],
+						'devicetoken' => $valid_user['device_token'],
 						'authID' => $auth_id,
 						'userid' => $valid_user['id']
 					);
@@ -303,14 +329,14 @@ class Api extends REST_Controller {
 			}
 
 			if($insert){
-				$response = $this->common_model-> $this->common_model->select_two_tab_join_where("a.* , q.title",'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id'=>$response_id)); 
+				$response = $this->common_model->select_two_tab_join_where("a.* , q.title",'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id'=>$response_id)); 
 			
 				if($response->num_rows()>0) {
 
 					$data['answers'] = $response->result_array();
 					$subject = 'Response Submit Confirmation';
 					$message = "Dear <b>" .$name. " </b> <br>";
-					$message .= "Your answers for Burgeon have been successfully submitted. <br> <hr>";
+					$message .= "Your answers for Burgeon have been submitted successfully. <br> <hr>";
 					$message .= '<table>';
 					foreach ( $data['answers'] as $key => $value ){
 						$no = $key+1 ;
