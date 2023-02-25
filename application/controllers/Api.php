@@ -66,6 +66,40 @@ class Api extends REST_Controller {
 		}
 	}
 
+	public function update_profile_post(){
+		$user_id	=	$_POST['user_id'];
+		$result = $this->common_model->select_where("*", "users", array('id'=>$user_id , 'type'=>'user'))->result_array();
+		if($result){
+			if(!empty($_POST['name'])){
+				$update['name'] = $_POST['name'];
+				$this->common_model->update_array(array('id'=> $user_id), 'users', $update);
+			}if(!empty($_POST['email'])){
+				$update['email'] = $_POST['email'];
+				$this->common_model->update_array(array('id'=> $user_id), 'users', $update);
+			}if(!empty($_POST['time_zone'])){
+				$update['time_zone'] = $_POST['time_zone'];
+				$this->common_model->update_array(array('id'=> $user_id), 'users', $update);
+			}if(!empty($_POST['device_token'])){
+				$update['device_token'] = $_POST['device_token'];
+				$this->common_model->update_array(array('id'=> $user_id), 'users', $update);
+			}
+			// if($this->db->affected_rows()> 0){
+				$response = [
+					'status' => 200,
+					'message' => 'profile updated successfully'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			// }
+		}
+		else{
+				$response = [
+					'status' => 200,
+					'message' => 'user not found'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+		}
+	}
+
    	public function login_post(){
 
 		$email	=	$_POST['email'];
@@ -88,6 +122,10 @@ class Api extends REST_Controller {
 				if($this->db->affected_rows()> 0){
 					$valid_token  =  $device_token;
 				}
+			}else{
+				$device_token	=	'HHHKHKHKLHIOY88657656545454343543';
+				$this->common_model->update_array(array('id'=> $row['id']), 'users', array('device_token'=>$device_token));
+				$valid_token  =  $device_token;
 			}
 
 			$user_data = array(
@@ -406,7 +444,6 @@ class Api extends REST_Controller {
 			$this->common_model->update_array(array('id'=>$row->id), 'users', $data);
 		
 			
-			$this->load->library('email');
 			$this->email->set_newline("\r\n");
 			$this->email->set_mailtype('html');
 			$this->email->from($this->smtp_user, 'Burgeon');
