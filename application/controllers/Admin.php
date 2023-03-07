@@ -154,7 +154,7 @@ class Admin extends CI_Controller {
 
 	public function users_list(){
 		$data['page_title'] = 'Users List';
-		$data['users'] = $this->common_model->select_where_ASC_DESC('*', 'users', array('type'=>'user'), 'id','ASC')->result_array();
+		$data['users'] = $this->common_model->select_where_ASC_DESC('*', 'users', array('type'=>'user','email !=' =>'test@triggerhappy.com'), 'id','ASC')->result_array();
         $this->load->view('admin/include/header');
         $this->load->view('admin/users', $data);
         $this->load->view('admin/include/footer');

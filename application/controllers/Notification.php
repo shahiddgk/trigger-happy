@@ -16,7 +16,7 @@ class Notification extends CI_Controller {
         // Select users with a non-empty device token
         $this->db->select('id, name, device_token, time_zone');
         $this->db->where('type', 'user');
-        // $this->db->where_in('id', array(182, 166));
+        // $this->db->where_in('id', array(181, 183, 166));
         $this->db->where_not_in('device_token','');
         $this->db->where_not_in('time_zone','');
         $users_query = $this->db->get('users');
@@ -32,13 +32,14 @@ class Notification extends CI_Controller {
             
             // // Convert the current time to the user's time zone
             $current_time->setTimezone($timezone);
-            // echo "<pre>" ; print_r($timezone);
+            // echo "<pre>" ; print_r($timezone); exit;
 
             // // Check if it is currently 12:00 PM in the user's time zone
             if ($current_time->format('H:i') === '12:00') {
+
                 $notification_data = array(
                     'title' => 'Hello, ' . $user->name,
-                    'message' => 'This is a sample push notification',
+                    'message' => 'What do you need to process today?',
                     'time' => $current_time->format('Y-m-d H:i:s'),
                     'user_id' => $user->id,
                     'device_token' => $user->device_token

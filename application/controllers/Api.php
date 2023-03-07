@@ -552,4 +552,32 @@ class Api extends REST_Controller {
     
 	}
 
+	public function logout_post()
+	{
+		$user_id = $_POST['user_id'];
+		if(!empty($user_id)){
+			$this->common_model->update_array(array('id'=> $user_id), 'users', array('device_token'=>''));
+			if($this->db->affected_rows()> 0){
+				$response = [
+					'status' => 200,
+					'message' => 'logged out successfully'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}else{
+				$response = [
+					'status' => 400,
+					'message' => 'user not found'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+    
+	}
+
 }
