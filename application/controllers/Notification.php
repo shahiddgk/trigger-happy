@@ -86,8 +86,6 @@ class Notification extends CI_Controller {
         }
         exit;
     }
-
- 
     
     public function push_notification($data){
         $fields = [
@@ -117,5 +115,21 @@ class Notification extends CI_Controller {
         // $response = json_decode($result, true);
         //  echo "<pre>"; print_r($response); exit();
         
+    }
+
+    public function growth_tree() {
+
+        $this->db->select('user_id, DATE(created_at) as response_date');
+        $this->db->from('answers');
+        $this->db->where('DATE(created_at)', date('Y-m-d'));
+        $this->db->group_by('user_id');
+        $results = $this->db->get()->result_array();
+
+        foreach ($results as $data){
+            $insert['type'] = 'pire';
+            $insert['user_id'] = $data['user_id'];
+            $insert['response_date'] = $data['response_date'];
+            $this->db->insert('scores', $insert );
+        }
     }
 }

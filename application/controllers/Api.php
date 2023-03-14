@@ -580,4 +580,26 @@ class Api extends REST_Controller {
     
 	}
 
+	public function growth_tree_post(){
+		$user_id = $_POST['user_id'];
+
+		if(!empty($user_id)){
+			$count = $this->common_model->select_where("*","scores", array('user_id'=>$user_id, 'type'=>'pire'))->num_rows();
+
+			$response = [
+				'status' => 200,
+				'type' => 'pire',
+				'count' => $count,
+				'message' => 'user has submitted some response'
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
 }

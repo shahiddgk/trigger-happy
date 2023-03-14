@@ -25,7 +25,8 @@
               </div>
               <div class="row">
                 <div class="col-6 col-md-12 col-xl-5">
-                  <h3 class="mb-2"><?= $num_rows;?></h3>
+                  <!-- Hide test user for app from total count -->
+                  <h3 class="mb-2"><?= $num_rows-1;?></h3>
                 </div>
                 <div class="col-6 col-md-12 col-xl-7">
                   <div id="apexChart1" class="mt-md-3 mt-xl-0"></div>
