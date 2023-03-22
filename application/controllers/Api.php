@@ -366,7 +366,9 @@ class Api extends REST_Controller {
 				$insert = $this->common_model->insert_array('answers', $data);
 			}
 
-			if($insert){
+			$status = $this->common_model->select_single_field('mail_resp', 'users', array('id'=>$user_id));
+			
+			if($insert && $status == 'yes'){
 				$response = $this->common_model->select_two_tab_join_where("a.* , q.title",'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id'=>$response_id)); 
 			
 				if($response->num_rows()>0) {
@@ -417,10 +419,10 @@ class Api extends REST_Controller {
 			}
 			else{
 				$response = [
-					'status' => 400,
-					'message' => 'Error inserting'
+					'status' => 200,
+					'message' => 'data instered, mail not allowed'
 				];
-				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+				$this->set_response($response, REST_Controller::HTTP_OK);
 			}
 		}
 		else{
@@ -593,6 +595,34 @@ class Api extends REST_Controller {
 				'message' => 'user has submitted some response'
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function get_email_post(){
+		$user_id = $_POST['user_id'];
+		$update['mail_resp'] = $_POST['status'];
+
+		if(!empty($user_id)){
+			$this->common_model->update_array(array('id'=> $user_id), 'users', $update);
+			if($this->db->affected_rows()> 0){
+				$response = [
+					'status' => 200,
+					'message' => 'Get email status udated'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}else{
+				$response = [
+					'status' => 400,
+					'message' => 'user not found'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
 		}else{
 			$response = [
 				'status' => 400,

@@ -123,6 +123,8 @@ class Notification extends CI_Controller {
         $this->db->from('answers');
         $this->db->where('DATE(created_at)', date('Y-m-d'));
         $this->db->group_by('user_id');
+        // $this->db->where('DATE(created_at) <=', date('Y-m-d'));
+        // $this->db->group_by('user_id, DATE(created_at)');
         $results = $this->db->get()->result_array();
 
         foreach ($results as $data){
