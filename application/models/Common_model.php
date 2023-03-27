@@ -172,6 +172,17 @@ class Common_model extends  CI_Model {
 		
 	}
 
+	function get_users_reponse_by_date($selectedDate)
+	{
+		$this->db->select('user_id, DATE(answers.created_at) AS cr_date, name, email');
+		$this->db->from('answers');
+		$this->db->join('users' , 'users.id = user_id');
+		$this->db->where('DATE(answers.created_at)', $selectedDate);
+		$this->db->group_by('user_id , DATE(answers.created_at)');
+		$result = $this->db->get();
+		return $result;
+		
+	}
 	
 	function select_table_rows($select,$table)
 	{

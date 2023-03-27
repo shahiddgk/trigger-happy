@@ -160,6 +160,19 @@ class Admin extends CI_Controller {
         $this->load->view('admin/include/footer');
     }
 
+	public function users_by_date(){
+		$data['page_title'] = 'User Responses By Date';
+        $this->load->view('admin/include/header');
+        $this->load->view('admin/users_by_date', $data);
+        $this->load->view('admin/include/footer');
+    }
+
+	public function get_users_by_date(){
+		$selectedDate = $this->input->post('date');
+		$users = $this->common_model->get_users_reponse_by_date($selectedDate)->result();
+		echo json_encode($users);
+	}
+
 	public function date_group($id = null){
 		$data['page_title'] = 'Date Group';
 		
