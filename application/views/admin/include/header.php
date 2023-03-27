@@ -101,7 +101,7 @@ else{
 				<a href="<?= base_url('admin/users_list') ?>" class="nav-link">Users</a>
 			</li>
 			<li class="nav-item">
-				<a href="<?= base_url('admin/users_by_date') ?>" class="nav-link">Users By Date</a>
+				<a href="<?= base_url('admin/users_by_date') ?>" class="nav-link">Response By Date</a>
 			</li>
 		</ul>
 		</div>
