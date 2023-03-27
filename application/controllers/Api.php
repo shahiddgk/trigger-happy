@@ -133,6 +133,7 @@ class Api extends REST_Controller {
 				'usertype' => $row['type'],
 				'username' => $row['name'],
 				'useremail' => $row['email'],
+				'allowemail' => $row['mail_resp'],
 				'timezone' => $row['time_zone'],
 				'devicetoken' => $valid_token,
 				'userid' => $row['id']
@@ -202,6 +203,7 @@ class Api extends REST_Controller {
 						'usertype' => $valid_user['type'],
 						'username' => $valid_user['name'],
 						'useremail' => $valid_user['email'],
+						'allowemail' => $valid_user['mail_resp'],
 						'timezone' => $valid_user['time_zone'],
 						'devicetoken' => $valid_user['device_token'],
 						'authID' => $valid_user['social_auth_id'],
@@ -223,6 +225,7 @@ class Api extends REST_Controller {
 						'usertype' => $valid_user['type'],
 						'username' => $valid_user['name'],
 						'useremail' => $valid_user['email'],
+						'allowemail' => $valid_user['mail_resp'],
 						'timezone' => $valid_user['time_zone'],
 						'devicetoken' => $valid_user['device_token'],
 						'authID' => $auth_id,
@@ -591,8 +594,9 @@ class Api extends REST_Controller {
 			$response = [
 				'status' => 200,
 				'type' => 'pire',
-				'count' => $count,
-				'message' => 'user has submitted some response'
+				'response_count'=> $count,
+				'mobile_image_url'=> base_url('uploads/mobile_tree/').$count.'.png',
+				'ipad_image_url' => '' 
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}else{
@@ -618,10 +622,10 @@ class Api extends REST_Controller {
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			}else{
 				$response = [
-					'status' => 400,
-					'message' => 'user not found'
+					'status' => 200,
+					'message' => 'no status change'
 				];
-				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+				$this->set_response($response, REST_Controller::HTTP_OK);
 			}
 		}else{
 			$response = [
