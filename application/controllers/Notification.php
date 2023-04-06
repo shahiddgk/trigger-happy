@@ -128,10 +128,16 @@ class Notification extends CI_Controller {
         $results = $this->db->get()->result_array();
 
         foreach ($results as $data){
-            $insert['type'] = 'pire';
-            $insert['user_id'] = $data['user_id'];
-            $insert['response_date'] = $data['response_date'];
-            $this->db->insert('scores', $insert );
+            $count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $data['user_id'], 'response_date' => $data['response_date']));
+            
+            if ($count > 0){
+                continue;
+            }else{
+                $insert['type'] = 'pire';
+                $insert['user_id'] = $data['user_id'];
+                $insert['response_date'] = $data['response_date'];
+                $this->db->insert('scores', $insert );
+            }
         }
     }
 }

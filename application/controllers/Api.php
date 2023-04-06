@@ -590,13 +590,47 @@ class Api extends REST_Controller {
 
 		if(!empty($user_id)){
 			$count = $this->common_model->select_where("*","scores", array('user_id'=>$user_id, 'type'=>'pire'))->num_rows();
+			if($count>0){
+				if($count>37){
+					$img = 37;
+				}else{
+					$img = $count;
+				}
+			}else{
+				$img = 1;
+			}
 
 			$response = [
 				'status' => 200,
 				'type' => 'pire',
 				'response_count'=> $count,
-				'mobile_image_url'=> base_url('uploads/mobile_tree/').$count.'.png',
-				'ipad_image_url' => '' 
+				'mobile_image_url'=> base_url('uploads/mobile_tree/').$img.'.png',
+				'ipad_image_url'=> base_url('uploads/ipad_tree/').$img.'.png',
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function response_history_post(){
+		
+		if(isset($_POST['user_id']) && !empty($_POST['user_id'])){
+			$user_id = $_POST['user_id'];
+			$result_array = $this->common_model->select_where_groupby("DATE(created_at) response_date", "answers", array('user_id'=>$user_id), 'DATE(created_at)')->result_array();
+
+			foreach($result_array as $key => $value){
+				$count = '0';
+				$count =  $this->common_model->select_where_groupby("*","answers", array('user_id'=>$user_id, 'DATE(created_at)'=> $value['response_date']), 'response_id')->num_rows();
+				$result_array[$key]['count'] = $count;
+			}
+			$response = [
+				'status' => 200,
+				'response_history'=> $result_array,
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}else{
