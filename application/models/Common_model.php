@@ -58,12 +58,12 @@ class Common_model extends  CI_Model {
 	}
 	
 	
-	function select_where_in($select,$table,$where_in,$in_fld)
+	function select_where_groupby($select,$table,$where,$groupby)
 	{	
 		$this->db->select($select);
 		$this->db->from( $table );
-		$this->db->where_in($in_fld, $where_in);
-		$this->db->group_by($select);
+		$this->db->where($where);
+		$this->db->group_by($groupby);
 		return $this->db->get();
 	}
 	

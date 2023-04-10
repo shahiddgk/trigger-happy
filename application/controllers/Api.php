@@ -590,13 +590,57 @@ class Api extends REST_Controller {
 
 		if(!empty($user_id)){
 			$count = $this->common_model->select_where("*","scores", array('user_id'=>$user_id, 'type'=>'pire'))->num_rows();
+			if($count>0){
+				if($count>37){
+					$img = 37;
+				}else{
+					$img = $count;
+				}
+			}else{
+				$img = 1;
+			}
 
 			$response = [
 				'status' => 200,
 				'type' => 'pire',
 				'response_count'=> $count,
-				'mobile_image_url'=> base_url('uploads/mobile_tree/').$count.'.png',
-				'ipad_image_url' => '' 
+				'mobile_image_url'=> base_url('uploads/mobile_tree/').$img.'.png',
+				'ipad_image_url'=> base_url('uploads/ipad_tree/').$img.'.png',
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function response_history_post(){
+		
+		if(isset($_POST['user_id']) && !empty($_POST['user_id'])){
+			$user_id = $_POST['user_id'];
+			$result_array = $this->common_model->select_where_ASC_DESC_Group_by("response_date
+			 date", "scores", array('user_id'=>$user_id , 'type'=>'pire'), 'response_date', 'ASC', 'response_date' )->result_array();
+
+			foreach($result_array as $key => $value){
+				$count = $key+1;
+				$result_array[$key]['score'] = $count;
+			}
+			if(isset($_POST['date']) && !empty($_POST['date'])){
+				$date_to_find = $_POST['date'];
+
+				foreach ($result_array as $item) {
+					if ($item["date"] === $date_to_find) {
+						$result_array =  $item;
+						break;
+					}
+				}
+			}
+			$response = [
+				'status' => 200,
+				'response_history'=> $result_array,
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}else{
