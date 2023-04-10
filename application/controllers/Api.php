@@ -621,6 +621,7 @@ class Api extends REST_Controller {
 		
 		if(isset($_POST['user_id']) && !empty($_POST['user_id'])){
 			$user_id = $_POST['user_id'];
+<<<<<<< HEAD
 			$result_array = $this->common_model->select_where_ASC_DESC_Group_by("response_date
 			 date", "scores", array('user_id'=>$user_id , 'type'=>'pire'), 'response_date', 'ASC', 'response_date' )->result_array();
 
@@ -637,6 +638,14 @@ class Api extends REST_Controller {
 						break;
 					}
 				}
+=======
+			$result_array = $this->common_model->select_where_groupby("DATE(created_at) response_date", "answers", array('user_id'=>$user_id), 'DATE(created_at)')->result_array();
+
+			foreach($result_array as $key => $value){
+				$count = '0';
+				$count =  $this->common_model->select_where_groupby("*","answers", array('user_id'=>$user_id, 'DATE(created_at)'=> $value['response_date']), 'response_id')->num_rows();
+				$result_array[$key]['count'] = $count;
+>>>>>>> 9587c6e449ce30690837c6372193df765fb2ee18
 			}
 			$response = [
 				'status' => 200,
