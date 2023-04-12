@@ -16,7 +16,8 @@ class Notification extends CI_Controller {
         // Select users with a non-empty device token
         $this->db->select('id, name, device_token, time_zone');
         $this->db->where('type', 'user');
-        // $this->db->where_in('id', array(205));
+        // Kaleem & Abid
+        // $this->db->where_in('id', array(166, 205, 182));
         $this->db->where_not_in('device_token','');
         $this->db->where_not_in('time_zone','');
         $users_query = $this->db->get('users');
@@ -119,12 +120,12 @@ class Notification extends CI_Controller {
 
     public function growth_tree() {
 
+        $yesterday = date('Y-m-d', strtotime("-1 days"));
+
         $this->db->select('user_id, DATE(created_at) as response_date');
         $this->db->from('answers');
-        $this->db->where('DATE(created_at)', date('Y-m-d'));
+        $this->db->where('DATE(created_at)', $yesterday);
         $this->db->group_by('user_id');
-        // $this->db->where('DATE(created_at) <=', date('Y-m-d'));
-        // $this->db->group_by('user_id, DATE(created_at)');
         $results = $this->db->get()->result_array();
 
         foreach ($results as $data){
