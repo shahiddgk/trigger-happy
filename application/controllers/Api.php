@@ -601,7 +601,7 @@ class Api extends REST_Controller {
 			$response = [
 				'status' => 200,
 				'type' => 'pire',
-				'response_count'=> $count,
+				'response_count'=> $img,
 				'mobile_image_url'=> base_url('uploads/mobile_tree/').$img.'.png',
 				'ipad_image_url'=> base_url('uploads/ipad_tree/').$img.'.png',
 			];

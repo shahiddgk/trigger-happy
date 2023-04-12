@@ -64,48 +64,48 @@ else{
 	</div>
 	<div class="sidebar-body">
 	<ul class="nav">
-	<li class="nav-item nav-category">Main</li>
-	<li class="nav-item">
-		<a href="<?= base_url('admin/dashboard'); ?>" class="nav-link">
-		<i class="link-icon" data-feather="box"></i>
-		<span class="link-title">Dashboard</span>
-		</a>
-	</li>
-	<li class="nav-item nav-category">web apps</li>
-	<li class="nav-item">
-		<a class="nav-link" data-toggle="collapse" href="#general-pages" role="button" aria-expanded="false" aria-controls="general-pages">
-		<i class="link-icon" data-feather="book"></i>
-		<span class="link-title">Questions</span>
-		<i class="link-arrow" data-feather="chevron-down"></i>
-		</a>
-		<div class="collapse" id="general-pages">
-		<ul class="nav sub-menu">
-			<li class="nav-item">
-				<a href="<?= base_url('admin/add_question'); ?>" class="nav-link">Add Question</a>
-			</li>
-			<li class="nav-item">
-				<a href="<?= base_url('admin/questions'); ?>" class="nav-link">Questions List</a>
-			</li>
-		</ul>
-		</div>
-	</li>
-	<li class="nav-item">
-		<a class="nav-link" data-toggle="collapse" href="#user-pages" role="button" aria-expanded="false" aria-controls="user-pages">
-		<i class="link-icon" data-feather="users"></i>
-		<span class="link-title">Users</span>
-		<i class="link-arrow" data-feather="chevron-down"></i>
-		</a>
-		<div class="collapse" id="user-pages">
-		<ul class="nav sub-menu">
-			<li class="nav-item">
-				<a href="<?= base_url('admin/users_list') ?>" class="nav-link">Users</a>
-			</li>
-			<li class="nav-item">
-				<a href="<?= base_url('admin/users_by_date') ?>" class="nav-link">Response By Date</a>
-			</li>
-		</ul>
-		</div>
-	</li>
+		<li class="nav-item nav-category">Main</li>
+		<li class="nav-item">
+			<a class="nav-link" href="<?php echo site_url('admin/dashboard'); ?>">
+			<i class="link-icon" data-feather="box"></i>
+			<span class="link-title">Dashboard</span>
+			</a>
+		</li>
+		<li class="nav-item nav-category">web apps</li>
+		<li class="nav-item">
+			<a class="nav-link" data-toggle="collapse" href="#general-pages" role="button" aria-expanded="false" aria-controls="general-pages">
+			<i class="link-icon" data-feather="book"></i>
+			<span class="link-title">Questions</span>
+			<i class="link-arrow" data-feather="chevron-down"></i>
+			</a>
+			<div class="collapse" id="general-pages">
+			<ul class="nav sub-menu">
+				<li class="nav-item">
+					<a href="<?= base_url('admin/add_question'); ?>" class="nav-link">Add Question</a>
+				</li>
+				<li class="nav-item">
+					<a href="<?= base_url('admin/questions'); ?>" class="nav-link">Questions List</a>
+				</li>
+			</ul>
+			</div>
+		</li>
+		<li class="nav-item">
+			<a class="nav-link" data-toggle="collapse" href="#user-pages" role="button" aria-expanded="false" aria-controls="user-pages">
+			<i class="link-icon" data-feather="users"></i>
+			<span class="link-title">Users</span>
+			<i class="link-arrow" data-feather="chevron-down"></i>
+			</a>
+			<div class="collapse" id="user-pages">
+			<ul class="nav sub-menu">
+				<li class="nav-item">
+					<a href="<?= base_url('admin/users_list') ?>" class="nav-link">Users</a>
+				</li>
+				<li class="nav-item">
+					<a href="<?= base_url('admin/users_by_date') ?>" class="nav-link">Response By Date</a>
+				</li>
+			</ul>
+			</div>
+		</li>
 	</ul>
 	</div>
 	</nav>
