@@ -8,6 +8,16 @@ class Api extends REST_Controller {
 	public function __construct()
 	{
 		parent::__construct();
+		$this->output->set_header('Access-Control-Allow-Origin: *');
+        $this->output->set_header('Access-Control-Allow-Methods: POST, GET, DELETE, PUT, PATCH, OPTIONS');
+        $this->output->set_header('Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With');
+		// Handle preflight requests
+        if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+            header('Access-Control-Allow-Origin: *');
+            header('Access-Control-Allow-Methods: POST, GET, DELETE, PUT, PATCH, OPTIONS');
+            header('Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With');
+            exit();
+        }
 		// creating object of TokenHandler class at first
 		$this->tokenHandler = new TokenHandler();
 		header('Content-Type: application/json');
@@ -659,13 +669,218 @@ class Api extends REST_Controller {
 			if($this->db->affected_rows()> 0){
 				$response = [
 					'status' => 200,
-					'message' => 'Get email status udated'
+					'message' => 'email status updated'
 				];
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			}else{
 				$response = [
 					'status' => 200,
 					'message' => 'no status change'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function trellis_post(){
+		$user_id = $_POST['user_id'];
+		
+		if(isset($_POST['name'])){
+			$data['name'] = $_POST['name'];
+		}
+		if(isset($_POST['name_desc'])){
+			$data['name_desc'] = $_POST['name_desc'];
+		}
+		if(isset($_POST['purpose'])){
+			$data['purpose'] = $_POST['purpose'];
+		}
+		if(isset($_POST['mentor'])){
+			$data['mentor'] = $_POST['mentor'];
+		}
+		if(isset($_POST['mentor_desc'])){
+			$data['mentor_desc'] = $_POST['mentor_desc'];
+		}
+		if(isset($_POST['peer'])){
+			$data['peer'] = $_POST['peer'];
+		}
+		if(isset($_POST['peer_desc'])){
+			$data['peer_desc'] = $_POST['peer_desc'];
+		}
+		if(isset($_POST['mentee'])){
+			$data['mentee'] = $_POST['mentee'];
+		}
+		if(isset($_POST['mentee_desc'])){
+			$data['mentee_desc'] = $_POST['mentee_desc'];
+		}
+
+		$row_count = $this->common_model->select_where("*", "trellis", array('user_id'=>$user_id))->num_rows();
+
+		if($row_count == 1){
+					
+			$this->common_model->update_array(array('user_id'=> $user_id), 'trellis', $data);
+			$response = [
+				'status' => 200,
+				'message' => 'data updated'
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$data['user_id'] = $user_id;
+			$this->common_model->insert_array('trellis', $data);
+			$response = [
+				'status' => 200,
+				'message' => 'data inserted'
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}
+	
+		
+	}
+
+	public function ladder_post(){
+		$user_id = $_POST['user_id'];
+
+		if(!empty($user_id)){
+			$data['user_id'] = $user_id;
+			$data['type'] = $_POST['type'];
+			if(isset($_POST['option1']) && !empty($_POST['option1'])){
+				$data['option1'] = $_POST['option1'];
+			}
+			if(isset($_POST['option2']) && !empty($_POST['option2'])){
+				$data['option2'] = $_POST['option2'];
+			}
+			if(isset($_POST['date']) && !empty($_POST['date'])){
+				$data['date'] = $_POST['date'];
+			}
+			if(isset($_POST['text']) && !empty($_POST['text'])){
+				$data['text'] = $_POST['text'];
+			}
+			if(isset($_POST['description']) && !empty($_POST['description'])){
+				$data['description'] = $_POST['description'];
+			}
+			
+			$this->common_model->insert_array('ladder', $data);
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'post_data' => $_POST
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function principles_post(){
+		$user_id = $_POST['user_id'];
+
+		if(!empty($user_id)){
+			$data['user_id'] = $user_id;
+			$data['type'] = $_POST['type'];
+			if(isset($_POST['emp_truths'])){
+				$data['emp_truths'] = $_POST['emp_truths'];
+			}
+			if(isset($_POST['powerless_believes'])){
+				$data['powerless_believes'] = $_POST['powerless_believes'];
+			}
+			
+			$this->common_model->insert_array('principles', $data);
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'post_data' => $_POST
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function identity_post(){
+		$user_id = $_POST['user_id'];
+
+		if(!empty($user_id)){
+			$data['user_id'] = $user_id;
+			$data['type'] = $_POST['type'];
+			if(isset($_POST['text']) && !empty($_POST['text'])){
+				$data['text'] = $_POST['text'];
+			}
+			
+			$this->common_model->insert_array('identity', $data);
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'post_data' => $_POST
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function trellis_read_post(){
+		$user_id = $_POST['user_id'];
+
+		if(!empty($user_id)){
+			$table = $_POST['table'];
+			$trellis = $this->common_model->select_where("*", "$table", array('user_id'=>$user_id))->result_array();
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'table_name' =>  $table,
+				'data' => $trellis
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function trellis_delete_post(){
+		$user_id = $_POST['user_id'];
+
+		if(!empty($user_id)){
+			$type = $_POST['type'];
+			$record_id = $_POST['record_id'];
+
+			if($type == 'goal' || $type == 'achievements'){
+				$table = 'ladder';
+			}else if($type == 'needs' || $type == 'identity'){
+				$table = 'identity';
+			}
+
+			$this->db->delete("$table", array('id'=>$record_id, 'user_id'=>$user_id));
+			if($this->db->affected_rows()> 0){
+				$response = [
+					'status' => 200,
+					'message' => 'deleted successfully'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}else{
+				$response = [
+					'status' => 200,
+					'message' => 'data not deleted'
 				];
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			}
