@@ -42,7 +42,7 @@
                                         <?php $nameDescWords = explode(' ', $trel['name_desc']); ?>
                                         <span id="name_desc_<?=$trel['id']?>"><?=implode(' ', array_slice($nameDescWords, 0, 2))?>...</span>
                                         <?php if(count($nameDescWords) > 2) { ?>
-                                            <a href="javascript:void(0);" onclick="toggleText('name_desc_<?=$trel['id']?>', '<?=implode(' ', $nameDescWords)?>')">Read More</a>
+                                            <a href="javascript:void(0);" onclick="toggleText('name_desc_<?=$trel['id']?>', '<?=implode(' ', $nameDescWords)?>')">Read more</a>
                                             <a href="javascript:void(0);" onclick="toggleText('name_desc_<?=$trel['id']?>', '<?=implode(' ', $nameDescWords)?>')" style="display:none;">Hide</a>
                                         <?php } ?>
                                     </td>
@@ -50,7 +50,7 @@
                                         <?php $purposeWords = explode(' ', $trel['purpose']); ?>
                                         <span id="purpose_<?=$trel['id']?>"><?=implode(' ', array_slice($purposeWords, 0, 2))?>...</span>
                                         <?php if(count($purposeWords) > 2) { ?>
-                                            <a href="javascript:void(0);" onclick="toggleText('purpose_<?=$trel['id']?>', '<?=implode(' ', $purposeWords)?>')">Read More</a>
+                                            <a href="javascript:void(0);" onclick="toggleText('purpose_<?=$trel['id']?>', '<?=implode(' ', $purposeWords)?>')">Read more</a>
                                             <a href="javascript:void(0);" onclick="toggleText('purpose_<?=$trel['id']?>', '<?=implode(' ', $purposeWords)?>')" style="display:none;">Hide</a>
                                         <?php } ?>
                                     </td>
