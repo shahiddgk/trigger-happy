@@ -765,6 +765,8 @@ class Api extends REST_Controller {
 			}
 			
 			$this->common_model->insert_array('ladder', $data);
+			$last_insert_id = $this->db->insert_id(); 
+			$_POST['id'] = $last_insert_id;
 			$response = [
 				'status' => 200,
 				'message' => 'success',
@@ -794,6 +796,8 @@ class Api extends REST_Controller {
 			}
 			
 			$this->common_model->insert_array('principles', $data);
+			$last_insert_id = $this->db->insert_id(); 
+			$_POST['id'] = $last_insert_id;
 			$response = [
 				'status' => 200,
 				'message' => 'success',
@@ -820,6 +824,8 @@ class Api extends REST_Controller {
 			}
 			
 			$this->common_model->insert_array('identity', $data);
+			$last_insert_id = $this->db->insert_id(); 
+			$_POST['id'] = $last_insert_id;
 			$response = [
 				'status' => 200,
 				'message' => 'success',
