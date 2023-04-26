@@ -195,6 +195,67 @@ class Admin extends CI_Controller {
 		redirect('admin/users_list'); 
 	}
 
+	public function trellis(){
+		$data['page_title'] = 'Trellis List';
+		$data['trellis'] = $this->common_model->select_all("*", "trellis")->result_array();
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/trellis', $data);
+		$this->load->view('admin/include/footer'); 
+	}
+
+	public function user_needs($id) {
+		$data['page_title'] = 'User Needs';
+		$data['needs'] = $this->common_model->select_where("*", "identity", array('user_id'=> $id, 'type' => 'needs'))->result_array();
+
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/user_needs', $data);
+		$this->load->view('admin/include/footer'); 
+	}
+	
+	public function user_identity($id) {
+		$data['page_title'] = 'User Identity';
+		$data['identity'] = $this->common_model->select_where("*", "identity", array('user_id'=> $id, 'type' => 'identity'))->result_array();
+
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/user_identity', $data);
+		$this->load->view('admin/include/footer'); 
+	}
+	
+	public function user_principle($id) {
+		$data['page_title'] = 'User Principle';
+		$data['principle'] = $this->common_model->select_where("*", "principles", array('user_id'=> $id, 'type' => 'principles'))->result_array();
+
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/user_principles', $data);
+		$this->load->view('admin/include/footer'); 
+	}
+
+	public function user_rhythms($id) {
+		$data['page_title'] = 'Rhythms';
+		$data['rhythms'] = $this->common_model->select_where("*", "principles", array('user_id'=> $id, 'type' => 'rhythms'))->result_array();
+
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/user_rhythms', $data);
+		$this->load->view('admin/include/footer'); 
+	}
+
+	public function user_goal($id) {
+		$data['page_title'] = 'Goal/Challanges';
+		$data['goal'] = $this->common_model->select_where("*", "ladder", array('user_id'=> $id, 'type' => 'goal'))->result_array();
+
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/user_goal', $data);
+		$this->load->view('admin/include/footer'); 
+	}
+
+	public function user_achievements($id) {
+		$data['page_title'] = 'Memories/Achievements';
+		$data['achievements'] = $this->common_model->select_where("*", "ladder", array('user_id'=> $id, 'type' => 'achievements'))->result_array();
+		
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/user_achievements', $data);
+		$this->load->view('admin/include/footer'); 
+	}
 }
 
 ?>
