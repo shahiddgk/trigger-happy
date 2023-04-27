@@ -905,6 +905,8 @@ class Api extends REST_Controller {
 				$table = 'ladder';
 			}else if($type == 'needs' || $type == 'identity'){
 				$table = 'identity';
+			}else if($type == 'rhythms' || $type == 'principles'){
+				$table = 'principles';
 			}
 
 			$this->db->delete("$table", array('id'=>$record_id, 'user_id'=>$user_id));
