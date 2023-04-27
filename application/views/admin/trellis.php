@@ -20,12 +20,6 @@
                                 <th>Name</th>
                                 <th>Description</th>
                                 <th>Purpose</th>
-                                <th>Mentor</th>
-                                <th>Mentor Description</th>
-                                <th>peer</th>
-                                <th>peer Description</th>
-                                <th>mentee</th>
-                                <th>mentee Description</th>
                                 <th>needs</th>
                                 <th>identity</th>
                                 <th>principles</th>
@@ -54,12 +48,6 @@
                                             <a href="javascript:void(0);" onclick="toggleText('purpose_<?=$trel['id']?>', '<?=implode(' ', $purposeWords)?>')" style="display:none;">Hide</a>
                                         <?php } ?>
                                     </td>
-                                    <td><?=$trel['mentor']?></td>
-                                    <td><?=$trel['mentor_desc']?></td>
-                                    <td><?=$trel['peer']?></td>
-                                    <td><?=$trel['peer_desc']?></td>
-                                    <td><?=$trel['mentee']?></td>
-                                    <td><?=$trel['mentee_desc']?></td>
                                     <td><a href="<?= base_url('admin/user_needs/').$trel['user_id'] ?>">Needs</a></td>
                                     <td><a href="<?= base_url('admin/user_identity/').$trel['user_id'] ?>">Identity</a></td>
                                     <td><a href="<?= base_url('admin/user_principle/').$trel['user_id'] ?>">Principle</a></td>
