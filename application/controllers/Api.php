@@ -700,24 +700,6 @@ class Api extends REST_Controller {
 		if(isset($_POST['purpose'])){
 			$data['purpose'] = $_POST['purpose'];
 		}
-		if(isset($_POST['mentor'])){
-			$data['mentor'] = $_POST['mentor'];
-		}
-		if(isset($_POST['mentor_desc'])){
-			$data['mentor_desc'] = $_POST['mentor_desc'];
-		}
-		if(isset($_POST['peer'])){
-			$data['peer'] = $_POST['peer'];
-		}
-		if(isset($_POST['peer_desc'])){
-			$data['peer_desc'] = $_POST['peer_desc'];
-		}
-		if(isset($_POST['mentee'])){
-			$data['mentee'] = $_POST['mentee'];
-		}
-		if(isset($_POST['mentee_desc'])){
-			$data['mentee_desc'] = $_POST['mentee_desc'];
-		}
 
 		$row_count = $this->common_model->select_where("*", "trellis", array('user_id'=>$user_id))->num_rows();
 
@@ -765,6 +747,49 @@ class Api extends REST_Controller {
 			}
 			
 			$this->common_model->insert_array('ladder', $data);
+			$last_insert_id = $this->db->insert_id(); 
+			$_POST['id'] = $last_insert_id;
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'post_data' => $_POST
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+
+	public function tribe_post(){
+		$user_id = $_POST['user_id'];
+
+		if(!empty($user_id)){
+			$data['user_id'] = $user_id;
+			if(isset($_POST['mentor']) && !empty($_POST['mentor'])){
+				$data['mentor'] = $_POST['mentor'];
+			}
+			if(isset($_POST['mentor_desc']) && !empty($_POST['mentor_desc'])){
+				$data['mentor_desc'] = $_POST['mentor_desc'];
+			}
+			if(isset($_POST['peer']) && !empty($_POST['peer'])){
+				$data['peer'] = $_POST['peer'];
+			}
+			if(isset($_POST['peer_desc']) && !empty($_POST['peer_desc'])){
+				$data['peer_desc'] = $_POST['peer_desc'];
+			}
+			if(isset($_POST['mentee']) && !empty($_POST['mentee'])){
+				$data['mentee'] = $_POST['mentee'];
+			}
+			if(isset($_POST['mentee_desc']) && !empty($_POST['mentee_desc'])){
+				$data['mentee_desc'] = $_POST['mentee_desc'];
+			}
+			
+			$this->common_model->insert_array('tribe', $data);
 			$last_insert_id = $this->db->insert_id(); 
 			$_POST['id'] = $last_insert_id;
 			$response = [
@@ -846,7 +871,13 @@ class Api extends REST_Controller {
 
 		if(!empty($user_id)){
 			$table = $_POST['table'];
-			$trellis = $this->common_model->select_where("*", "$table", array('user_id'=>$user_id))->result_array();
+			if(isset($_POST['type']) && !empty($_POST['type'])){
+				$type = $_POST['type'];
+				$trellis = $this->common_model->select_where("*", "$table", array('user_id'=>$user_id, 'type'=>$type))->result_array();
+			}
+			else{
+				$trellis = $this->common_model->select_where("*", "$table", array('user_id'=>$user_id))->result_array();
+			}
 			$response = [
 				'status' => 200,
 				'message' => 'success',
