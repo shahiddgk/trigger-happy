@@ -726,8 +726,11 @@ class Api extends REST_Controller {
 
 	public function ladder_post(){
 		$user_id = $_POST['user_id'];
+		$type = $_POST['type'];
+		
+		$row_count = $this->common_model->select_where("*", "ladder", array('user_id'=>$user_id, 'type'=>$type))->num_rows();
 
-		if(!empty($user_id)){
+		if($row_count < 2){
 			$data['user_id'] = $user_id;
 			$data['type'] = $_POST['type'];
 			if(isset($_POST['option1']) && !empty($_POST['option1'])){
@@ -758,7 +761,7 @@ class Api extends REST_Controller {
 		}else{
 			$response = [
 				'status' => 400,
-				'message' => 'empty parameters'
+				'message' => 'more responses not allowed'
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
@@ -767,8 +770,9 @@ class Api extends REST_Controller {
 
 	public function tribe_post(){
 		$user_id = $_POST['user_id'];
+		$row_count = $this->common_model->select_where("*", "tribe", array('user_id'=>$user_id))->num_rows();
 
-		if(!empty($user_id)){
+		if($row_count < 1){
 			$data['user_id'] = $user_id;
 			if(isset($_POST['mentor']) && !empty($_POST['mentor'])){
 				$data['mentor'] = $_POST['mentor'];
@@ -801,7 +805,7 @@ class Api extends REST_Controller {
 		}else{
 			$response = [
 				'status' => 400,
-				'message' => 'empty parameters'
+				'message' => 'more responses not allowed'
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
@@ -810,7 +814,11 @@ class Api extends REST_Controller {
 	public function principles_post(){
 		$user_id = $_POST['user_id'];
 
-		if(!empty($user_id)){
+		$type = $_POST['type'];
+
+		$row_count = $this->common_model->select_where("*", "principles", array('user_id'=>$user_id, 'type'=>$type))->num_rows();
+		
+		if($row_count < 2){
 			$data['user_id'] = $user_id;
 			$data['type'] = $_POST['type'];
 			if(isset($_POST['emp_truths'])){
@@ -832,7 +840,7 @@ class Api extends REST_Controller {
 		}else{
 			$response = [
 				'status' => 400,
-				'message' => 'empty parameters'
+				'message' => 'more responses not allowed'
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
@@ -841,7 +849,11 @@ class Api extends REST_Controller {
 	public function identity_post(){
 		$user_id = $_POST['user_id'];
 
-		if(!empty($user_id)){
+		$type = $_POST['type'];
+
+		$row_count = $this->common_model->select_where("*", "identity", array('user_id'=>$user_id, 'type'=>$type))->num_rows();
+		
+		if($row_count < 2){
 			$data['user_id'] = $user_id;
 			$data['type'] = $_POST['type'];
 			if(isset($_POST['text']) && !empty($_POST['text'])){
@@ -855,6 +867,31 @@ class Api extends REST_Controller {
 				'status' => 200,
 				'message' => 'success',
 				'post_data' => $_POST
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'more responses not allowed'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function all_trellis_read_post(){
+		$user_id = $_POST['user_id'];
+
+		if(!empty($user_id)){
+			$trellis['trellis'] = $this->common_model->select_where("*", "trellis", array('user_id'=>$user_id))->result_array();
+			$trellis['tribe'] = $this->common_model->select_where("*", "tribe", array('user_id'=>$user_id))->result_array();
+			$trellis['ladder'] = $this->common_model->select_where("*", "ladder", array('user_id'=>$user_id))->result_array();
+			$trellis['identity'] = $this->common_model->select_where("*", "identity", array('user_id'=>$user_id))->result_array();
+			$trellis['principles'] = $this->common_model->select_where("*", "principles", array('user_id'=>$user_id))->result_array();
+
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'data' => $trellis
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}else{

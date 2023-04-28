@@ -20,12 +20,13 @@
                                 <th>Name</th>
                                 <th>Description</th>
                                 <th>Purpose</th>
-                                <th>needs</th>
-                                <th>identity</th>
-                                <th>principles</th>
-                                <th>rhythms</th>
-                                <th>goal</th>
-                                <th>ACHIEVEMENTS </th>
+                                <th>Goals</th>
+                                <th>Achievements</th>
+                                <th>Organizing Principles</th>
+                                <th>Rhythms</th>
+                                <th>Needs</th>
+                                <th>Identity</th>
+                                <th>Tribe</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -48,12 +49,13 @@
                                             <a href="javascript:void(0);" onclick="toggleText('purpose_<?=$trel['id']?>', '<?=implode(' ', $purposeWords)?>')" style="display:none;">Hide</a>
                                         <?php } ?>
                                     </td>
-                                    <td><a href="<?= base_url('admin/user_needs/').$trel['user_id'] ?>">Needs</a></td>
-                                    <td><a href="<?= base_url('admin/user_identity/').$trel['user_id'] ?>">Identity</a></td>
-                                    <td><a href="<?= base_url('admin/user_principle/').$trel['user_id'] ?>">Principle</a></td>
-                                    <td><a href="<?= base_url('admin/user_rhythms/').$trel['user_id'] ?>">Rhythms</a></td>
                                     <td><a href="<?= base_url('admin/user_goal/').$trel['user_id'] ?>">Goal</a></td>
                                     <td><a href="<?= base_url('admin/user_achievements/').$trel['user_id'] ?>">Achievements</a></td>
+                                    <td><a href="<?= base_url('admin/user_principle/').$trel['user_id'] ?>">Principle</a></td>
+                                    <td><a href="<?= base_url('admin/user_rhythms/').$trel['user_id'] ?>">Rhythms</a></td>
+                                    <td><a href="<?= base_url('admin/user_needs/').$trel['user_id'] ?>">Needs</a></td>
+                                    <td><a href="<?= base_url('admin/user_identity/').$trel['user_id'] ?>">Identity</a></td>
+                                    <td><a href="<?= base_url('admin/user_tribe/').$trel['user_id'] ?>">Tribe</a></td>
                                 </tr>
                             <?php } ?>
                         </tbody>

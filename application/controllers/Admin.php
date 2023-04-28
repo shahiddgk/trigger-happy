@@ -220,6 +220,15 @@ class Admin extends CI_Controller {
 		$this->load->view('admin/user_identity', $data);
 		$this->load->view('admin/include/footer'); 
 	}
+
+	public function user_tribe($id) {
+		$data['page_title'] = 'User Tribe';
+		$data['tribe'] = $this->common_model->select_where("*", "tribe", array('user_id'=> $id))->result_array();
+
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/user_tribe', $data);
+		$this->load->view('admin/include/footer'); 
+	}
 	
 	public function user_principle($id) {
 		$data['page_title'] = 'User Principle';

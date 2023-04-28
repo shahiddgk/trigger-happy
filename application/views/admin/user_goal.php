@@ -3,7 +3,7 @@
 
 <nav class="page-breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="#">ladder</a></li>
+        <li class="breadcrumb-item"><a href="#">Ladder</a></li>
         <li class="breadcrumb-item active" aria-current="page"><?= $page_title ?></li>
     </ol>
 </nav>
@@ -17,7 +17,7 @@
                 <table id="dataTableExample" class="table">
                     <thead>
                         <tr>
-                            <th>physical</th>
+                            <th>Physical</th>
                             <th>Goal</th>
                             <th>Date</th>
                             <th>Text</th>
