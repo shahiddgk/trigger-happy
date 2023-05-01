@@ -740,7 +740,9 @@ class Api extends REST_Controller {
 				$data['option2'] = $_POST['option2'];
 			}
 			if(isset($_POST['date']) && !empty($_POST['date'])){
-				$data['date'] = $_POST['date'];
+				$dateObj = DateTime::createFromFormat('m-d-y', $_POST['date']);
+				$data['date'] = $dateObj->format('Y-m-d');
+				$_POST['date'] = $data['date'];
 			}
 			if(isset($_POST['text']) && !empty($_POST['text'])){
 				$data['text'] = $_POST['text'];
@@ -777,20 +779,11 @@ class Api extends REST_Controller {
 			if(isset($_POST['mentor']) && !empty($_POST['mentor'])){
 				$data['mentor'] = $_POST['mentor'];
 			}
-			if(isset($_POST['mentor_desc']) && !empty($_POST['mentor_desc'])){
-				$data['mentor_desc'] = $_POST['mentor_desc'];
-			}
 			if(isset($_POST['peer']) && !empty($_POST['peer'])){
 				$data['peer'] = $_POST['peer'];
 			}
-			if(isset($_POST['peer_desc']) && !empty($_POST['peer_desc'])){
-				$data['peer_desc'] = $_POST['peer_desc'];
-			}
 			if(isset($_POST['mentee']) && !empty($_POST['mentee'])){
 				$data['mentee'] = $_POST['mentee'];
-			}
-			if(isset($_POST['mentee_desc']) && !empty($_POST['mentee_desc'])){
-				$data['mentee_desc'] = $_POST['mentee_desc'];
 			}
 			
 			$this->common_model->insert_array('tribe', $data);
