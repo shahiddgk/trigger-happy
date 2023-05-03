@@ -265,6 +265,37 @@ class Admin extends CI_Controller {
 		$this->load->view('admin/user_achievements', $data);
 		$this->load->view('admin/include/footer'); 
 	}
+
+	public function settings() {
+		$data['page_title'] = 'settings';
+		$data['trellis'] = $this->common_model->select_all("*", "settings")->row_array();
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/settings', $data);
+		$this->load->view('admin/include/footer'); 
+	}
+
+	public function trilles_settings() 
+	{
+
+		$data['goal']= $this->input->post('goal');	
+		$data['achievements'] = $this->input->post('achievements'); 
+		$data['principle'] = $this->input->post('principle'); 
+		$data['rhythms']= $this->input->post('rhythms');
+		$data['needs']= $this->input->post('needs');
+		$data['identity']= $this->input->post('identity');
+		$data['tribe']= $this->input->post('tribe');
+		
+		$result_array =  $this->common_model->select_all("*", "settings")->result_array();
+
+		if(count($result_array)== 1) {
+			$result = $this->common_model->update_array(array('id'), 'settings', $data);
+		}
+		else{
+			$result = $this->common_model->insert_array('settings', $data);
+		}
+			redirect('admin/settings', 'refresh');
+	}
+
 }
 
 ?>

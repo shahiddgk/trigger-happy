@@ -112,6 +112,12 @@ else{
 			<span class="link-title">Trellis</span>
 			</a>
 		</li>
+		<li class="nav-item">
+			<a class="nav-link" href="<?php echo site_url('admin/settings'); ?>">
+			<i class="link-icon" data-feather="settings"></i>
+			<span class="link-title">Settings</span>
+			</a>
+		</li>
 	</ul>
 	</div>
 	</nav>
