@@ -433,7 +433,7 @@ class Api extends REST_Controller {
 			else{
 				$response = [
 					'status' => 200,
-					'message' => 'data instered, mail not allowed'
+					'message' => 'data inserted, mail not allowed'
 				];
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			}

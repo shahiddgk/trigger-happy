@@ -15,34 +15,33 @@
                 <form class="forms-sample" action="<?=base_url('admin/trilles_settings');?>" method="post">
                     <div class="form-group">
                         <label for="goal">Goal</label>
-                        <input value="<?php echo $trellis['goal'];?>" type="number" class="form-control" name="goal" autocomplete="off" placeholder="Goal">
+                        <input value="<?= isset($trellis['goal']) ? $trellis['goal'] : '' ?>" type="number" class="form-control" name="goal" autocomplete="off" placeholder="Goal">
                     </div>
                     <div class="form-group">
                         <label for="achievements">Achievements</label>
-                        <input value="<?php echo $trellis['achievements'];?>" type="number" class="form-control" name="achievements" placeholder="Achievements">
+                        <input value="<?= isset($trellis['achievements']) ? $trellis['achievements'] : '' ?>" type="number" class="form-control" name="achievements" placeholder="Achievements">
                     </div>
                     <div class="form-group">
                         <label for="principle">Principle</label>
-                        <input value="<?php echo $trellis['principle'];?>" type="number" class="form-control" name="principle" autocomplete="off" placeholder="Principle">
+                        <input value="<?= isset($trellis['principle']) ? $trellis['principle'] : '' ?>" type="number" class="form-control" name="principle" autocomplete="off" placeholder="Principle">
                     </div>
                     <div class="form-group">
                         <label for="rhythms">Rhythms</label>
-                        <input value="<?php echo $trellis['rhythms'];?>" type="number" class="form-control" name="rhythms" autocomplete="off" placeholder="Rhythms">
+                        <input value="<?= isset($trellis['rhythms']) ? $trellis['rhythms'] : '' ?>" type="number" class="form-control" name="rhythms" autocomplete="off" placeholder="Rhythms">
                     </div>                    
                     <div class="form-group">
                         <label for="needs">Needs</label>
-                        <input value="<?php echo $trellis['needs'];?>" type="number" class="form-control" name="needs" autocomplete="off" placeholder="Needs">
+                        <input value="<?= isset($trellis['needs']) ? $trellis['needs'] : '' ?>" type="number" class="form-control" name="needs" autocomplete="off" placeholder="Needs">
                     </div>                   
                      <div class="form-group">
                         <label for=" ">Identity</label>
-                        <input value="<?php echo $trellis['identity'];?>"type="number" class="form-control" name="identity" autocomplete="off" placeholder="Identity">
+                        <input value="<?= isset($trellis['identity']) ? $trellis['identity'] : '' ?>"type="number" class="form-control" name="identity" autocomplete="off" placeholder="Identity">
                     </div>
                     <div class="form-group">
                         <label for="tribe">Tribe</label>
-                        <input value="<?php echo $trellis['tribe'];?>" type="number" class="form-control" name="tribe" autocomplete="off" placeholder="Tribe">
+                        <input value="<?= isset($trellis['tribe']) ? $trellis['tribe'] : '' ?>" type="number" class="form-control" name="tribe" autocomplete="off" placeholder="Tribe">
                     </div>
-					<button type="submit" class="btn btn-primary mr-2">Submit</button>
-					<button class="btn btn-light">Cancel</button>
+					<button type="submit" class="btn btn-primary mr-2">Save</button>
 				</form>
             </div>
         </div>
