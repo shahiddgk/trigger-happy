@@ -964,4 +964,62 @@ class Api extends REST_Controller {
 		}
 	}
 
+	public function session_entry_post(){
+
+		if(isset($_POST['user_id']) && !empty($_POST['user_id'])){
+
+			$data['user_id'] = $_POST['user_id'];
+
+			if(isset($_POST['entry_title'])){
+				$data['entry_title'] = $_POST['entry_title'];
+			}
+			if(isset($_POST['entry_decs'])){
+				$data['entry_decs'] = $_POST['entry_decs'];
+			}
+			if(isset($_POST['entry_date'])){
+				$data['entry_date'] = $_POST['entry_date'];
+			}
+			if(isset($_POST['entry_takeaway'])){
+				$data['entry_takeaway'] = $_POST['entry_takeaway'];
+			}
+
+			$insert = $this->common_model->insert_array('session_entry', $data);
+
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);		
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+  }
+
+
+	public function session_read_post(){
+		$user_id = $_POST['user_id'];
+
+		if(!empty($user_id)){
+
+				$trellis = $this->common_model->select_where("*", "session_entry", array('user_id'=>$user_id))->result_array();
+			
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'data' => $trellis
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
 }

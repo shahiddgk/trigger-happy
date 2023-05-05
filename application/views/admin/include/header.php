@@ -118,6 +118,12 @@ else{
 			<span class="link-title">Settings</span>
 			</a>
 		</li>
+		<!-- <li class="nav-item">
+			<a class="nav-link" href="<?php echo site_url('payments/index'); ?>">
+			<i class="link-icon" data-feather="dollar-sign"></i>
+			<span class="link-title">Add Payments</span>
+			</a>
+		</li> -->
 	</ul>
 	</div>
 	</nav>
