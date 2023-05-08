@@ -984,10 +984,12 @@ class Api extends REST_Controller {
 			}
 
 			$insert = $this->common_model->insert_array('session_entry', $data);
-
+			$last_insert_id = $this->db->insert_id(); 
+			$_POST['id'] = $last_insert_id;
 			$response = [
 				'status' => 200,
 				'message' => 'success',
+				'data' => $_POST
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);		
 		}else{
