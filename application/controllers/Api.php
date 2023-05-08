@@ -1022,4 +1022,31 @@ class Api extends REST_Controller {
 		}
 	}
 
+	public function session_delete_post(){
+		$record_id = $_POST['record_id'];
+
+		if(!empty($record_id)){
+			$this->db->delete("session_entry", array('id'=>$record_id));
+			if($this->db->affected_rows()> 0){
+				$response = [
+					'status' => 200,
+					'message' => 'deleted successfully'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}else{
+				$response = [
+					'status' => 200,
+					'message' => 'data not deleted'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
 }
