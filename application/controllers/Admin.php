@@ -284,6 +284,10 @@ class Admin extends CI_Controller {
 		$data['needs']= $this->input->post('needs');
 		$data['identity']= $this->input->post('identity');
 		$data['tribe']= $this->input->post('tribe');
+		$data['cur_apple']= $this->input->post('cur_apple');
+		$data['coming_apple']= $this->input->post('coming_apple');
+		$data['cur_playstore']= $this->input->post('cur_playstore');
+		$data['coming_playstore']= $this->input->post('coming_playstore');
 		
 		$result_array =  $this->common_model->select_all("*", "settings")->result_array();
 

@@ -1049,4 +1049,34 @@ class Api extends REST_Controller {
 		}
 	}
 
+	public function app_version_get() {
+		$table_exists = $this->db->table_exists('settings');
+	
+		if ($table_exists) {
+			$fields = array('cur_apple', 'coming_apple', 'cur_playstore', 'coming_playstore'); 
+			$result_array = $this->common_model->select_all($fields, 'settings',  )->result_array();
+			if (count($result_array) > 0) {
+				$response = [
+					'status' => 200,
+					'message' => 'success',
+					'data' => $result_array
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			} else {
+				$response = [
+					'status' => 400,
+					'message' => 'no data found'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'settings table not found'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+	
+	
 }
