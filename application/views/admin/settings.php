@@ -61,7 +61,7 @@
                 <h6 class="card-title"> App Versions </h6>
                 <form class="forms-sample" action="<?=base_url('admin/trilles_settings');?>" method="post">
                     <div class="form-group">
-                        <label for="cur_apple">Currant  Apple</label>
+                        <label for="cur_apple">Current  Apple</label>
                         <input value="<?= isset($trellis['cur_apple']) ? $trellis['cur_apple'] : '' ?>" type="tel"
                             class="form-control" name="cur_apple" placeholder="Currant  Apple">
                     </div>
@@ -71,7 +71,7 @@
                             type="tel" class="form-control" name="coming_apple" placeholder="Coming Apple">
                     </div>
                     <div class="form-group">
-                        <label for="cur_playstore">Currant  Playstore</label>
+                        <label for="cur_playstore">Current  Playstore</label>
                         <input value="<?= isset($trellis['cur_playstore']) ? $trellis['cur_playstore'] : '' ?>"
                             type="tel" class="form-control" name="cur_playstore" 
                             placeholder="Currant  Playstore">
