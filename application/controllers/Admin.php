@@ -276,18 +276,42 @@ class Admin extends CI_Controller {
 
 	public function trilles_settings() 
 	{
-
-		$data['goal']= $this->input->post('goal');	
-		$data['achievements'] = $this->input->post('achievements'); 
-		$data['principle'] = $this->input->post('principle'); 
-		$data['rhythms']= $this->input->post('rhythms');
-		$data['needs']= $this->input->post('needs');
-		$data['identity']= $this->input->post('identity');
-		$data['tribe']= $this->input->post('tribe');
-		$data['cur_apple']= $this->input->post('cur_apple');
-		$data['coming_apple']= $this->input->post('coming_apple');
-		$data['cur_playstore']= $this->input->post('cur_playstore');
-		$data['coming_playstore']= $this->input->post('coming_playstore');
+		if(isset($_POST['goal'])){
+			$data['goal']= $this->input->post('goal');	
+		}
+		if(isset($_POST['achievements'])){
+			$data['achievements']= $this->input->post('achievements');	
+		}
+		if(isset($_POST['principle'])){
+			$data['principle']= $this->input->post('principle');	
+		}
+		if(isset($_POST['rhythms'])){
+			$data['rhythms']= $this->input->post('rhythms');	
+		}
+		if(isset($_POST['needs'])){
+			$data['needs']= $this->input->post('needs');	
+		}
+		if(isset($_POST['identity'])){
+			$data['identity']= $this->input->post('identity');	
+		}
+		if(isset($_POST['tribe'])){
+			$data['tribe']= $this->input->post('tribe');	
+		}
+		if(isset($_POST['needs'])){
+			$data['needs']= $this->input->post('needs');	
+		}
+		if(isset($_POST['cur_apple'])){
+			$data['cur_apple']= $this->input->post('cur_apple');	
+		}
+		if(isset($_POST['coming_apple'])){
+			$data['coming_apple']= $this->input->post('coming_apple');	
+		}
+		if(isset($_POST['cur_playstore'])){
+			$data['cur_playstore']= $this->input->post('cur_playstore');	
+		}
+		if(isset($_POST['coming_playstore'])){
+			$data['coming_playstore']= $this->input->post('coming_playstore');	
+		}
 		
 		$result_array =  $this->common_model->select_all("*", "settings")->result_array();
 

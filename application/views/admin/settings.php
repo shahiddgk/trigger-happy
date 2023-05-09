@@ -49,22 +49,24 @@
                                 class="form-control" name="tribe" autocomplete="off" placeholder="Tribe">
                         </div>
                         <button type="submit" class="btn btn-primary mr-2">Save</button>
+                    </form>
                 </div>
             </div>
         </div>
 
 
-    <div class="col-md-6 grid-margin stretch-card">
+    <div class="col-md-6 grid-margin">
         <div class="card">
             <div class="card-body">
-                <h6 class="card-title"> App versions </h6>
+                <h6 class="card-title"> App Versions </h6>
+                <form class="forms-sample" action="<?=base_url('admin/trilles_settings');?>" method="post">
                     <div class="form-group">
                         <label for="cur_apple">Currant  Apple</label>
                         <input value="<?= isset($trellis['cur_apple']) ? $trellis['cur_apple'] : '' ?>" type="tel"
                             class="form-control" name="cur_apple" placeholder="Currant  Apple">
                     </div>
                     <div class="form-group">
-                        <label for="coming_apple">Coming Apple</label>
+                        <label for="coming_apple">Incoming Apple</label>
                         <input value="<?= isset($trellis['coming_apple']) ? $trellis['coming_apple'] : '' ?>"
                             type="tel" class="form-control" name="coming_apple" placeholder="Coming Apple">
                     </div>
@@ -75,7 +77,7 @@
                             placeholder="Currant  Playstore">
                     </div>
                     <div class="form-group">
-                        <label for="coming_playstore">Coming Playstore</label>
+                        <label for="coming_playstore">Incoming Playstore</label>
                         <input value="<?= isset($trellis['coming_playstore']) ? $trellis['coming_playstore'] : '' ?>"
                             type="tel" class="form-control" name="coming_playstore" 
                             placeholder="Coming Playstore">
