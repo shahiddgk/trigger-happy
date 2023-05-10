@@ -977,7 +977,9 @@ class Api extends REST_Controller {
 				$data['entry_decs'] = $_POST['entry_decs'];
 			}
 			if(isset($_POST['entry_date'])){
-				$data['entry_date'] = $_POST['entry_date'];
+				$dateObj = DateTime::createFromFormat('m-d-y', $_POST['entry_date']);
+				$data['entry_date'] = $dateObj->format('Y-m-d');
+				$_POST['entry_date'] = $data['entry_date'];
 			}
 			if(isset($_POST['entry_takeaway'])){
 				$data['entry_takeaway'] = $_POST['entry_takeaway'];
