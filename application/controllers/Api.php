@@ -982,6 +982,9 @@ class Api extends REST_Controller {
 			if(isset($_POST['entry_takeaway'])){
 				$data['entry_takeaway'] = $_POST['entry_takeaway'];
 			}
+			if(isset($_POST['entry_type'])){
+				$data['entry_type'] = $_POST['entry_type'];
+			}
 
 			$insert = $this->common_model->insert_array('session_entry', $data);
 			$last_insert_id = $this->db->insert_id(); 
