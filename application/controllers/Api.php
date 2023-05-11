@@ -141,12 +141,14 @@ class Api extends REST_Controller {
 			$user_data = array(
 				'user_logged_in'  =>  TRUE,
 				'usertype' => $row['type'],
+				'userid' => $row['id'],
 				'username' => $row['name'],
 				'useremail' => $row['email'],
 				'allowemail' => $row['mail_resp'],
 				'timezone' => $row['time_zone'],
 				'devicetoken' => $valid_token,
-				'userid' => $row['id']
+				'premium' => $row['is_premium'],
+				'premium_type' => $row['premium_type']
 			);
 
 			$response = [
@@ -977,16 +979,12 @@ class Api extends REST_Controller {
 				$data['entry_decs'] = $_POST['entry_decs'];
 			}
 			if(isset($_POST['entry_date'])){
-				$dateObj = DateTime::createFromFormat('m-d-y', $_POST['entry_date']);
-				$data['entry_date'] = $dateObj->format('Y-m-d');
-				$_POST['entry_date'] = $data['entry_date'];
+				$data['entry_date'] = $_POST['entry_date'];
 			}
 			if(isset($_POST['entry_takeaway'])){
 				$data['entry_takeaway'] = $_POST['entry_takeaway'];
 			}
-			if(isset($_POST['entry_type'])){
-				$data['entry_type'] = $_POST['entry_type'];
-			}
+			
 
 			$insert = $this->common_model->insert_array('session_entry', $data);
 			$last_insert_id = $this->db->insert_id(); 
