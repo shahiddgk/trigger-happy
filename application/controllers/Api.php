@@ -1108,44 +1108,4 @@ class Api extends REST_Controller {
 			], REST_Controller::HTTP_OK);
 		}
 	}
-	
-
-
-	public function payment_varify_post(){
-
-		if(isset($_POST['id']) && !empty($_POST['id'])){
-
-			$data['id'] = $_POST['id'];
-
-			if(isset($_POST['customer_id'])){
-				$data['customer_id'] = $_POST['customer_id'];
-			}
-			if(isset($_POST['card_id'])){
-				$data['card_id'] = $_POST['card_id'];
-			}
-			if(isset($_POST['card_brand'])){
-				$data['card_brand'] = $_POST['card_brand'];
-			}
-			if(isset($_POST['card_last4'])){
-				$data['card_last4'] = $_POST['card_last4'];
-			}
-			
-
-			$insert = $this->common_model->insert_array('payments', $data);
-			$last_insert_id = $this->db->insert_id(); 
-			$_POST['id'] = $last_insert_id;
-			$response = [
-				'status' => 200,
-				'message' => 'success',
-				'data' => $_POST
-			];
-			$this->set_response($response, REST_Controller::HTTP_OK);		
-		}else{
-			$response = [
-				'status' => 400,
-				'message' => 'empty parameters'
-			];
-			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-		}
-    }
 }
