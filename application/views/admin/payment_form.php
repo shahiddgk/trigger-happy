@@ -31,11 +31,35 @@
                                 form.method = 'POST';
                                 form.action = '<?php echo base_url('payments/charge'); ?>';
 
-                                var hiddenInput = document.createElement('input');
-                                hiddenInput.type = 'hidden';
-                                hiddenInput.name = 'stripeToken';
-                                hiddenInput.value = token.id;
-                                form.appendChild(hiddenInput);
+                                var hiddenTokenInput = document.createElement('input');
+                                hiddenTokenInput.type = 'hidden';
+                                hiddenTokenInput.name = 'stripeToken';
+                                hiddenTokenInput.value = token.id;
+                                form.appendChild(hiddenTokenInput);
+
+                                var hiddenNameInput = document.createElement('input');
+                                hiddenNameInput.type = 'hidden';
+                                hiddenNameInput.name = 'name';
+                                hiddenNameInput.value = token.card.name;
+                                form.appendChild(hiddenNameInput);
+
+                                var hiddenEmailInput = document.createElement('input');
+                                hiddenEmailInput.type = 'hidden';
+                                hiddenEmailInput.name = 'email';
+                                hiddenEmailInput.value = token.email;
+                                form.appendChild(hiddenEmailInput);
+
+                                var hiddenExpYearInput = document.createElement('input');
+                                hiddenExpYearInput.type = 'hidden';
+                                hiddenExpYearInput.name = 'exp_year';
+                                hiddenExpYearInput.value = 2023; // Replace with the actual expiration year
+                                form.appendChild(hiddenExpYearInput);
+
+                                var hiddenAmountInput = document.createElement('input');
+                                hiddenAmountInput.type = 'hidden';
+                                hiddenAmountInput.name = 'amount';
+                                hiddenAmountInput.value = 5000; // Replace with the actual amount
+                                form.appendChild(hiddenAmountInput);
 
                                 document.body.appendChild(form);
                                 form.submit();
@@ -45,7 +69,7 @@
                         document.getElementById('customButton').addEventListener('click', function(e) {
                             handler.open({
                                 name: 'Pay With Credit Card',
-                                description: 'You have total amount of $50',
+                                description: 'You have a total amount of $50',
                                 currency: 'USD',
                                 amount: 5000,
                                 billingAddress: true,
@@ -60,8 +84,6 @@
                         });
                         </script>
                     </body>
-
-
                     </html>
                 </div>
             </div>

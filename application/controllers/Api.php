@@ -1084,28 +1084,18 @@ class Api extends REST_Controller {
 	}
 	
 	public function payment_verify_post() {
-		// Validate JSON token
-		$this->form_validation->set_data($this->post());
-		$this->form_validation->set_rules('token.name', 'Name', '');
-		$this->form_validation->set_rules('token.email', 'Email', 'valid_email');
-		$this->form_validation->set_rules('token.price', 'Price', 'numeric');
-		
-		if ($this->form_validation->run() === FALSE) {
-			// Invalid token
-			$this->response([
-				'status' => 'error',
-				'message' => validation_errors(),
-			], REST_Controller::HTTP_BAD_REQUEST);
-		} else {
-			// Token is valid, process JSON data
-			$data = $this->post();
-			// Do something with the received data
+		$user_id = $this->input->post('user_id');
+		$token = $this->input->post('token');
+	
+		if (!empty($user_id) && !empty($token)) {
 			
-			$this->response([
-				'status' => 'success',
-				'message' => 'Data received and processed successfully',
-				'data' => $data,
-			], REST_Controller::HTTP_OK);
+			$this->$payments->charge($token); 
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
-	}
+	}	
 }
