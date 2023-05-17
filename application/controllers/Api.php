@@ -5,19 +5,27 @@ require APPPATH . 'libraries/REST_Controller.php';
 class Api extends REST_Controller {
 
   	protected $token;
-	public function __construct()
-	{
+	  public function __construct()
+	  {
 		parent::__construct();
-		$this->output->set_header('Access-Control-Allow-Origin: *');
-        $this->output->set_header('Access-Control-Allow-Methods: POST, GET, DELETE, PUT, PATCH, OPTIONS');
-        $this->output->set_header('Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With');
-		// Handle preflight requests
-        if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-            header('Access-Control-Allow-Origin: *');
-            header('Access-Control-Allow-Methods: POST, GET, DELETE, PUT, PATCH, OPTIONS');
-            header('Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With');
-            exit();
+		  
+		$this->load->library('stripe_lib');
+		// Enable CORS if configured to do so
+		if ($this->config->item('enable_cors')) {
+            require(APPPATH . 'config/cors.php');
         }
+
+		// $this->output->set_header('Access-Control-Allow-Origin: *');
+		// $this->output->set_header('Access-Control-Allow-Methods: POST, GET, DELETE, PUT, PATCH, OPTIONS');
+		// $this->output->set_header('Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With');
+	
+		// // Handle preflight requests
+		// if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+		// 	header('Access-Control-Allow-Origin: *');
+		// 	header('Access-Control-Allow-Methods: POST, GET, DELETE, PUT, PATCH, OPTIONS');
+		// 	header('Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With');
+		// 	exit();
+		// }
 		// creating object of TokenHandler class at first
 		$this->tokenHandler = new TokenHandler();
 		header('Content-Type: application/json');
@@ -981,10 +989,12 @@ class Api extends REST_Controller {
 			if(isset($_POST['entry_date'])){
 				$data['entry_date'] = $_POST['entry_date'];
 			}
+			if(isset($_POST['entry_type'])){
+				$data['entry_type'] = $_POST['entry_type'];
+			}
 			if(isset($_POST['entry_takeaway'])){
 				$data['entry_takeaway'] = $_POST['entry_takeaway'];
 			}
-			
 
 			$insert = $this->common_model->insert_array('session_entry', $data);
 			$last_insert_id = $this->db->insert_id(); 
@@ -1083,13 +1093,98 @@ class Api extends REST_Controller {
 		}
 	}
 	
-	public function payment_verify_post() {
-		$user_id = $this->input->post('user_id');
-		$token = $this->input->post('token');
-	
-		if (!empty($user_id) && !empty($token)) {
+	public function stripe_payment_post() {
+		$user = json_decode($_POST['user'], true);
+		$token = json_decode($_POST['token'], true);
+		$package = json_decode($_POST['package'], true);
+
+		if (!empty($user) && !empty($token)  && !empty($package)) {
+
+			$customer = $this->stripe_lib->addCustomer($user['username'], $user['useremail'], $token['id']); 
 			
-			$this->$payments->charge($token); 
+			$response = [
+				'status' => 200,
+				'message' => 'customer not created',
+				'user'=> $user,
+				'token'=> $token,
+				'package'=> $package
+			];
+			if($customer !== null && isset($customer['id']) &&  !empty($customer['id'])){ 
+                $plan = $this->stripe_lib->createPlan($package['text'], $package['amount'], $package['interval']); 
+			
+				if($plan !== null && isset($plan['id']) && !empty($plan['id'])){ 
+
+					$subscription = $this->stripe_lib->createSubscription($customer['id'], $plan['id']); 
+                     
+                    if($subscription !== null && isset($subscription['id']) && !empty($subscription['id'])){ 
+
+						$start_date =  $subscription['start_date'];
+						$sub_start_date = date('Y-m-d H:i:s', $start_date);
+						
+						if($plan['interval'] == 'month'){
+							$sub_end_date = date('Y-m-d H:i:s', strtotime('+1 month',  $start_date));
+						}else if($plan['interval'] == 'year'){
+							$sub_end_date = date('Y-m-d H:i:s', strtotime('+1 year',  $start_date));
+						}
+						$sub_data['user_id'] = $user['userid'];
+						$sub_data['payment_method'] = 'stripe';
+						$sub_data['stripe_subscription_id'] = $subscription['id'];
+						$sub_data['stripe_customer_id'] = $customer['id'];
+						$sub_data['stripe_plan_id'] = $plan['id'];
+						$sub_data['plan_amount'] = $plan['amount'];
+						$sub_data['plan_amount_currency'] = $plan['currency'];
+						$sub_data['plan_interval'] = $plan['interval'];
+						$sub_data['plan_interval_count'] = $plan['interval_count']; 
+						$sub_data['plan_period_start'] = $sub_start_date;
+						$sub_data['plan_period_end'] = $sub_end_date;
+						$sub_data['payer_email'] = $customer['email'];
+						$sub_data['status'] = $subscription['status'];
+						$this->common_model->insert_array('user_subscriptions', $sub_data);
+
+						$last_insert_id = $this->db->insert_id(); 
+						$sub_data['id'] = $last_insert_id;
+
+                        if($subscription['status'] == 'active'){ 
+							$response = [
+								'status' => 200,
+								'message' => 'subscription created successfully',
+								'data' => $sub_data
+							];
+							$this->set_response($response, REST_Controller::HTTP_OK);
+						}
+						else{
+							$response = [
+								'status' => 200,
+								'message' => 'subscription status is not active',
+								'data' => $sub_data
+							];
+							$this->set_response($response, REST_Controller::HTTP_OK);
+						}
+					}else{
+						$response = [
+							'status' => 400,
+							'message' => 'subscription not created',
+							'data' => $subscription
+						];
+						$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+					}
+				}else{
+					$response = [
+						'status' => 400,
+						'message' => 'plan not created',
+						'data' => $plan
+					];
+					$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+				}
+			
+			}else{
+				$response = [
+					'status' => 400,
+					'message' => 'customer not created',
+					'data' => $customer
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
 		} else {
 			$response = [
 				'status' => 400,

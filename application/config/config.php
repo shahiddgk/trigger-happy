@@ -121,6 +121,8 @@ $config['enable_hooks'] = FALSE;
 |
 */
 $config['subclass_prefix'] = 'MY_';
+$config['enable_cors'] = TRUE;
+
 
 /*
 |--------------------------------------------------------------------------
