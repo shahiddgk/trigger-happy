@@ -42,7 +42,7 @@ class Stripe_lib{
      
     function createPlan($planName, $planPrice, $planInterval){ 
         // Convert price to cents 
-        // $priceCents = ($planPrice*100); 
+        $priceCents = ($planPrice*100); 
         $currency = $this->CI->config->item('stripe_currency'); 
          
         try { 
@@ -50,7 +50,7 @@ class Stripe_lib{
                 "product" => [ 
                     "name" => $planName 
                 ], 
-                "amount" => $planPrice, 
+                "amount" => $priceCents, 
                 "currency" => $currency, 
                 "interval" => $planInterval, 
                 "interval_count" => 1 

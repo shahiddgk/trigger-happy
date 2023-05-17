@@ -987,7 +987,9 @@ class Api extends REST_Controller {
 				$data['entry_decs'] = $_POST['entry_decs'];
 			}
 			if(isset($_POST['entry_date'])){
-				$data['entry_date'] = $_POST['entry_date'];
+				$dateObj = DateTime::createFromFormat('m-d-y', $_POST['entry_date']);
+				$data['entry_date'] = $dateObj->format('Y-m-d');
+				$_POST['entry_date'] = $data['entry_date'];
 			}
 			if(isset($_POST['entry_type'])){
 				$data['entry_type'] = $_POST['entry_type'];
@@ -1131,7 +1133,7 @@ class Api extends REST_Controller {
 						$sub_data['stripe_subscription_id'] = $subscription['id'];
 						$sub_data['stripe_customer_id'] = $customer['id'];
 						$sub_data['stripe_plan_id'] = $plan['id'];
-						$sub_data['plan_amount'] = $plan['amount'];
+						$sub_data['plan_amount'] = $package['amount'];
 						$sub_data['plan_amount_currency'] = $plan['currency'];
 						$sub_data['plan_interval'] = $plan['interval'];
 						$sub_data['plan_interval_count'] = $plan['interval_count']; 
