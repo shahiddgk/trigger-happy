@@ -19,6 +19,10 @@
 								<textarea class="form-control" name="q_title" id="editor1" rows="2" required><?= $question['title'] ?></textarea>
 							</div>
 							<hr>
+							<div class="form-group">
+								<h4 class="card-title font-weight-bold">Video</h4>
+								<textarea class="form-control" name="video_url" id="editor2" rows="10"><?= $question['video_url'] ?></textarea>
+							</div>
 							<label class="font-weight-bold">Response Type</label><br>
 							<div class="form-group form-check-inline">
 								<div class="form-check">

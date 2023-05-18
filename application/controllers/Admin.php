@@ -39,6 +39,7 @@ class Admin extends CI_Controller {
 		$data['title'] = $this->input->post('q_title');
 		$data['response_type'] = $this->input->post('res_type');
 		$data['sub_title'] = $this->input->post('sub_title');
+		$data['video_url'] = $this->input->post('video_url');
 		if($_POST['res_type'] == 'open_text'){
 			$data['text_length'] = $this->input->post('text_length');
 		}
@@ -93,6 +94,7 @@ class Admin extends CI_Controller {
 	public function update_question($id){
 		$json_options = 'NULL';
 		$data['title'] = $this->input->post('q_title');
+		$data['video_url'] = $this->input->post('video_url');
 		$data['response_type'] = $this->input->post('res_type');
 		$data['sub_title'] = $this->input->post('sub_title');
 		if($_POST['res_type'] == 'open_text'){

@@ -28,8 +28,8 @@
             <!-- end plugin js for this page -->
 
             <!-- CKeditor simplemde-->
-            <script src="https://cdn.ckeditor.com/ckeditor5/35.4.0/classic/ckeditor.js"></script>
-            <script>
+            <script src="https://cdn.ckeditor.com/ckeditor5/35.4.0/classic/ckeditor.js"></script>      
+           <script>
                 ClassicEditor
                 .create( document.querySelector( '#editor1' ) )
                 .then( editor => {
@@ -38,7 +38,19 @@
                 .catch( error => {
                         // console.error( error );
                 } );
+
+                ClassicEditor
+                .create( document.querySelector( '#editor2' ), {
+                    toolbar: [
+                        'mediaEmbed'
+                    ]
+                    
+                } )
+                .catch( error => {
+                    console.log( error );
+                } );
             </script>
+
             <!-- CKeditor simplemde-->
             <!-- DataTAble -->
             <script src="<?= base_url()?>assets/admin/vendors/datatables.net/jquery.dataTables.js"></script>
