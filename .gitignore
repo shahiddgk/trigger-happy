@@ -5,6 +5,7 @@ application/cache/*
 
 application/logs/*
 application/third_party/*
+application/config/stripe.php
 !application/logs/index.html
 
 !application/*/.htaccess

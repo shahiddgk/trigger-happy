@@ -1146,6 +1146,12 @@ class Api extends REST_Controller {
 						$last_insert_id = $this->db->insert_id(); 
 						$sub_data['id'] = $last_insert_id;
 
+						if(!empty($last_insert_id)){
+							$update['is_premium'] = 'yes';
+							$update['premium_type'] = $package['interval'];
+							$this->common_model->update_array(array('id'=> $user['userid']), 'users', $update);
+						}
+
                         if($subscription['status'] == 'active'){ 
 							$response = [
 								'status' => 200,
