@@ -1127,32 +1127,33 @@ class Api extends REST_Controller {
 							$sub_end_date = date('Y-m-d H:i:s', strtotime('+1 month',  $start_date));
 						}else if($plan['interval'] == 'year'){
 							$sub_end_date = date('Y-m-d H:i:s', strtotime('+1 year',  $start_date));
+						}else if($plan['interval'] == 'day'){
+							$sub_end_date = date('Y-m-d H:i:s', strtotime('+1 day',  $start_date));
 						}
 						$sub_data['user_id'] = $user['userid'];
 						$sub_data['payment_method'] = 'stripe';
 						$sub_data['stripe_subscription_id'] = $subscription['id'];
 						$sub_data['stripe_customer_id'] = $customer['id'];
-						$sub_data['stripe_plan_id'] = $plan['id'];
 						$sub_data['plan_amount'] = $package['amount'];
 						$sub_data['plan_amount_currency'] = $plan['currency'];
 						$sub_data['plan_interval'] = $plan['interval'];
-						$sub_data['plan_interval_count'] = $plan['interval_count']; 
 						$sub_data['plan_period_start'] = $sub_start_date;
 						$sub_data['plan_period_end'] = $sub_end_date;
 						$sub_data['payer_email'] = $customer['email'];
 						$sub_data['status'] = $subscription['status'];
-						$this->common_model->insert_array('user_subscriptions', $sub_data);
 
-						$last_insert_id = $this->db->insert_id(); 
-						$sub_data['id'] = $last_insert_id;
+                        if($subscription['status'] == 'active'){
+							$this->common_model->insert_array('user_subscriptions', $sub_data);
 
-						if(!empty($last_insert_id)){
-							$update['is_premium'] = 'yes';
-							$update['premium_type'] = $package['interval'];
-							$this->common_model->update_array(array('id'=> $user['userid']), 'users', $update);
-						}
-
-                        if($subscription['status'] == 'active'){ 
+							$last_insert_id = $this->db->insert_id(); 
+							$sub_data['id'] = $last_insert_id;
+	
+							if(!empty($last_insert_id)){
+								$update['is_premium'] = 'yes';
+								$update['premium_type'] = $package['interval'];
+								$this->common_model->update_array(array('id'=> $user['userid']), 'users', $update);
+							}
+							
 							$response = [
 								'status' => 200,
 								'message' => 'subscription created successfully',
