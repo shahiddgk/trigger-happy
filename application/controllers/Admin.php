@@ -1,11 +1,17 @@
 <?php
 ob_start();
 defined('BASEPATH') OR exit('No direct script access allowed');
+require APPPATH . 'third_party/stripe-php/init.php';
+
 class Admin extends CI_Controller {
 
 	public function __construct()
 	{
 		parent::__construct();
+		$CI =& get_instance();
+
+		$CI->config->load('stripe', TRUE);
+        $this->stripe_api_key = $CI->config->item('stripe_api_key', 'stripe');   
 	}
 
     public function index(){
@@ -14,7 +20,16 @@ class Admin extends CI_Controller {
 
 	public function dashboard(){
 		$data['num_rows'] = $this->common_model->select_where_table_rows('*', 'users', array('type'=>'user'));
-        $this->load->view('admin/include/header');
+        
+		$stripe = new \Stripe\StripeClient($this->stripe_api_key);
+
+		$data['subscriptions'] = $stripe->subscriptions->all([
+		'expand' => ['data.customer', 'data.plan'],
+		]);
+
+		// echo "<pre>"; print_r($data['subscriptions']); exit;
+
+		$this->load->view('admin/include/header');
         $this->load->view('admin/dashboard', $data);
         $this->load->view('admin/include/footer');
     }

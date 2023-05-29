@@ -11,6 +11,11 @@
         <!-- core:js -->
             <script src="<?= base_url()?>assets/admin/vendors/core/core.js"></script>
             <script src="<?= base_url()?>assets/admin/vendors/chartjs/Chart.min.js"></script>
+            <!-- <script src="<?= base_url()?>assets/admin/js/dashboard.js"></script>
+            <script src="<?= base_url()?>assets/admin/vendors/apexcharts/apexcharts.min.js"></script>
+            <script src="<?= base_url()?>assets/admin/vendors/progressbar.js/progressbar.min.js"></script>
+            <script src="<?= base_url()?>assets/admin/vendors/jquery.flot/jquery.flot.js"></script>
+            <script src="<?= base_url()?>assets/admin/vendors/jquery.flot/jquery.flot.resize.js"></script> -->
             <!-- endinject -->
             <!-- plugin js for this page -->
             <script src="<?= base_url()?>assets/admin/vendors/jquery-validation/jquery.validate.min.js"></script>

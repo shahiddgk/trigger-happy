@@ -5,8 +5,8 @@ require APPPATH . 'libraries/REST_Controller.php';
 class Api extends REST_Controller {
 
   	protected $token;
-	  public function __construct()
-	  {
+	public function __construct()
+	{
 		parent::__construct();
 		  
 		$this->load->library('stripe_lib');
@@ -305,7 +305,6 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
-
 
 	public function single_answer_post(){
 		$question_id = $_POST['question_id'];
@@ -779,7 +778,6 @@ class Api extends REST_Controller {
 		}
 	}
 
-
 	public function tribe_post(){
 		$user_id = $_POST['user_id'];
 		$row_count = $this->common_model->select_where("*", "tribe", array('user_id'=>$user_id))->num_rows();
@@ -905,7 +903,7 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
-
+	
 	public function trellis_read_post(){
 		$user_id = $_POST['user_id'];
 
@@ -1014,8 +1012,7 @@ class Api extends REST_Controller {
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
-  }
-
+	}
 
 	public function session_read_post(){
 		$user_id = $_POST['user_id'];
@@ -1096,101 +1093,108 @@ class Api extends REST_Controller {
 	}
 	
 	public function stripe_payment_post() {
-		$user = json_decode($_POST['user'], true);
 		$token = json_decode($_POST['token'], true);
-		$package = json_decode($_POST['package'], true);
+		$user_id = $_POST['user_id'];
+		
 
-		if (!empty($user) && !empty($token)  && !empty($package)) {
-
-			$customer = $this->stripe_lib->addCustomer($user['username'], $user['useremail'], $token['id']); 
+		if (!empty($token) && !empty($user_id)) {
 			
-			$response = [
-				'status' => 200,
-				'message' => 'customer not created',
-				'user'=> $user,
-				'token'=> $token,
-				'package'=> $package
-			];
-			if($customer !== null && isset($customer['id']) &&  !empty($customer['id'])){ 
-                $plan = $this->stripe_lib->createPlan($package['text'], $package['amount'], $package['interval']); 
-			
-				if($plan !== null && isset($plan['id']) && !empty($plan['id'])){ 
+			$pkg_text = $_POST['pkg_text'];
+			$pkg_amount = $_POST['pkg_amount'];
+			$pkg_interval = $_POST['pkg_interval'];
 
-					$subscription = $this->stripe_lib->createSubscription($customer['id'], $plan['id']); 
-                     
-                    if($subscription !== null && isset($subscription['id']) && !empty($subscription['id'])){ 
+			$user = $this->common_model->select_where("*", "users", array('id'=>$user_id))->row_array();
+			if($user){
+				$customer = $this->stripe_lib->addCustomer($user['name'], $user['email'], $token['id']); 
+				
+				if($customer !== null && isset($customer['id']) &&  !empty($customer['id'])){ 
+					$plan = $this->stripe_lib->createPlan($pkg_text, $pkg_amount, $pkg_interval); 
+				
+					if($plan !== null && isset($plan['id']) && !empty($plan['id'])){ 
 
-						$start_date =  $subscription['start_date'];
-						$sub_start_date = date('Y-m-d H:i:s', $start_date);
+						$subscription = $this->stripe_lib->createSubscription($customer['id'], $plan['id']); 
 						
-						if($plan['interval'] == 'month'){
-							$sub_end_date = date('Y-m-d H:i:s', strtotime('+1 month',  $start_date));
-						}else if($plan['interval'] == 'year'){
-							$sub_end_date = date('Y-m-d H:i:s', strtotime('+1 year',  $start_date));
-						}else if($plan['interval'] == 'day'){
-							$sub_end_date = date('Y-m-d H:i:s', strtotime('+1 day',  $start_date));
-						}
-						$sub_data['user_id'] = $user['userid'];
-						$sub_data['payment_method'] = 'stripe';
-						$sub_data['stripe_subscription_id'] = $subscription['id'];
-						$sub_data['stripe_customer_id'] = $customer['id'];
-						$sub_data['plan_amount'] = $package['amount'];
-						$sub_data['plan_amount_currency'] = $plan['currency'];
-						$sub_data['plan_interval'] = $plan['interval'];
-						$sub_data['plan_period_start'] = $sub_start_date;
-						$sub_data['plan_period_end'] = $sub_end_date;
-						$sub_data['payer_email'] = $customer['email'];
-						$sub_data['status'] = $subscription['status'];
+						if($subscription !== null && isset($subscription['id']) && !empty($subscription['id'])){ 
 
-                        if($subscription['status'] == 'active'){
-							$this->common_model->insert_array('user_subscriptions', $sub_data);
-
-							$last_insert_id = $this->db->insert_id(); 
-							$sub_data['id'] = $last_insert_id;
-	
-							if(!empty($last_insert_id)){
-								$update['is_premium'] = 'yes';
-								$update['premium_type'] = $package['interval'];
-								$this->common_model->update_array(array('id'=> $user['userid']), 'users', $update);
-							}
+							$start_date =  $subscription['start_date'];
+							$sub_start_date = date('Y-m-d H:i:s', $start_date);
 							
+							if($plan['interval'] == 'month'){
+								$sub_end_date = date('Y-m-d H:i:s', strtotime('+1 month',  $start_date));
+							}else if($plan['interval'] == 'year'){
+								$sub_end_date = date('Y-m-d H:i:s', strtotime('+1 year',  $start_date));
+							}else if($plan['interval'] == 'day'){
+								$sub_end_date = date('Y-m-d H:i:s', strtotime('+1 day',  $start_date));
+							}
+							$sub_data['user_id'] = $user_id;
+							$sub_data['payment_method'] = $token['card']['brand'];
+							$sub_data['stripe_subscription_id'] = $subscription['id'];
+							$sub_data['stripe_customer_id'] = $customer['id'];
+							$sub_data['plan_amount'] = $pkg_amount;
+							$sub_data['plan_amount_currency'] = $plan['currency'];
+							$sub_data['plan_interval'] = $plan['interval'];
+							$sub_data['plan_interval_count'] = $plan['interval_count'];
+							$sub_data['plan_period_start'] = $sub_start_date;
+							$sub_data['plan_period_end'] = $sub_end_date;
+							$sub_data['payer_email'] = $customer['email'];
+							$sub_data['status'] = $subscription['status'];
+
+							if($subscription['status'] == 'active'){
+								$this->common_model->insert_array('user_subscriptions', $sub_data);
+
+								$last_insert_id = $this->db->insert_id(); 
+								$sub_data['id'] = $last_insert_id;
+		
+								if(!empty($last_insert_id)){
+									$update['is_premium'] = 'yes';
+									$update['premium_type'] = $pkg_interval;
+									$this->common_model->update_array(array('id'=> $user_id), 'users', $update);
+								}
+								
+								$response = [
+									'status' => 200,
+									'message' => 'subscription created successfully',
+									'data' => $sub_data
+								];
+								$this->set_response($response, REST_Controller::HTTP_OK);
+							}
+							else{
+								$response = [
+									'status' => 200,
+									'message' => 'subscription status is not active',
+									'data' => $sub_data
+								];
+								$this->set_response($response, REST_Controller::HTTP_OK);
+							}
+						}else{
 							$response = [
-								'status' => 200,
-								'message' => 'subscription created successfully',
-								'data' => $sub_data
+								'status' => 400,
+								'error' => 'subscription not created',
+								'message' => $subscription
 							];
-							$this->set_response($response, REST_Controller::HTTP_OK);
-						}
-						else{
-							$response = [
-								'status' => 200,
-								'message' => 'subscription status is not active',
-								'data' => $sub_data
-							];
-							$this->set_response($response, REST_Controller::HTTP_OK);
+							$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 						}
 					}else{
 						$response = [
 							'status' => 400,
-							'message' => 'subscription not created',
-							'data' => $subscription
+							'error' => 'plan not created',
+							'message' => $plan
 						];
 						$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 					}
+				
 				}else{
 					$response = [
 						'status' => 400,
-						'message' => 'plan not created',
-						'data' => $plan
+						'error' => 'customer not created',
+						'message' => $customer
 					];
 					$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 				}
-			
 			}else{
 				$response = [
 					'status' => 400,
-					'message' => 'customer not created',
-					'data' => $customer
+					'message' => 'user not found'
 				];
 				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 			}

@@ -83,6 +83,7 @@ class Stripe_webhook extends CI_Controller {
             // Single Item
             $InvoiceLineItem = $data->lines->data[0];
             $interval = $InvoiceLineItem->plan->interval;
+            $interval_count = $InvoiceLineItem->plan->interval_count;
             $currency = $InvoiceLineItem->plan->currency;
             $subscription = $InvoiceLineItem->subscription;
             $type = $InvoiceLineItem->type;
@@ -98,6 +99,7 @@ class Stripe_webhook extends CI_Controller {
             $sub_data['plan_amount'] = $amount_paid;
             $sub_data['plan_amount_currency'] = $currency;
             $sub_data['plan_interval'] = $interval;
+            $sub_data['plan_interval_count'] = $interval_count;
             $sub_data['plan_period_start'] = $period_start;
             $sub_data['plan_period_end'] = $period_end;
             $sub_data['payer_email'] = $customer_email;
@@ -121,9 +123,7 @@ class Stripe_webhook extends CI_Controller {
 
     private function paymentFailed($data)
     {
-        $billing_reason = $data->billing_reason;
-
-        // if($billing_reason == 'subscription_cycle'){
+        if($data->billing_reason == 'subscription_cycle'){
             $customer_name = $data->customer_name;
             $customer_email = $data->customer_email;
 
@@ -149,9 +149,9 @@ class Stripe_webhook extends CI_Controller {
             
             Burgeon App';
             $this->send_email($title, $message);
-        // }else{
-        //     return false;
-        // }
+        }else{
+            return false;
+        }
     }
 
     private function send_email($subject, $message)
