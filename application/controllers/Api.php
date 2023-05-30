@@ -129,6 +129,17 @@ class Api extends REST_Controller {
 			$row = $data['login']->row_array();
 			$valid_token  =  $row['device_token'];
 
+			$subscription = $this->common_model->select_where("*","user_subscriptions", array('user_id'=>$row['id'], 'status'=>'active'));
+				$subscription_id = '';
+				$customer_id = '';
+				$plan_amount = '';
+			if($row['is_premium'] == 'yes' && $subscription->num_rows()>0){
+				$subscription = $subscription->row_array();
+				$subscription_id = $subscription['stripe_subscription_id'];
+				$customer_id = $subscription['stripe_customer_id'];
+				$plan_amount = $subscription['plan_amount'];
+			}
+
 			if($row['status']=='inactive'){
 				$response['error'] = 'inactive user';
 				$this->set_response($response, REST_Controller::HTTP_OK);
@@ -156,7 +167,11 @@ class Api extends REST_Controller {
 				'timezone' => $row['time_zone'],
 				'devicetoken' => $valid_token,
 				'premium' => $row['is_premium'],
-				'premium_type' => $row['premium_type']
+				'premium_type' => $row['premium_type'],
+				'subscription_id' => $subscription_id,
+				'customer_id' => $customer_id,
+				'plan_amount' => $plan_amount
+
 			);
 
 			$response = [
@@ -1064,29 +1079,18 @@ class Api extends REST_Controller {
 	}
 
 	public function app_version_get() {
-		$table_exists = $this->db->table_exists('settings');
-	
-		if ($table_exists) {
-			$fields = array('cur_apple', 'coming_apple', 'cur_playstore', 'coming_playstore'); 
-			$result_array = $this->common_model->select_all($fields, 'settings',  )->result_array();
-			if (count($result_array) > 0) {
-				$response = [
-					'status' => 200,
-					'message' => 'success',
-					'data' => $result_array
-				];
-				$this->set_response($response, REST_Controller::HTTP_OK);
-			} else {
-				$response = [
-					'status' => 400,
-					'message' => 'no data found'
-				];
-				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-			}
+		$result_array = $this->common_model->select_all("*", 'settings')->result_array();
+		if (count($result_array) > 0) {
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'data' => $result_array
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
 		} else {
 			$response = [
 				'status' => 400,
-				'message' => 'settings table not found'
+				'message' => 'no data found'
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
@@ -1206,4 +1210,47 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}	
+
+	public function subscription_cancel_post(){
+		$subscription_id = $_POST['subscription_id'];
+
+		if(!empty($subscription_id)){
+
+			$cancelSuscription = $this->stripe_lib->cancelSuscription($subscription_id);
+			if(@$cancelSuscription['status'] == 'canceled'){
+				$update_sub['status'] = 'canceled';
+				$update_sub['canceled_at'] = date('Y-m-d H:i:s');
+
+				$this->common_model->update_array(array('stripe_subscription_id'=> $subscription_id), 'user_subscriptions', $update_sub);
+				$user_id = $this->common_model->select_single_field("user_id", "user_subscriptions", array('stripe_subscription_id'=> $subscription_id));
+				if(!empty($user_id)){
+					
+					$update_user['is_premium'] = 'no';
+					$update_user['premium_type'] = '';
+
+					$this->common_model->update_array(array('id'=> $user_id), 'users', $update_user);
+
+					$response = [
+						'status' => 200,
+						'message' => 'subscription cancelled successfully',
+						'data' => $cancelSuscription
+					];
+					$this->set_response($response, REST_Controller::HTTP_OK); 
+				}
+			}else{
+				$response = [
+					'status' => 400,
+					'error' => 'subscription not cancelled',
+					'message' => $cancelSuscription
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
 }

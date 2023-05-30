@@ -19,13 +19,12 @@ class Admin extends CI_Controller {
     }
 
 	public function dashboard(){
+		$data['page_title'] = 'Dashboard';
 		$data['num_rows'] = $this->common_model->select_where_table_rows('*', 'users', array('type'=>'user'));
         
 		$stripe = new \Stripe\StripeClient($this->stripe_api_key);
 
-		$data['subscriptions'] = $stripe->subscriptions->all([
-		'expand' => ['data.customer', 'data.plan'],
-		]);
+		$data['subscriptions'] = $stripe->subscriptions->all(['expand' => ['data.customer', 'data.plan']]);
 
 		// echo "<pre>"; print_r($data['subscriptions']); exit;
 
@@ -328,6 +327,9 @@ class Admin extends CI_Controller {
 		}
 		if(isset($_POST['coming_playstore'])){
 			$data['coming_playstore']= $this->input->post('coming_playstore');	
+		}
+		if(isset($_POST['new_updates'])){
+			$data['new_updates']= $this->input->post('new_updates');	
 		}
 		
 		$result_array =  $this->common_model->select_all("*", "settings")->result_array();

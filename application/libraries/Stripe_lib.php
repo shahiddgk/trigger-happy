@@ -78,4 +78,13 @@ class Stripe_lib{
             return $e->getMessage(); 
         } 
     } 
+
+    function cancelSuscription($subscriptionID){
+        try { 
+            $subscription = \Stripe\Subscription::retrieve($subscriptionID); 
+            return $subscription->cancel(); 
+        }catch(Exception $e) { 
+            return $e->getMessage(); 
+        }
+    }
 }

@@ -52,113 +52,75 @@ else{
 
 	<!-- partial:partials/_sidebar.html -->
 	<nav class="sidebar">
-	<div class="sidebar-header">
-	<a href="#" class="sidebar-brand">
-		<img src="<?= base_url('uploads/final_logo.png') ?>" alt="Logo" height="" width="150">
-	</a>
-	<div class="sidebar-toggler not-active">
-	<span></span>
-	<span></span>
-	<span></span>
-	</div>
-	</div>
-	<div class="sidebar-body">
-	<ul class="nav">
-		<li class="nav-item nav-category">Main</li>
-		<li class="nav-item">
-			<a class="nav-link" href="<?php echo site_url('admin/dashboard'); ?>">
-			<i class="link-icon" data-feather="box"></i>
-			<span class="link-title">Dashboard</span>
-			</a>
-		</li>
-		<li class="nav-item nav-category">web apps</li>
-		<li class="nav-item">
-			<a class="nav-link" data-toggle="collapse" href="#general-pages" role="button" aria-expanded="false" aria-controls="general-pages">
-			<i class="link-icon" data-feather="book"></i>
-			<span class="link-title">Questions</span>
-			<i class="link-arrow" data-feather="chevron-down"></i>
-			</a>
-			<div class="collapse" id="general-pages">
-			<ul class="nav sub-menu">
-				<li class="nav-item">
-					<a href="<?= base_url('admin/add_question'); ?>" class="nav-link">Add Question</a>
-				</li>
-				<li class="nav-item">
-					<a href="<?= base_url('admin/questions'); ?>" class="nav-link">Questions List</a>
-				</li>
-			</ul>
-			</div>
-		</li>
-		<li class="nav-item">
-			<a class="nav-link" data-toggle="collapse" href="#user-pages" role="button" aria-expanded="false" aria-controls="user-pages">
-			<i class="link-icon" data-feather="users"></i>
-			<span class="link-title">Users</span>
-			<i class="link-arrow" data-feather="chevron-down"></i>
-			</a>
-			<div class="collapse" id="user-pages">
-			<ul class="nav sub-menu">
-				<li class="nav-item">
-					<a href="<?= base_url('admin/users_list') ?>" class="nav-link">Users</a>
-				</li>
-				<li class="nav-item">
-					<a href="<?= base_url('admin/users_by_date') ?>" class="nav-link">Response By Date</a>
-				</li>
-			</ul>
-			</div>
-		</li>
-		<li class="nav-item">
-			<a class="nav-link" href="<?php echo site_url('admin/trellis'); ?>">
-			<i class="link-icon" data-feather="layout"></i>
-			<span class="link-title">Trellis</span>
-			</a>
-		</li>
-		<li class="nav-item">
-			<a class="nav-link" href="<?php echo site_url('admin/settings'); ?>">
-			<i class="link-icon" data-feather="settings"></i>
-			<span class="link-title">Settings</span>
-			</a>
-		</li>
-		<!-- <li class="nav-item">
-			<a class="nav-link" href="<?php echo site_url('payments/index'); ?>">
-			<i class="link-icon" data-feather="dollar-sign"></i>
-			<span class="link-title">Add Payments</span>
-			</a>
-		</li> -->
-	</ul>
-	</div>
+		<div class="sidebar-header">
+		<a href="#" class="sidebar-brand">
+			<img src="<?= base_url('uploads/final_logo.png') ?>" alt="Logo" height="" width="150">
+		</a>
+		<div class="sidebar-toggler not-active">
+		<span></span>
+		<span></span>
+		<span></span>
+		</div>
+		</div>
+		<div class="sidebar-body">
+		<ul class="nav">
+			<li class="nav-item nav-category">Main</li>
+			<li class="nav-item">
+				<a class="nav-link" href="<?php echo site_url('admin/dashboard'); ?>">
+				<i class="link-icon" data-feather="box"></i>
+				<span class="link-title">Dashboard</span>
+				</a>
+			</li>
+			<li class="nav-item nav-category">web apps</li>
+			<li class="nav-item">
+				<a class="nav-link" data-toggle="collapse" href="#general-pages" role="button" aria-expanded="false" aria-controls="general-pages">
+				<i class="link-icon" data-feather="book"></i>
+				<span class="link-title">Questions</span>
+				<i class="link-arrow" data-feather="chevron-down"></i>
+				</a>
+				<div class="collapse" id="general-pages">
+				<ul class="nav sub-menu">
+					<li class="nav-item">
+						<a href="<?= base_url('admin/add_question'); ?>" class="nav-link">Add Question</a>
+					</li>
+					<li class="nav-item">
+						<a href="<?= base_url('admin/questions'); ?>" class="nav-link">Questions List</a>
+					</li>
+				</ul>
+				</div>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" data-toggle="collapse" href="#user-pages" role="button" aria-expanded="false" aria-controls="user-pages">
+				<i class="link-icon" data-feather="users"></i>
+				<span class="link-title">Users</span>
+				<i class="link-arrow" data-feather="chevron-down"></i>
+				</a>
+				<div class="collapse" id="user-pages">
+				<ul class="nav sub-menu">
+					<li class="nav-item">
+						<a href="<?= base_url('admin/users_list') ?>" class="nav-link">Users</a>
+					</li>
+					<li class="nav-item">
+						<a href="<?= base_url('admin/users_by_date') ?>" class="nav-link">Response By Date</a>
+					</li>
+				</ul>
+				</div>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="<?php echo site_url('admin/trellis'); ?>">
+				<i class="link-icon" data-feather="layout"></i>
+				<span class="link-title">Trellis</span>
+				</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="<?php echo site_url('admin/settings'); ?>">
+				<i class="link-icon" data-feather="settings"></i>
+				<span class="link-title">Settings</span>
+				</a>
+			</li>
+		</ul>
+		</div>
 	</nav>
-	<nav class="settings-sidebar">
-	<div class="sidebar-body">
-	<!-- <a href="#" class="settings-sidebar-toggler">
-		<i data-feather="settings"></i>
-	</a> -->
-	<h6 class="text-muted">Sidebar:</h6>
-	<div class="form-group border-bottom">
-	<div class="form-check form-check-inline">
-		<label class="form-check-label">
-		<input type="radio" class="form-check-input" name="sidebarThemeSettings" id="sidebarLight" value="sidebar-light" checked>
-		Light
-		</label>
-	</div>
-	<div class="form-check form-check-inline">
-		<label class="form-check-label">
-		<input type="radio" class="form-check-input" name="sidebarThemeSettings" id="sidebarDark" value="sidebar-dark">
-		Dark
-		</label>
-	</div>
-	</div>
-	<div class="theme-wrapper">
-	<h6 class="text-muted mb-2">Light Theme:</h6>
-	<a class="theme-item active" href="<?= base_url()?>demo_1/dashboard-one.html">
-		<img src="<?= base_url()?>assets/admin/images/screenshots/light.jpg" alt="light theme">
-	</a>
-	<h6 class="text-muted mb-2">Dark Theme:</h6>
-	<a class="theme-item" href="<?= base_url()?>demo_2/dashboard-one.html">
-		<img src="<?= base_url()?>assets/admin/images/screenshots/dark.jpg" alt="light theme">
-	</a>
-	</div>
-	</div>
-	</nav> 
 	<!-- partial -->
 
 	<div class="page-wrapper">

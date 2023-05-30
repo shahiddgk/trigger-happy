@@ -13,17 +13,17 @@
                     <h6 class="card-title">Trellis Settings</h6>
                     <form class="forms-sample" action="<?=base_url('admin/trilles_settings');?>" method="post">
                         <div class="form-group">
-                            <label for="goal">Goal</label>
+                            <label for="goal"><b>Ladder:</b> Goals / Challenges</label>
                             <input value="<?= isset($trellis['goal']) ? $trellis['goal'] : '' ?>" type="number"
                                 class="form-control" name="goal" autocomplete="off" placeholder="Goal">
                         </div>
                         <div class="form-group">
-                            <label for="achievements">Achievements</label>
+                            <label for="achievements"><b>Ladder:</b> Memories / Achievements</label>
                             <input value="<?= isset($trellis['achievements']) ? $trellis['achievements'] : '' ?>"
                                 type="number" class="form-control" name="achievements" placeholder="Achievements">
                         </div>
                         <div class="form-group">
-                            <label for="principle">Principle</label>
+                            <label for="principle">Organizing Principles</label>
                             <input value="<?= isset($trellis['principle']) ? $trellis['principle'] : '' ?>"
                                 type="number" class="form-control" name="principle" autocomplete="off"
                                 placeholder="Principle">
@@ -81,6 +81,12 @@
                         <input value="<?= isset($trellis['coming_playstore']) ? $trellis['coming_playstore'] : '' ?>"
                             type="tel" class="form-control" name="coming_playstore" 
                             placeholder="Coming Playstore">
+                    </div>
+                    <div class="form-group">
+                        <label for="new_updates">Incoming Updates</label>
+                            <textarea name="new_updates" class="form-control" rows="10" placeholder="Incoming Playstore">
+                            <?= isset($trellis['new_updates']) ? $trellis['new_updates'] : '' ?>
+                            </textarea>
                     </div>
                     <button type="submit" class="btn btn-primary mr-2">Save</button>
                 </form>
