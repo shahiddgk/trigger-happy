@@ -623,7 +623,7 @@ class Api extends REST_Controller {
 		$user_id = $_POST['user_id'];
 
 		if(!empty($user_id)){
-			$count = $this->common_model->select_where("*","scores", array('user_id'=>$user_id, 'type'=>'pire'))->num_rows();
+			$count = $this->common_model->select_where("*","scores", array('user_id'=>$user_id))->num_rows();
 			if($count >= 0){
 				if($count>36){
 					$img = 37;
@@ -634,7 +634,6 @@ class Api extends REST_Controller {
 
 			$response = [
 				'status' => 200,
-				'type' => 'pire',
 				'response_count'=> $img,
 				'mobile_image_url'=> base_url('uploads/mobile_tree/').$img.'.png',
 				'ipad_image_url'=> base_url('uploads/ipad_tree/').$img.'.png',
@@ -1095,6 +1094,40 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
+
+	public function trellis_trigger_post(){
+		$user_id = $_POST['user_id'];
+
+		if(!empty($user_id)){
+            $count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $user_id, 'type'=>'trellis', 'response_date' => date('Y-m-d')));
+
+			if($count < 1){
+
+				$insert['type'] = 'trellis';
+				$insert['user_id'] = $user_id;
+				$insert['response_date'] = date('Y-m-d');
+				$this->db->insert('scores', $insert );
+
+				$response = [
+					'status' => 200,
+					'message' => 'score updated successfully'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}else{
+				$response = [
+					'status' => 400,
+					'message' => 'API has already been triggered today'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
 	
 	public function stripe_payment_post() {
 		$token = json_decode($_POST['token'], true);
@@ -1253,4 +1286,27 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
+
+	public function subscription_update_post(){
+		$subscription_id = $_POST['subscription_id'];
+
+		if(!empty($subscription_id)){
+
+			$cancelSuscription = $this->stripe_lib->updateSuscription($subscription_id);
+			$response = [
+				'status' => 200,
+				'message' => 'subscription retrived successfully',
+				'data' => $cancelSuscription
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+			
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
 }

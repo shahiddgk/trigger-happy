@@ -87,4 +87,14 @@ class Stripe_lib{
             return $e->getMessage(); 
         }
     }
+
+    function updateSuscription($subscriptionID){
+        try { 
+            $subscription = \Stripe\Subscription::retrieve($subscriptionID); 
+            return $subscription; 
+            
+        }catch(Exception $e) { 
+            return $e->getMessage(); 
+        }
+    }
 }
