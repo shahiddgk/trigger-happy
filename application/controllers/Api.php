@@ -1287,6 +1287,61 @@ class Api extends REST_Controller {
 		}
 	}
 
+	public function subscription_details_post(){
+
+		$user_id	=	$_POST['user_id'];
+			
+		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id, 'type'=>'user'));
+		
+		if($data['login']->num_rows()>0){
+			$row = $data['login']->row_array();
+
+			$subscription = $this->common_model->select_where("*","user_subscriptions", array('user_id'=>$row['id'], 'status'=>'active'));
+				$subscription_id = '';
+				$customer_id = '';
+				$plan_amount = '';
+			if($row['is_premium'] == 'yes' && $subscription->num_rows()>0){
+				$subscription = $subscription->row_array();
+				$subscription_id = $subscription['stripe_subscription_id'];
+				$customer_id = $subscription['stripe_customer_id'];
+				$plan_amount = $subscription['plan_amount'];
+			}
+
+			if($row['status']=='inactive'){
+				$response['error'] = 'inactive user';
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}
+
+			$user_data = array(
+				'usertype' => $row['type'],
+				'userid' => $row['id'],
+				'username' => $row['name'],
+				'useremail' => $row['email'],
+				'allowemail' => $row['mail_resp'],
+				'premium' => $row['is_premium'],
+				'premium_type' => $row['premium_type'],
+				'subscription_id' => $subscription_id,
+				'customer_id' => $customer_id,
+				'plan_amount' => $plan_amount
+
+			);
+
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'user_session' => $user_data
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}
+		else{
+			$response = [
+				'status' => 400,
+				'message' => 'no user found'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		} 
+	}
+
 	public function subscription_update_post(){
 		$subscription_id = $_POST['subscription_id'];
 
