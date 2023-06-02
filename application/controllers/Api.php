@@ -129,7 +129,7 @@ class Api extends REST_Controller {
 			$row = $data['login']->row_array();
 			$valid_token  =  $row['device_token'];
 
-			$subscription = $this->common_model->select_where("*","user_subscriptions", array('user_id'=>$row['id'], 'status'=>'active'));
+				$subscription = $this->common_model->select_where("*","user_subscriptions", array('user_id'=>$row['id'], 'status'=>'active'));
 				$subscription_id = '';
 				$customer_id = '';
 				$plan_amount = '';
@@ -747,151 +747,218 @@ class Api extends REST_Controller {
 		
 	}
 
+	// Trellis API's Start
 	public function ladder_post(){
 		$user_id = $_POST['user_id'];
-		$type = $_POST['type'];
-		
-		$row_count = $this->common_model->select_where("*", "ladder", array('user_id'=>$user_id, 'type'=>$type))->num_rows();
 
-		if($row_count < 2){
-			$data['user_id'] = $user_id;
-			$data['type'] = $_POST['type'];
-			if(isset($_POST['option1']) && !empty($_POST['option1'])){
-				$data['option1'] = $_POST['option1'];
-			}
-			if(isset($_POST['option2']) && !empty($_POST['option2'])){
-				$data['option2'] = $_POST['option2'];
-			}
-			if(isset($_POST['date']) && !empty($_POST['date'])){
-				$dateObj = DateTime::createFromFormat('m-d-y', $_POST['date']);
-				$data['date'] = $dateObj->format('Y-m-d');
-				$_POST['date'] = $data['date'];
-			}
-			if(isset($_POST['text']) && !empty($_POST['text'])){
-				$data['text'] = $_POST['text'];
-			}
-			if(isset($_POST['description']) && !empty($_POST['description'])){
-				$data['description'] = $_POST['description'];
-			}
+		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id, 'type'=>'user'));
+		
+		if($data['login']->num_rows()>0) {
+			$user_data = $data['login']->row_array();
+			$type = $_POST['type'];
 			
-			$this->common_model->insert_array('ladder', $data);
-			$last_insert_id = $this->db->insert_id(); 
-			$_POST['id'] = $last_insert_id;
-			$response = [
-				'status' => 200,
-				'message' => 'success',
-				'post_data' => $_POST
-			];
-			$this->set_response($response, REST_Controller::HTTP_OK);
-		}else{
+			$row_count = $this->common_model->select_where("*", "ladder", array('user_id'=>$user_id, 'type'=>$type))->num_rows();
+			
+			if($user_data['is_premium'] == 'no' && $row_count >= 2){ 
+				
+				$response = [
+					'status' => 400,
+					'message' => 'more responses not allowed'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+			else{
+				$insert['user_id'] = $user_id;
+				$insert['type'] = $_POST['type'];
+				if(isset($_POST['option1']) && !empty($_POST['option1'])){
+					$insert['option1'] = $_POST['option1'];
+				}
+				if(isset($_POST['option2']) && !empty($_POST['option2'])){
+					$insert['option2'] = $_POST['option2'];
+				}
+				if(isset($_POST['date']) && !empty($_POST['date'])){
+					$dateObj = DateTime::createFromFormat('m-d-y', $_POST['date']);
+					$insert['date'] = $dateObj->format('Y-m-d');
+					$_POST['date'] = $insert['date'];
+				}
+				if(isset($_POST['text']) && !empty($_POST['text'])){
+					$insert['text'] = $_POST['text'];
+				}
+				if(isset($_POST['description']) && !empty($_POST['description'])){
+					$insert['description'] = $_POST['description'];
+				}
+				
+				$this->common_model->insert_array('ladder', $insert);
+				$last_insert_id = $this->db->insert_id(); 
+				$_POST['id'] = $last_insert_id;
+				$response = [
+					'status' => 200,
+					'message' => 'success',
+					'post_data' => $_POST
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}
+		}
+		else{
 			$response = [
 				'status' => 400,
-				'message' => 'more responses not allowed'
+				'message' => 'no user found'
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-		}
+		} 
 	}
 
 	public function tribe_post(){
 		$user_id = $_POST['user_id'];
-		$row_count = $this->common_model->select_where("*", "tribe", array('user_id'=>$user_id))->num_rows();
 
-		if($row_count < 1){
-			$data['user_id'] = $user_id;
-			if(isset($_POST['mentor']) && !empty($_POST['mentor'])){
-				$data['mentor'] = $_POST['mentor'];
-			}
-			if(isset($_POST['peer']) && !empty($_POST['peer'])){
-				$data['peer'] = $_POST['peer'];
-			}
-			if(isset($_POST['mentee']) && !empty($_POST['mentee'])){
-				$data['mentee'] = $_POST['mentee'];
-			}
+		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id, 'type'=>'user'));
+		
+		if($data['login']->num_rows()>0) {
+			$user_data = $data['login']->row_array();
+			$type = $_POST['type'];
 			
-			$this->common_model->insert_array('tribe', $data);
-			$last_insert_id = $this->db->insert_id(); 
-			$_POST['id'] = $last_insert_id;
-			$response = [
-				'status' => 200,
-				'message' => 'success',
-				'post_data' => $_POST
-			];
-			$this->set_response($response, REST_Controller::HTTP_OK);
-		}else{
+			$row_count = $this->common_model->select_where("*", "tribe", array('user_id'=>$user_id))->num_rows();
+			$tribe = $this->common_model->select_single_field("tribe", "settings", array('id'=>'1'));
+			
+			if($user_data['is_premium'] == 'no' && $row_count >= $tribe){ 
+				
+				$response = [
+					'status' => 400,
+					'message' => 'more responses not allowed'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+			else{
+				$insert['user_id'] = $user_id;
+				if(isset($_POST['mentor']) && !empty($_POST['mentor'])){
+					$insert['mentor'] = $_POST['mentor'];
+				}
+				if(isset($_POST['peer']) && !empty($_POST['peer'])){
+					$insert['peer'] = $_POST['peer'];
+				}
+				if(isset($_POST['mentee']) && !empty($_POST['mentee'])){
+					$insert['mentee'] = $_POST['mentee'];
+				}
+				
+				$this->common_model->insert_array('tribe', $insert);
+				$last_insert_id = $this->db->insert_id(); 
+				$_POST['id'] = $last_insert_id;
+				$response = [
+					'status' => 200,
+					'message' => 'success',
+					'post_data' => $_POST
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}
+		}
+		else{
 			$response = [
 				'status' => 400,
-				'message' => 'more responses not allowed'
+				'message' => 'no user found'
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-		}
+		} 
 	}
 
 	public function principles_post(){
 		$user_id = $_POST['user_id'];
 
-		$type = $_POST['type'];
-
-		$row_count = $this->common_model->select_where("*", "principles", array('user_id'=>$user_id, 'type'=>$type))->num_rows();
+		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id, 'type'=>'user'));
 		
-		if($row_count < 2){
-			$data['user_id'] = $user_id;
-			$data['type'] = $_POST['type'];
-			if(isset($_POST['emp_truths'])){
-				$data['emp_truths'] = $_POST['emp_truths'];
-			}
-			if(isset($_POST['powerless_believes'])){
-				$data['powerless_believes'] = $_POST['powerless_believes'];
-			}
+		if($data['login']->num_rows()>0) {
+			$user_data = $data['login']->row_array();
+			$type = $_POST['type'];
 			
-			$this->common_model->insert_array('principles', $data);
-			$last_insert_id = $this->db->insert_id(); 
-			$_POST['id'] = $last_insert_id;
-			$response = [
-				'status' => 200,
-				'message' => 'success',
-				'post_data' => $_POST
-			];
-			$this->set_response($response, REST_Controller::HTTP_OK);
-		}else{
+			$row_count = $this->common_model->select_where("*", "principles", array('user_id'=>$user_id, 'type'=>$type))->num_rows();
+			$principle = $this->common_model->select_single_field("principle", "settings", array('id'=>'1'));
+			
+			if($user_data['is_premium'] == 'no' && $row_count >= $principle){ 
+				
+				$response = [
+					'status' => 400,
+					'message' => 'more responses not allowed'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+			else{
+				$insert['user_id'] = $user_id;
+				$insert['type'] = $_POST['type'];
+				if(isset($_POST['emp_truths'])){
+					$insert['emp_truths'] = $_POST['emp_truths'];
+				}
+				if(isset($_POST['powerless_believes'])){
+					$insert['powerless_believes'] = $_POST['powerless_believes'];
+				}
+				
+				$this->common_model->insert_array('principles', $insert);
+				$last_insert_id = $this->db->insert_id(); 
+				$_POST['id'] = $last_insert_id;
+				$response = [
+					'status' => 200,
+					'message' => 'success',
+					'post_data' => $_POST
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}
+		}
+		else{
 			$response = [
 				'status' => 400,
-				'message' => 'more responses not allowed'
+				'message' => 'no user found'
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-		}
+		} 
 	}
 
 	public function identity_post(){
 		$user_id = $_POST['user_id'];
 
-		$type = $_POST['type'];
-
-		$row_count = $this->common_model->select_where("*", "identity", array('user_id'=>$user_id, 'type'=>$type))->num_rows();
+		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id, 'type'=>'user'));
 		
-		if($row_count < 2){
-			$data['user_id'] = $user_id;
-			$data['type'] = $_POST['type'];
-			if(isset($_POST['text']) && !empty($_POST['text'])){
-				$data['text'] = $_POST['text'];
-			}
+		if($data['login']->num_rows()>0) {
+			$user_data = $data['login']->row_array();
+			$type = $_POST['type'];
 			
-			$this->common_model->insert_array('identity', $data);
-			$last_insert_id = $this->db->insert_id(); 
-			$_POST['id'] = $last_insert_id;
-			$response = [
-				'status' => 200,
-				'message' => 'success',
-				'post_data' => $_POST
-			];
-			$this->set_response($response, REST_Controller::HTTP_OK);
-		}else{
+			$row_count = $this->common_model->select_where("*", "identity", array('user_id'=>$user_id, 'type'=>$type))->num_rows();
+			$identity = $this->common_model->select_single_field("identity", "settings", array('id'=>'1'));
+			
+			if($user_data['is_premium'] == 'no' && $row_count >= $identity){ 
+				
+				$response = [
+					'status' => 400,
+					'message' => 'more responses not allowed'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+			else{
+				
+				$insert['user_id'] = $user_id;
+				$insert['type'] = $_POST['type'];
+				if(isset($_POST['text']) && !empty($_POST['text'])){
+					$insert['text'] = $_POST['text'];
+				}
+				
+				$this->common_model->insert_array('identity', $insert);
+				$last_insert_id = $this->db->insert_id(); 
+				$_POST['id'] = $last_insert_id;
+				$response = [
+					'status' => 200,
+					'message' => 'success',
+					'post_data' => $_POST
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}
+		}
+		else{
 			$response = [
 				'status' => 400,
-				'message' => 'more responses not allowed'
+				'message' => 'no user found'
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-		}
+		} 
 	}
+
+	// Trellis Insert End
 
 	public function all_trellis_read_post(){
 		$user_id = $_POST['user_id'];
