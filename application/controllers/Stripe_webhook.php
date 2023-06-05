@@ -124,42 +124,61 @@ class Stripe_webhook extends CI_Controller {
     private function paymentFailed($data)
     {
         if($data->billing_reason == 'subscription_cycle'){
+            $customer_id = $data->customer;
+            $subscription_id = $data->subscription;
             $customer_name = $data->customer_name;
             $customer_email = $data->customer_email;
 
+            // Single Item
+            $InvoiceLineItem = $data->lines->data[0];
+            $plan_name = ucfirst($InvoiceLineItem->plan->interval);
+
+            $user = $this->common_model->select_where("*", "user_subscriptions", array('stripe_subscription_id'=>$subscription_id, 'stripe_customer_id'=>$customer_id))->row_array();
+
+            if(!empty($user)){
+                $user_id = $user['user_id'];
+                $update['is_premium'] = 'no';
+                $update['premium_type'] = '';
+                $this->common_model->update_array(array('id'=> $user_id), 'users', $update);
+            }
             $title = 'Action Required: Recursive Payment Failed for Your Stripe Subscription';
             $message = '
-            Dear '. $customer_name. ',
+            Dear '. $customer_name. ' <br>,
             
-            We regret to inform you that the recurring payment for your Stripe subscription plan has failed. To avoid any interruption to your service, please take immediate action to update your payment information.
+            We regret to inform you that the recurring payment for your Stripe subscription plan has failed. To avoid any interruption to your service, please take immediate action to update your payment information. <br>
             
-            Action Required:
-            1. Log in to your Stripe account.
-            2. Navigate to the "Billing" or "Payment" section.
-            3. Update your payment details with accurate and valid credit card information.
-            4. Save the changes to ensure successful payment processing.
+            Action Required:<br>
+            1. Contact Burgeon Support. <br>
             
-            Your prompt attention to this matter is appreciated.
+            Your prompt attention to this matter is appreciated. <br>
             
-            Please note that failure to update your payment details within 24 hours may result in temporary suspension or cancellation of your subscription.
+            We apologize for any inconvenience caused and thank you for your cooperation.<br>
             
-            We apologize for any inconvenience caused and thank you for your cooperation.
-            
-            Best regards,
+            Best regards,<br>
             
             Burgeon App';
-            $this->send_email($title, $message);
+            $this->send_email($title, $message, $customer_email);
+
+            $admin_title = 'Action Required: Recursive Payment Failed:';
+            $admin_message = '<b> User Details: </b> <br>';
+            $admin_message .= 'Name: '. $customer_name. '<br>';
+            $admin_message .= 'Email: '. $customer_email. '<br>';
+            $admin_message .= 'Subscription ID: '. $subscription_id. '<br>';
+            $admin_message .= 'Plan: '. $plan_name. '<br>';
+
+            $this->send_email($admin_title, $admin_message, 'info@burgeon.app');
+
         }else{
             return false;
         }
     }
 
-    private function send_email($subject, $message)
+    private function send_email($subject, $message, $to_email)
     {
         $this->email->set_newline("\r\n");
         $this->email->set_mailtype('html');
         $this->email->from($this->smtp_user, 'Burgeon');
-        $this->email->to('mustaqim.ratedsolution@gmail.com');
+        $this->email->to($to_email);
         $this->email->subject($subject);
         $this->email->message($message);
         if($this->email->send()) {
