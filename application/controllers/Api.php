@@ -808,6 +808,45 @@ class Api extends REST_Controller {
 		} 
 	}
 
+	public function add_fav_ladder_post(){
+		$entity_id = $_POST['entity_id'];
+
+		if(!empty($entity_id)){
+			
+			if(isset($_POST['status']) && !empty($_POST['status'])){
+
+				$status = $_POST['status'];
+			}
+			else{
+				$status = 'no';
+			}
+			$this->common_model->update_array(array('id'=>$entity_id), "ladder", array('favourite'=>$status));
+		
+			$updated_record = $this->common_model->select_where("*", "ladder", array('id' => $entity_id))->row_array();
+
+			if (!empty($updated_record)) {
+				$response = [
+					'status' => 200,
+					'message' => 'success',
+					'data' => $updated_record
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			} else {
+				$response = [
+					'status' => 404,
+					'message' => 'Record not found'
+				];
+				$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
+			}
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
 	public function tribe_post(){
 		$user_id = $_POST['user_id'];
 
