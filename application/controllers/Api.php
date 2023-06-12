@@ -192,7 +192,12 @@ class Api extends REST_Controller {
 	}
 
 	public function questions_get(){
-		$questions = $this->common_model->select_all_order_by('*', 'questions','id','ASC')->result_array();
+		if($this->input->get('type')){
+			$type = $this->input->get('type');
+		}else{
+			$type = 'pire';
+		}
+		$questions = $this->common_model->select_where("*", "questions", array('type'=>$type))->result_array();
 		if($questions){
 
 			foreach ($questions as $key=>$question) {

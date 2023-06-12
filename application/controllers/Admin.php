@@ -42,11 +42,22 @@ class Admin extends CI_Controller {
 
 	public function questions(){
 		$data['page_title'] = 'Questions List';
-		$data['questions'] = $this->common_model->select_all_order_by('*', 'questions','id','ASC')->result_array();
-        $this->load->view('admin/include/header');
-        $this->load->view('admin/questions', $data);
-        $this->load->view('admin/include/footer');
-    }
+		$questions = $this->common_model->select_all_order_by('*', 'questions', 'id', 'ASC')->result_array();
+
+		$filter = $this->input->get('filter');
+
+		if ($filter) {
+			$questions = array_filter($questions, function ($question) use ($filter) {
+				return $question['type'] === $filter;
+			});
+		}
+
+		$data['questions'] = $questions;
+
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/questions', $data);
+		$this->load->view('admin/include/footer');
+	}
 
 	public function insert_question(){
 		$json_options = 'NULL';
@@ -61,6 +72,7 @@ class Admin extends CI_Controller {
 			$json_options = json_encode($this->input->post('q_options'));
 		}
 		$data['options'] = $json_options;
+		$data['type'] = $this->input->post('question_for');
 		$this->db->insert('questions', $data);
 
 		redirect('admin/questions'); 
@@ -118,7 +130,8 @@ class Admin extends CI_Controller {
 			$json_options = json_encode($this->input->post('q_options'));
 		}
 		$data['options'] = $json_options;
-		$this->common_model->update_array(array('id'=> $id), 'questions', $data);
+		$data['type'] = $this->input->post('question_for'); // Add the selected value to the data array
+		$this->common_model->update_array(array('id' => $id), 'questions', $data);
 
 		redirect('admin/questions'); 
 	}

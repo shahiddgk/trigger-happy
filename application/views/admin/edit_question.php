@@ -15,6 +15,13 @@
 					<form class="cmxform" method="post" action="<?= base_url('admin/update_question/').$question['id']; ?>">
 						<fieldset>
 							<div class="form-group">
+								<label for="question_for" class="font-weight-bold">This question is for</label>
+								<select class="form-control" name="question_for" id="question_for">
+									<option value="pire" <?php echo ($question['type'] == 'pire') ? 'selected' : ''; ?>>Pire</option>
+									<option value="naq" <?php echo ($question['type'] == 'naq') ? 'selected' : ''; ?>>NAQ</option>
+								</select>
+							</div>
+							<div class="form-group">
 								<h4 class="card-title font-weight-bold">Title</h4>
 								<textarea class="form-control" name="q_title" id="editor1" rows="2" required><?= $question['title'] ?></textarea>
 							</div>
