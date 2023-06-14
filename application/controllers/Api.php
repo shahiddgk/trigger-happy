@@ -216,12 +216,12 @@ class Api extends REST_Controller {
 		}
 		else{
 			$response = [
-				'status' => 400,
-				'message' => 'no data available'
+				'status' => 200,
+				'message' => 'no data found',
+				'questions' => array()
 			];
-			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			$this->set_response($response, REST_Controller::HTTP_OK);
 		} 
-		$this->set_response($response, REST_Controller::HTTP_OK);
 	}
 
 	public function social_login_post(){
