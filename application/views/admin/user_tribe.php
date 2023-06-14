@@ -18,23 +18,17 @@
                         <thead>
                             <tr>
                                 <th>Mentor</th>
-                                <th>Mentor Desc</th>
                                 <th>Peer</th>
-                                <th>Peer Desc</th>
                                 <th>Mentee</th>
-                                <th>Mentee Desc</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach($tribe as $data) { ?>
+                            <?php
+                             foreach($tribe as $data) { ?>
                                 <tr>
                                     <td><?=$data['mentor']?></td>
-                                    <td><?=$data['mentor_desc']?></td>
                                     <td><?=$data['peer']?></td>
-                                    <td><?=$data['peer_desc']?></td>
                                     <td><?=$data['mentee']?></td>
-                                    <td><?=$data['mentee_desc']?></td>
-                                
                                 </tr>
                             <?php } ?>
                         </tbody>
