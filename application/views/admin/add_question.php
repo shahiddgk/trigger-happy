@@ -14,7 +14,7 @@
 					<h4 class="card-title font-weight-bold">Add Question</h4>
 						<form class="cmxform" method="post" action="<?= base_url('admin/insert_question'); ?>">
 							<fieldset>
-							<div class="form-group">
+								<div class="form-group">
 									<label for="question_for" class="font-weight-bold">Question Type</label>
 									<select class="form-control" name="question_for" id="question_for">
 										<option value="pire">Pire</option>

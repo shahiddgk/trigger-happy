@@ -197,7 +197,7 @@ class Api extends REST_Controller {
 		}else{
 			$type = 'pire';
 		}
-		$questions = $this->common_model->select_where("*", "questions", array('type'=>$type))->result_array();
+		$questions = $this->common_model->select_where_ASC_DESC("*", "questions", array('type'=>$type), 'id', 'ASC')->result_array();
 		if($questions){
 
 			foreach ($questions as $key=>$question) {
