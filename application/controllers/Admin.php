@@ -205,12 +205,20 @@ class Admin extends CI_Controller {
 	public function date_group($id = null){
 		$data['page_title'] = 'Date Group';
 		
-		$data['answers'] = $this->common_model->select_where_ASC_DESC_Group_by("*",'answers', array('user_id'=>$id), 'created_at' , 'DESC', 'DATE(created_at)')->result_array();
+		$data['answers'] = $this->common_model->select_where_ASC_DESC_Group_by("*",'answers', array('user_id'=>$id,'type'=>'pire'), 'created_at' , 'DESC', 'DATE(created_at)')->result_array();
         $this->load->view('admin/include/header');
         $this->load->view('admin/date_group', $data);
         $this->load->view('admin/include/footer');
     }
-	
+
+	public function date_group_naq($id = null){
+		$data['page_title'] = 'Date Group NAQ';
+		
+		$data['answers'] = $this->common_model->select_where_ASC_DESC_Group_by("*",'answers', array('user_id'=>$id, 'type'=>'naq'), 'created_at' , 'DESC', 'DATE(created_at)')->result_array();
+        $this->load->view('admin/include/header');
+        $this->load->view('admin/date_group_naq', $data);
+        $this->load->view('admin/include/footer');
+    }	
 	public function get_response($response_id = null){
 		$data['page_title'] = 'Users Response';
 		$data['answers'] = $this->common_model->select_two_tab_join_where("a.* , q.title",'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id'=>$response_id))->result_array();

@@ -371,10 +371,14 @@ class Api extends REST_Controller {
 	}
 
 	public function response_submit_mail_post(){
-
 		$name = $_POST['name'];
 		$email = $_POST['email'];
 		$user_id = $_POST['user_id'];
+		if(isset($_POST['type'])) {
+			$type = $_POST['type'];
+		}else{
+			$type = 'pire';
+		}
 		$answers = json_decode($_POST['answers'], true);
 	
 		if($answers){
@@ -387,7 +391,8 @@ class Api extends REST_Controller {
 					$data['options'] =  $optins;
 					$data['text'] = '';
 					$data['user_id'] = $user_id;
-					$data['response_id'] = $response_id;
+					$data['response_id'] = $response_id;					
+					$data['type'] = $type;
 				}
 				else if($answer['type'] == 'check_box'){
 					$checks = implode(",",$answer['answer']);
@@ -395,14 +400,16 @@ class Api extends REST_Controller {
 					$data['options'] = $checks ;
 					$data['text'] = '';
 					$data['user_id'] = $user_id;
-					$data['response_id'] = $response_id;
+					$data['response_id'] = $response_id;					
+					$data['type'] = $type;
 				}
 				else if($answer['type'] == 'open_text'){
 					$data['question_id'] = $key;
 					$data['options'] = '';
 					$data['text'] = trim(json_encode($answer['answer']), '[""]');
 					$data['user_id'] = $user_id;
-					$data['response_id'] = $response_id;
+					$data['response_id'] = $response_id;					
+					$data['type'] = $type;
 				}
 
 				$insert = $this->common_model->insert_array('answers', $data);

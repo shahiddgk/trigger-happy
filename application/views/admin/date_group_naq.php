@@ -26,7 +26,7 @@
                                 foreach($answers as $key => $data){
                                     $chk_date =   date('Y-m-d', strtotime($data['created_at'])); 
                                     $count = '0';
-                                    $count =  $this->common_model->select_where_ASC_DESC_Group_by("*",'answers', array('user_id'=>$data['user_id'], 'type'=>'pire', 'DATE(created_at)'=> $chk_date), '' , '', 'response_id')->result_array();
+                                    $count =  $this->common_model->select_where_ASC_DESC_Group_by("*",'answers', array('user_id'=>$data['user_id'], 'type'=>'naq', 'DATE(created_at)'=> $chk_date), '' , '', 'response_id')->result_array();
                                     $answers[$key]['count'] = $count;
                                 }
                                 
