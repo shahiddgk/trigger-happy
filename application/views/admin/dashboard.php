@@ -76,7 +76,7 @@
                 </tr>
               </thead>
               <tbody>
-                <?php foreach (@$subscriptions as $key => $value) {
+                <?php if(isset($subscriptions)){ foreach (@$subscriptions as $key => $value) {
                   $interval = $value['items']['data'][0]['plan']['interval'];  ?>
                 <tr>
                   <td><?= $key+1 ?></td>
@@ -86,7 +86,7 @@
                   <td><?= date('d/m/Y', $value['current_period_end'])?></td>
                   <td><span class="badge badge-warning"><?= $value['status'] ?></span></td>
                 </tr>
-                <?php }   ?>
+                <?php } }  ?>
               </tbody>
             </table>
           </div>
