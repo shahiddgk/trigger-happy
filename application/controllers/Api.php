@@ -866,8 +866,6 @@ class Api extends REST_Controller {
 		
 		if($data['login']->num_rows()>0) {
 			$user_data = $data['login']->row_array();
-			$type = $_POST['type'];
-			
 			$row_count = $this->common_model->select_where("*", "tribe", array('user_id'=>$user_id))->num_rows();
 			$tribe = $this->common_model->select_single_field("tribe", "settings", array('id'=>'1'));
 			
@@ -1045,6 +1043,10 @@ class Api extends REST_Controller {
 				$type = $_POST['type'];
 				$trellis = $this->common_model->select_where("*", "$table", array('user_id'=>$user_id, 'type'=>$type))->result_array();
 			}
+			// else if($table == 'ladder'){
+			// 	$type = $_POST['type'];
+			// 	$trellis = $this->common_model->select_where_ASC_DESC("*", "$table", array('user_id'=>$user_id, 'type'=>$type), 'date', 'desc' )->result_array();
+			// }
 			else{
 				$trellis = $this->common_model->select_where("*", "$table", array('user_id'=>$user_id))->result_array();
 			}
