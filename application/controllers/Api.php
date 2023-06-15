@@ -348,6 +348,26 @@ class Api extends REST_Controller {
 		}
 	}
 
+	public function naq_response_post(){
+		$user_id = $_POST['user_id'];
+		$result = $this->common_model->select_where("*", "answers", array('user_id'=>$user_id, 'type'=>'naq'))->result_array();
+		if($result){
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'single_answer' => $result
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}
+		else{
+			$response = [
+				'status' => 400,
+				'message' => 'data not found'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
 	public function user_response_post(){
 		$data['question_id'] = $_POST['question_id'];
 		$data['user_id'] = $_POST['user_id'];
@@ -803,6 +823,7 @@ class Api extends REST_Controller {
 				$this->common_model->insert_array('ladder', $insert);
 				$last_insert_id = $this->db->insert_id(); 
 				$_POST['id'] = $last_insert_id;
+				$_POST['favourite'] = 'no';
 				$response = [
 					'status' => 200,
 					'message' => 'success',
