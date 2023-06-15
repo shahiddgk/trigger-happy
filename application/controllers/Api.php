@@ -361,10 +361,11 @@ class Api extends REST_Controller {
 		}
 		else{
 			$response = [
-				'status' => 400,
-				'message' => 'data not found'
+				'status' => 200,
+				'message' => 'no data',
+				'data' => array()
 			];
-			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
 	}
 
