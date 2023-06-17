@@ -363,7 +363,7 @@ class Api extends REST_Controller {
 			$response = [
 				'status' => 200,
 				'message' => 'no data',
-				'data' => array()
+				'single_answer' => array()
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
