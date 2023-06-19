@@ -206,6 +206,9 @@ class Api extends REST_Controller {
 					$questions[$key]['options'] = $options;
 				}
 			}
+			if($type == 'naq'){
+				$questions = array_chunk($questions, 3);
+			}
 			$response = [
 				'status' => 200,
 				'message' => 'success',
@@ -213,8 +216,7 @@ class Api extends REST_Controller {
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
 			
-		}
-		else{
+		} else {
 			$response = [
 				'status' => 200,
 				'message' => 'no data found',
