@@ -397,35 +397,6 @@ class Api extends REST_Controller {
 		$name = $_POST['name'];
 		$email = $_POST['email'];
 		$user_id = $_POST['user_id'];
-		$response_id = '';
-
-		if (isset($_POST['res_group']) && $_POST['type'] == "naq") {
-			$res_group = $_POST['res_group'];
-			$complete = $_POST['complete'];
-
-			$response =  $this->common_model->select_where_groupby("response_id , complete", "answers", array('user_id'=>$user_id, 'type'=>'naq'), "response_id , complete" );   
-		
-			if($response->num_rows() > 0){ 
-				$response = $response->row_array();
-
-				$compl_status = $response['complete'];
-
-				if($compl_status == 'yes'){
-					$response_id = random_string('numeric',8);
-				}else if($compl_status == 'no'){
-					$response_id = $response['response_id'];
-				}
-
-			}else{
-				$response_id = random_string('numeric',8);
-			}	
-			
-		} else {
-			$res_group = '';
-			$complete = '';
-			$response_id =  random_string('numeric',8);     
-		}
-
 		if(isset($_POST['type'])) {
 			$type = $_POST['type'];
 		}else{
