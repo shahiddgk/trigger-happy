@@ -421,8 +421,8 @@ class Api extends REST_Controller {
 			}	
 			
 		} else {
-			$res_group = '';
-			$complete = '';
+			$res_group = Null;
+			$complete = NULL;
 			$response_id =  random_string('numeric',8);     
 		}
 
