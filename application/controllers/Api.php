@@ -1539,4 +1539,54 @@ class Api extends REST_Controller {
 		}
 	}
 
+	public function response_submit_naq_post(){
+
+		$name = $_POST['name'];
+		$email = $_POST['email'];
+		$user_id = $_POST['user_id'];
+			
+		$answers = json_decode($_POST['answers'], true);
+	
+		if($answers){
+			$response_id =  random_string('numeric',8);     
+			foreach ($answers as $key =>  $answer)
+			{
+				if($answer['type'] == 'radio_btn'){
+					$optins = implode(",",$answer['answer']);
+					$data['question_id'] = $key;
+					$data['options'] =  $optins;
+					$data['text'] = '';
+					$data['user_id'] = $user_id;
+					$data['response_id'] = $response_id;
+					$data['type'] = 'naq';
+					$data['res_group'] = '1';
+					$data['complete'] = 'yes';
+				}
+				else if($answer['type'] == 'open_text'){
+					$data['question_id'] = $key;
+					$data['options'] = '';
+					$data['text'] = trim(json_encode($answer['answer']), '[""]');
+					$data['user_id'] = $user_id;
+					$data['response_id'] = $response_id;
+					$data['type'] = 'naq';
+					$data['res_group'] = '1';
+					$data['complete'] = 'yes';
+				}
+				$insert = $this->common_model->insert_array('answers', $data);
+			}
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'data' => 'inserted successfully'
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
 }
