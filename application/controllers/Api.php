@@ -397,6 +397,35 @@ class Api extends REST_Controller {
 		$name = $_POST['name'];
 		$email = $_POST['email'];
 		$user_id = $_POST['user_id'];
+		$response_id = '';
+
+		if (isset($_POST['res_group']) && $_POST['type'] == "naq") {
+			$res_group = $_POST['res_group'];
+			$complete = $_POST['complete'];
+
+			$response =  $this->common_model->select_where_groupby("response_id , complete", "answers", array('user_id'=>$user_id, 'type'=>'naq'), "response_id , complete" );   
+		
+			if($response->num_rows() > 0){ 
+				$response = $response->row_array();
+
+				$compl_status = $response['complete'];
+
+				if($compl_status == 'yes'){
+					$response_id = random_string('numeric',8);
+				}else if($compl_status == 'no'){
+					$response_id = $response['response_id'];
+				}
+
+			}else{
+				$response_id = random_string('numeric',8);
+			}	
+			
+		} else {
+			$res_group = '';
+			$complete = '';
+			$response_id =  random_string('numeric',8);     
+		}
+
 		if(isset($_POST['type'])) {
 			$type = $_POST['type'];
 		}else{
@@ -405,7 +434,6 @@ class Api extends REST_Controller {
 		$answers = json_decode($_POST['answers'], true);
 	
 		if($answers){
-			$response_id =  random_string('numeric',8);     
 			foreach ($answers as $key =>  $answer)
 			{
 				if($answer['type'] == 'radio_btn'){
@@ -416,6 +444,8 @@ class Api extends REST_Controller {
 					$data['user_id'] = $user_id;
 					$data['response_id'] = $response_id;					
 					$data['type'] = $type;
+					$data['res_group'] = $res_group;     
+					$data['complete'] = $complete;     
 				}
 				else if($answer['type'] == 'check_box'){
 					$checks = implode(",",$answer['answer']);
@@ -425,6 +455,7 @@ class Api extends REST_Controller {
 					$data['user_id'] = $user_id;
 					$data['response_id'] = $response_id;					
 					$data['type'] = $type;
+					$data['res_group'] = $res_group;     
 				}
 				else if($answer['type'] == 'open_text'){
 					$data['question_id'] = $key;
@@ -433,6 +464,7 @@ class Api extends REST_Controller {
 					$data['user_id'] = $user_id;
 					$data['response_id'] = $response_id;					
 					$data['type'] = $type;
+					$data['res_group'] = $res_group;     
 				}
 
 				$insert = $this->common_model->insert_array('answers', $data);
