@@ -1544,7 +1544,7 @@ class Api extends REST_Controller {
 		$name = $_POST['name'];
 		$email = $_POST['email'];
 		$user_id = $_POST['user_id'];
-			
+	 	
 		$answers = json_decode($_POST['answers'], true);
 	
 		if($answers){
@@ -1555,7 +1555,7 @@ class Api extends REST_Controller {
 					$optins = implode(",",$answer['answer']);
 					$data['question_id'] = $key;
 					$data['options'] =  $optins;
-					$data['text'] = '';
+					$data['text'] = $answer['answer'][0] == 'Yes' ? $answer['res_text'] : '';
 					$data['user_id'] = $user_id;
 					$data['response_id'] = $response_id;
 					$data['type'] = 'naq';
