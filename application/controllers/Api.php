@@ -184,7 +184,7 @@ class Api extends REST_Controller {
 		else{
 			$response = [
 				'status' => 400,
-				'message' => 'failed to login',
+				'message' => 'your Password or email is Wrong',
 				'user_login' => 'FALSE'
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
@@ -609,7 +609,7 @@ class Api extends REST_Controller {
 			if($this->db->affected_rows()> 0){
 				$response = [
 					'status' => 200,
-					'message' => 'Password changed'
+					'message' => 'Password changed Successfully'
 				];
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			}else{
@@ -1597,18 +1597,68 @@ class Api extends REST_Controller {
 				}
 				$insert = $this->common_model->insert_array('answers', $data);
 			}
-			$response = [
-				'status' => 200,
-				'message' => 'success',
-				'data' => 'inserted successfully'
-			];
-			$this->set_response($response, REST_Controller::HTTP_OK);
-		} else {
-			$response = [
-				'status' => 400,
-				'message' => 'empty parameters'
-			];
-			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+
+			$status = $this->common_model->select_single_field('mail_resp', 'users', array('id'=>$user_id));
+			
+			if($insert && $status == 'yes'){
+				$response = $this->common_model->select_two_tab_join_where("a.* , q.title",'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id'=>$response_id)); 
+			
+				if($response->num_rows()>0) {
+
+					$data['answers'] = $response->result_array();
+					$subject = 'Response Submit Confirmation';
+					$message = "Dear <b>" .$name. " </b> <br>";
+					$message .= "Your answers for Burgeon have been submitted successfully. <br> <hr>";
+					$message .= '<table>';
+					foreach ( $data['answers'] as $key => $value ){
+						$no = $key+1 ;
+						$message .= "<tr> <td> <b>Question ".$no." : </b> " . strip_tags($value['title']). " </td> </tr>";
+						$message .= "<tr> <td> <b>Answer: </b> ". $text = $value['options'] ? strip_tags($value['options']) : strip_tags($value['text']). "</td> </tr>";
+						$message .= "<tr><td><hr></td></tr>";
+					}
+					$message .= '</table>';
+						$this->email->set_newline("\r\n");
+						$this->email->set_mailtype('html');
+						$this->email->from($this->smtp_user, 'Burgeon');
+						$this->email->to($email);
+						$this->email->subject($subject);
+						$this->email->message($message);
+					if($this->email->send())
+					{
+						$response = [
+							'status' => 200,
+							'message' => 'mail sent successfully'
+						];
+						$this->set_response($response, REST_Controller::HTTP_OK);
+					}else{
+									$error = $this->email->print_debugger();
+									$response = [
+										'status' => 500,
+										'message' => $error
+									];
+									$this->set_response($response, REST_Controller::HTTP_INTERNAL_SERVER_ERROR);
+						}
+					}else{
+								$response = [
+									'status' => 200,
+									'message' => 'data inserted'
+								];
+								$this->set_response($response, REST_Controller::HTTP_OK);
+						}
+					}else{
+							$response = [
+								'status' => 200,
+								'message' => 'data inserted, mail not allowed'
+							];
+							$this->set_response($response, REST_Controller::HTTP_OK);
+					}
+			}
+			else{
+				$response = [
+					'status' => 400,
+					'message' => 'Invalid json format'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
 
