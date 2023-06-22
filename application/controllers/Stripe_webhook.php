@@ -17,13 +17,12 @@ class Stripe_webhook extends CI_Controller {
         $this->load->library('email');
         $CI->config->load('email', TRUE);
         $this->smtp_user = $CI->config->item('smtp_user', 'email');      
-        
-        $CI->config->load('stripe', TRUE);
-        $this->endpoint_secret = $CI->config->item('endpoint_secret', 'stripe');       
     }
 
     public function index()
-    {   $endpoint_secret = $this->endpoint_secret;
+    {
+        $paymetn_settings = $this->common_model->select_all("*", 'payment_settings')->row_array();
+        $endpoint_secret = $paymetn_settings['stripe_endpoint_secret'];
         $payload = @file_get_contents('php://input');
         $event = null;
 

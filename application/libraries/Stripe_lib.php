@@ -18,13 +18,15 @@ class Stripe_lib{
     function __construct(){ 
         $this->api_error = ''; 
         $this->CI =& get_instance(); 
-        $this->CI->load->config('stripe'); 
-         
+        $this->CI->load->model('common_model'); 
+
         // Include the Stripe PHP bindings library 
         require APPPATH .'third_party/stripe-php/init.php'; 
          
         // Set API key 
-        \Stripe\Stripe::setApiKey($this->CI->config->item('stripe_api_key')); 
+		$result_array = $this->CI->common_model->select_all("*", 'payment_settings')->row_array();
+        
+        \Stripe\Stripe::setApiKey($result_array['stripe_live_key']); 
     } 
  
     function addCustomer($name, $email, $token){ 
@@ -43,7 +45,7 @@ class Stripe_lib{
     function createPlan($planName, $planPrice, $planInterval){ 
         // Convert price to cents 
         $priceCents = ($planPrice*100); 
-        $currency = $this->CI->config->item('stripe_currency'); 
+        $currency = 'usd'; 
          
         try { 
             $plan = \Stripe\Plan::create(array( 

@@ -1270,6 +1270,29 @@ class Api extends REST_Controller {
 		}
 	}
 
+	public function payment_settings_post() {
+		$user_id	=	$_POST['user_id'];
+			
+		$valid_user = $this->common_model->select_where("*","users", array('id'=>$user_id, 'type'=>'user'));
+		
+		if($valid_user->num_rows()>0){
+			$payment_keys = $this->common_model->select_all("*", 'payment_settings')->row_array();
+		
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'data' => $payment_keys
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else{
+			$response = [
+				'status' => 400,
+				'message' => 'in valid user'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		} 
+	}
+
 	public function trellis_trigger_post(){
 		$user_id = $_POST['user_id'];
 
