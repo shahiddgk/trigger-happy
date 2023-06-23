@@ -593,13 +593,13 @@ class Api extends REST_Controller {
 			if($this->db->affected_rows()> 0){
 				$response = [
 					'status' => 200,
-					'message' => 'Password changed'
+					'message' => 'Password changed Successfully'
 				];
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			}else{
 				$response = [
 					'status' => 400,
-					'message' => 'No change in password'
+					'message' => 'Your Old password is incorrect'
 				];
 				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 			}
@@ -615,7 +615,7 @@ class Api extends REST_Controller {
 			}else{
 				$response = [
 					'status' => 400,
-					'message' => 'No change in password'
+					'message' => 'Your Old password is incorrect'
 				];
 				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 			}
@@ -1613,7 +1613,15 @@ class Api extends REST_Controller {
 					foreach ( $data['answers'] as $key => $value ){
 						$no = $key+1 ;
 						$message .= "<tr> <td> <b>Question ".$no." : </b> " . strip_tags($value['title']). " </td> </tr>";
-						$message .= "<tr> <td> <b>Answer: </b> ". $text = $value['options'] ? strip_tags($value['options']) : strip_tags($value['text']). "</td> </tr>";
+						if (!empty($value['options'])){
+								$message .= "<tr> <td> <b>Answer: </b> ". strip_tags($value['options']). "</td> </tr>";
+							if(!empty($value['text']) && $value['text'] == 'Yes'){
+								$message .= "<tr> <td> <b>Why chosen yes?: </b> " . strip_tags($value['text']). "</td> </tr>";
+							}
+						}
+						else{
+							$message .= "<tr> <td> <b>Answer: </b> ". strip_tags($value['text']). "</td> </tr>";
+						}
 						$message .= "<tr><td><hr></td></tr>";
 					}
 					$message .= '</table>';
@@ -1631,19 +1639,19 @@ class Api extends REST_Controller {
 						];
 						$this->set_response($response, REST_Controller::HTTP_OK);
 					}else{
-									$error = $this->email->print_debugger();
-									$response = [
-										'status' => 500,
-										'message' => $error
-									];
-									$this->set_response($response, REST_Controller::HTTP_INTERNAL_SERVER_ERROR);
+							$error = $this->email->print_debugger();
+							$response = [
+								'status' => 500,
+								'message' => $error
+							];
+							$this->set_response($response, REST_Controller::HTTP_INTERNAL_SERVER_ERROR);
 						}
 					}else{
-								$response = [
-									'status' => 200,
-									'message' => 'data inserted'
-								];
-								$this->set_response($response, REST_Controller::HTTP_OK);
+							$response = [
+								'status' => 200,
+								'message' => 'data inserted'
+							];
+							$this->set_response($response, REST_Controller::HTTP_OK);
 						}
 					}else{
 							$response = [
