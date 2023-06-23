@@ -1613,14 +1613,14 @@ class Api extends REST_Controller {
 					foreach ( $data['answers'] as $key => $value ){
 						$no = $key+1 ;
 						$message .= "<tr> <td> <b>Question ".$no." : </b> " . strip_tags($value['title']). " </td> </tr>";
-						if (!empty($value['options'])){
-								$message .= "<tr> <td> <b>Answer: </b> ". strip_tags($value['options']). "</td> </tr>";
-							if(!empty($value['text']) && $value['text'] == 'Yes'){
+						if ($value['type'] == 'open_text'){
+								$message .= "<tr> <td> <b>Answer: </b> ". strip_tags($value['text']). "</td> </tr>";
+						}else{
+							if(!empty($value['text']) && $value['options'] == 'Yes'){
 								$message .= "<tr> <td> <b>Why chosen yes?: </b> " . strip_tags($value['text']). "</td> </tr>";
+							}else{
+								$message .= "<tr> <td> <b>Answer: </b> ". strip_tags($value['options']). "</td> </tr>";
 							}
-						}
-						else{
-							$message .= "<tr> <td> <b>Answer: </b> ". strip_tags($value['text']). "</td> </tr>";
 						}
 						$message .= "<tr><td><hr></td></tr>";
 					}
