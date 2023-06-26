@@ -22,7 +22,7 @@ class Stripe_webhook extends CI_Controller {
     public function index()
     {
         $paymetn_settings = $this->common_model->select_all("*", 'payment_settings')->row_array();
-        $endpoint_secret = $paymetn_settings['stripe_endpoint_secret'];
+        $endpoint_secret = $paymetn_settings['live_webhook'];
         $payload = @file_get_contents('php://input');
         $event = null;
 

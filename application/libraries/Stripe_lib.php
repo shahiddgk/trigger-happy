@@ -26,7 +26,7 @@ class Stripe_lib{
         // Set API key 
 		$result_array = $this->CI->common_model->select_all("*", 'payment_settings')->row_array();
         
-        \Stripe\Stripe::setApiKey($result_array['stripe_live_key']); 
+        \Stripe\Stripe::setApiKey($result_array['live_secret_key']); 
     } 
  
     function addCustomer($name, $email, $token){ 

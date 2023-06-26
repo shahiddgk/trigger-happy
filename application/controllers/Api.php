@@ -1276,7 +1276,7 @@ class Api extends REST_Controller {
 		$valid_user = $this->common_model->select_where("*","users", array('id'=>$user_id, 'type'=>'user'));
 		
 		if($valid_user->num_rows()>0){
-			$payment_keys = $this->common_model->select_all("*", 'payment_settings')->row_array();
+			$payment_keys = $this->common_model->select_all("test_public_key, live_public_key", 'payment_settings')->row_array();
 		
 			$response = [
 				'status' => 200,
@@ -1313,10 +1313,10 @@ class Api extends REST_Controller {
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			}else{
 				$response = [
-					'status' => 400,
-					'message' => 'API has already been triggered today'
+					'status' => 200,
+					'message' => 'You have already received reward for the day'
 				];
-				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+				$this->set_response($response, REST_Controller::HTTP_OK);
 			}
 		}else{
 			$response = [
@@ -1578,7 +1578,7 @@ class Api extends REST_Controller {
 					$optins = implode(",",$answer['answer']);
 					$data['question_id'] = $key;
 					$data['options'] =  $optins;
-					$data['text'] = $answer['answer'][0] == 'Yes' ? $answer['res_text'] : '';
+					$data['text'] = strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '';
 					$data['user_id'] = $user_id;
 					$data['response_id'] = $response_id;
 					$data['type'] = 'naq';
@@ -1613,15 +1613,12 @@ class Api extends REST_Controller {
 					foreach ( $data['answers'] as $key => $value ){
 						$no = $key+1 ;
 						$message .= "<tr> <td> <b>Question ".$no." : </b> " . strip_tags($value['title']). " </td> </tr>";
-						if ($value['type'] == 'open_text'){
-								$message .= "<tr> <td> <b>Answer: </b> ". strip_tags($value['text']). "</td> </tr>";
-						}else{
-							if(!empty($value['text']) && $value['options'] == 'Yes'){
-								$message .= "<tr> <td> <b>Why chosen yes?: </b> " . strip_tags($value['text']). "</td> </tr>";
-							}else{
-								$message .= "<tr> <td> <b>Answer: </b> ". strip_tags($value['options']). "</td> </tr>";
-							}
-						}
+
+						if($value['options'] == 'yes' && !empty($value['text']) ){
+                            $message .= "<tr> <td> <b>Why chosen yes?: </b> " . strip_tags($value['text']). "</td> </tr>";
+                        }else{
+							$message .= "<tr> <td> <b>Answer: </b> ". $text = $value['options'] ? strip_tags($value['options']) : strip_tags($value['text']). "</td> </tr>";
+                        }
 						$message .= "<tr><td><hr></td></tr>";
 					}
 					$message .= '</table>';
