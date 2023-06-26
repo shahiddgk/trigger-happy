@@ -46,9 +46,9 @@
                                 foreach($questions as $key => $data){
                                     $splits = explode(",", json_decode($data['options'])); ?>
                                 <tr>
-                                    <td><?= $key+1; ?></td>
+                                    <td><?= $counter = $key+1; ?></td>
                                     <td width="45%" class="cstm-title">
-                                        <?= $data['title'] .'<br>'. $data['sub_title']  ?></td>
+                                        <?=  'Q' . $counter . ':'. $data['title'] .'<br>'. $data['sub_title']  ?></td>
                                     <?php if($data['options'] != 'NULL'){ ?>
                                     <td class="cstm-options">
                                         <?php  foreach($splits as $split){ ?>
