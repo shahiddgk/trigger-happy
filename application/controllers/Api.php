@@ -689,7 +689,7 @@ class Api extends REST_Controller {
 		$user_id = $_POST['user_id'];
 
 		if(!empty($user_id)){
-			$count = $this->common_model->select_where("*","scores", array('user_id'=>$user_id))->num_rows();
+			$count = $this->common_model->select_where_groupby("*","scores", array('user_id'=>$user_id), 'response_date')->num_rows();
 			if($count >= 0){
 				if($count>36){
 					$img = 37;
@@ -1180,6 +1180,29 @@ class Api extends REST_Controller {
 			}
 			if(isset($_POST['entry_type'])){
 				$data['entry_type'] = $_POST['entry_type'];
+				if($data['entry_type'] == 'meeting'){
+					$count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $data['user_id'], 'type'=>'column', 'response_date' => date('Y-m-d')));
+
+					if($count < 1){
+
+						$insert['type'] = 'column';
+						$insert['user_id'] = $data['user_id'];
+						$insert['response_date'] = date('Y-m-d');
+						$this->db->insert('scores', $insert );
+
+						$response = [
+							'status' => 200,
+							'message' => 'column score added successfully'
+						];
+						$this->set_response($response, REST_Controller::HTTP_OK);
+					}else{
+						$response = [
+							'status' => 200,
+							'message' => 'Column already exists'
+						];
+						$this->set_response($response, REST_Controller::HTTP_OK);
+					}
+				}
 			}
 			if(isset($_POST['entry_takeaway'])){
 				$data['entry_takeaway'] = $_POST['entry_takeaway'];
@@ -1667,4 +1690,158 @@ class Api extends REST_Controller {
 		}
 	}
 
+	public function new_tribe_insert_post(){
+		$user_id = $_POST['user_id'];
+
+		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id, 'type'=>'user'));
+		
+		if($data['login']->num_rows()>0) {
+			$user_data = $data['login']->row_array();
+
+			$row_count = $this->common_model->select_where_groupby("*", "tribe_new", array('user_id'=>$user_id), "type")->num_rows();
+			if($row_count >= 3){
+				$tibe_rows = 1;
+			}else{
+				$tibe_rows = 0;
+			}
+			
+			$tribe = $this->common_model->select_single_field("tribe", "settings", array('id'=>'1'));
+			
+			if($user_data['is_premium'] == 'no' && $tibe_rows == $tribe){ 
+				
+				$response = [
+					'status' => 400,
+					'message' => 'more responses not allowed'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+			else{
+				$insert['user_id'] = $user_id;
+				$insert['type'] = $_POST['type'];
+				$insert['text'] = $_POST['text'];
+				
+				$this->common_model->insert_array('tribe_new', $insert);
+				$last_insert_id = $this->db->insert_id(); 
+				$_POST['id'] = $last_insert_id;
+				$response = [
+					'status' => 200,
+					'message' => 'success',
+					'post_data' => $_POST
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}
+		}
+		else{
+			$response = [
+				'status' => 400,
+				'message' => 'invalid user'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		} 
+	}
+
+	public function new_tribe_read_post(){
+		$user_id = $_POST['user_id'];
+
+		if(!empty($user_id)){
+			$trellis['tribe'] = $this->common_model->select_where("*", "tribe_new", array('user_id'=>$user_id))->result_array();
+
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'data' => $trellis
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function new_tribe_delete_post(){
+		$record_id = $_POST['record_id'];
+
+		if(!empty($record_id)){
+
+			$this->db->delete("tribe_new", array('id'=>$record_id));
+			if($this->db->affected_rows()> 0){
+				$response = [
+					'status' => 200,
+					'message' => 'deleted successfully'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}	else{
+				$response = [
+					'status' => 400,
+					'message' => 'data not found'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+		} 	else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function new_response_history_post(){
+		
+		if(isset($_POST['user_id']) && !empty($_POST['user_id'])){
+			$user_id = $_POST['user_id'];
+			$pire_array = $this->common_model->select_where_groupby("DATE(created_at) date", "answers", array('user_id'=>$user_id , 'type'=>'pire'), 'DATE(created_at)')->result_array();
+			$naq_array = $this->common_model->select_where_groupby("DATE(created_at) date", "answers", array('user_id'=>$user_id , 'type'=>'naq'), 'DATE(created_at)')->result_array();
+
+			$full_array = array_merge($pire_array, $naq_array);
+			$final_array = array();
+			foreach ($full_array as $key => $value) {
+				$date_index = $value['date'];
+				$pire_count = $this->common_model->select_where_groupby("response_id", "answers", array('user_id'=>$user_id , 'type'=>'pire', 'DATE(created_at)'=> $date_index), 'response_id' )->result_array();
+				$naq_count = $this->common_model->select_where_groupby("response_id", "answers", array('user_id'=>$user_id , 'type'=>'naq', 'DATE(created_at)'=> $date_index), 'response_id' )->result_array();
+				
+				$final_array[$key] = array(
+					'date' => $date_index,
+					'pire_count' => $pire_count,
+					'naq_count' => $naq_count
+				);
+			}
+			$response = [
+				'status' => 200,
+				'response_data' => $final_array
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function history_details_post(){
+		$response_id = $_POST['response_id'];
+
+		if(!empty($response_id)){
+			$result = $this->common_model->select_two_tab_join_where("a.user_id, a.type, q.title as question, a.options, a.text, a.created_at",'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id'=>$response_id))->result_array();
+
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'data' => $result
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+	
 }
