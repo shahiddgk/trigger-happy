@@ -294,6 +294,7 @@ class Common_model extends  CI_Model {
 			$this->db->order_by( $orderBy_columName , $ASC_DESC );			
 			return $this->db->get();
 	}
+
 	function join_tab_where_left( $select , $from , $jointab , $condition, $where, $orderBy_columName , $ASC_DESC ){
 	
 		$this->db->select( $select );
@@ -302,7 +303,7 @@ class Common_model extends  CI_Model {
 		$this->db->where( $where );
 		$this->db->order_by( $orderBy_columName , $ASC_DESC );			
 		return $this->db->get();
-}
+	}
 	
 	function select_where_like($select,$table,$where_con,$where,$limit)
 	{

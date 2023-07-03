@@ -718,8 +718,7 @@ class Api extends REST_Controller {
 		
 		if(isset($_POST['user_id']) && !empty($_POST['user_id'])){
 			$user_id = $_POST['user_id'];
-			$result_array = $this->common_model->select_where_ASC_DESC_Group_by("response_date
-			 date", "scores", array('user_id'=>$user_id , 'type'=>'pire'), 'response_date', 'ASC', 'response_date' )->result_array();
+			$result_array = $this->common_model->select_where_ASC_DESC_Group_by("DATE(created_at) as date", "answers", array('user_id'=>$user_id , 'type'=>'pire'),  'DATE(created_at)', 'ASC', 'DATE(created_at)' )->result_array();
 
 			foreach($result_array as $key => $value){
 				$count = $key+1;
@@ -1590,7 +1589,8 @@ class Api extends REST_Controller {
 		$name = $_POST['name'];
 		$email = $_POST['email'];
 		$user_id = $_POST['user_id'];
-	 	
+		$total_score = 0;
+		
 		$answers = json_decode($_POST['answers'], true);
 	
 		if($answers){
@@ -1598,52 +1598,57 @@ class Api extends REST_Controller {
 			foreach ($answers as $key =>  $answer)
 			{
 				if($answer['type'] == 'radio_btn'){
-					$optins = implode(",",$answer['answer']);
-					$data['question_id'] = $key;
-					$data['options'] =  $optins;
-					$data['text'] = strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '';
-					$data['user_id'] = $user_id;
-					$data['response_id'] = $response_id;
-					$data['type'] = 'naq';
-					$data['res_group'] = '1';
-					$data['complete'] = 'yes';
+					$insert_ans['question_id'] = $key;
+					$insert_ans['options'] =  strtolower($answer['answer'][0]);
+					$insert_ans['text'] = strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '';
+					$insert_ans['user_id'] = $user_id;
+					$insert_ans['response_id'] = $response_id;
+					$insert_ans['type'] = 'naq';
+					$insert_ans['res_group'] = '1';
+					$insert_ans['complete'] = 'yes';
 				}
-				else if($answer['type'] == 'open_text'){
-					$data['question_id'] = $key;
-					$data['options'] = '';
-					$data['text'] = trim(json_encode($answer['answer']), '[""]');
-					$data['user_id'] = $user_id;
-					$data['response_id'] = $response_id;
-					$data['type'] = 'naq';
-					$data['res_group'] = '1';
-					$data['complete'] = 'yes';
-				}
-				$insert = $this->common_model->insert_array('answers', $data);
+				$this->common_model->insert_array('answers', $insert_ans);
 			}
+		
+			$response = $this->common_model->join_tab_where_left("a.* , q.title",'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id'=>$response_id), 'q.id', 'ASC'); 
+		
+			if($response->num_rows()>0) {
 
-			$status = $this->common_model->select_single_field('mail_resp', 'users', array('id'=>$user_id));
+				$answer_array = $response->result_array();
+				foreach ($answer_array as $key => $value ){
+					$total_score = array_reduce($answer_array, function ($acc, $value) {
+						$options = $value['options'];
+						$score = ($options === 'never') ? 1 : (($options === 'rarely') ? 2 : (($options === 'often') ? 3 : (($options === 'always') ? 4 : 0)));
+						return $acc + $score;
+					}, 0);
+				}
+				
+				$naq_score['user_id'] = $user_id;
+				$naq_score['score'] = $total_score;
+				$naq_score['response_date'] = date('Y-m-d H:i:s');
+				$this->common_model->insert_array('naq_scores', $naq_score);
+				
+				$status = $this->common_model->select_single_field('mail_resp', 'users', array('id'=>$user_id));
 			
-			if($insert && $status == 'yes'){
-				$response = $this->common_model->select_two_tab_join_where("a.* , q.title",'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id'=>$response_id)); 
-			
-				if($response->num_rows()>0) {
-
-					$data['answers'] = $response->result_array();
+				if($status == 'yes') {
 					$subject = 'Response Submit Confirmation';
 					$message = "Dear <b>" .$name. " </b> <br>";
-					$message .= "Your answers for Burgeon have been submitted successfully. <br> <hr>";
+					$message .= "Your answers for Burgeon have been submitted successfully. <br>";
+					$message .= "Your NAQ Score is <b>" .$total_score. "/100". "</b> <br>  <hr>";
 					$message .= '<table>';
-					foreach ( $data['answers'] as $key => $value ){
+					foreach ( $answer_array as $key => $value ){
 						$no = $key+1 ;
-						$message .= "<tr> <td> <b>Question ".$no." : </b> " . strip_tags($value['title']). " </td> </tr>";
+						$question_title =  preg_replace('/Q[0-9]+: /', ' ', strip_tags($value['title'])); 
+						$message .= "<tr> <td> <b>Question ".$no." : </b> " . $question_title. " </td> </tr>";
 
 						if($value['options'] == 'yes' && !empty($value['text']) ){
                             $message .= "<tr> <td> <b>Why chosen yes?: </b> " . strip_tags($value['text']). "</td> </tr>";
                         }else{
-							$message .= "<tr> <td> <b>Answer: </b> ". $text = $value['options'] ? strip_tags($value['options']) : strip_tags($value['text']). "</td> </tr>";
+							$message .= "<tr> <td> <b>Answer: </b> ". $text = $value['options'] ? ucfirst($value['options']) : strip_tags($value['text']). "</td> </tr>";
                         }
 						$message .= "<tr><td><hr></td></tr>";
 					}
+					
 					$message .= '</table>';
 						$this->email->set_newline("\r\n");
 						$this->email->set_mailtype('html');
@@ -1655,38 +1660,44 @@ class Api extends REST_Controller {
 					{
 						$response = [
 							'status' => 200,
-							'message' => 'mail sent successfully'
+							'message' => 'mail sent successfully',
+							'total_score' => $total_score
 						];
 						$this->set_response($response, REST_Controller::HTTP_OK);
-					}else{
-							$error = $this->email->print_debugger();
-							$response = [
-								'status' => 500,
-								'message' => $error
-							];
-							$this->set_response($response, REST_Controller::HTTP_INTERNAL_SERVER_ERROR);
-						}
-					}else{
-							$response = [
-								'status' => 200,
-								'message' => 'data inserted'
-							];
-							$this->set_response($response, REST_Controller::HTTP_OK);
-						}
-					}else{
-							$response = [
-								'status' => 200,
-								'message' => 'data inserted, mail not allowed'
-							];
-							$this->set_response($response, REST_Controller::HTTP_OK);
 					}
+					else
+					{
+						$error = $this->email->print_debugger();
+						$response = [
+							'status' => 500,
+							'message' => 'Email Error:'.$error
+						];
+						$this->set_response($response, REST_Controller::HTTP_INTERNAL_SERVER_ERROR);
+					}
+				}
+				else{
+					$response = [
+						'status' => 200,
+						'message' => 'data inserted, mail not allowed',
+						'total_score' => $total_score
+					];
+					$this->set_response($response, REST_Controller::HTTP_OK);
+				}
 			}
 			else{
 				$response = [
 					'status' => 400,
-					'message' => 'Invalid json format'
+					'message' => 'Response submit failed'
 				];
 				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+		}
+		else{
+			$response = [
+				'status' => 400,
+				'message' => 'Invalid json format'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
 
@@ -1797,18 +1808,22 @@ class Api extends REST_Controller {
 			$naq_array = $this->common_model->select_where_groupby("DATE(created_at) date", "answers", array('user_id'=>$user_id , 'type'=>'naq'), 'DATE(created_at)')->result_array();
 
 			$full_array = array_merge($pire_array, $naq_array);
-			$final_array = array();
+			$sorted_array = array();
 			foreach ($full_array as $key => $value) {
 				$date_index = $value['date'];
 				$pire_count = $this->common_model->select_where_groupby("response_id", "answers", array('user_id'=>$user_id , 'type'=>'pire', 'DATE(created_at)'=> $date_index), 'response_id' )->result_array();
 				$naq_count = $this->common_model->select_where_groupby("response_id", "answers", array('user_id'=>$user_id , 'type'=>'naq', 'DATE(created_at)'=> $date_index), 'response_id' )->result_array();
 				
-				$final_array[$key] = array(
+				$sorted_array[$date_index] = array(
 					'date' => $date_index,
 					'pire_count' => $pire_count,
 					'naq_count' => $naq_count
 				);
 			}
+			
+			ksort($sorted_array);
+			
+			$final_array = array_values($sorted_array);
 			$response = [
 				'status' => 200,
 				'response_data' => $final_array
@@ -1827,7 +1842,7 @@ class Api extends REST_Controller {
 		$response_id = $_POST['response_id'];
 
 		if(!empty($response_id)){
-			$result = $this->common_model->select_two_tab_join_where("a.user_id, a.type, q.title as question, a.options, a.text, a.created_at",'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id'=>$response_id))->result_array();
+			$result = $this->common_model->join_tab_where_left("q.id, a.user_id, a.type, q.title as question, a.options, a.text, a.created_at",'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id'=>$response_id), 'q.id', 'ASC')->result_array();
 
 			$response = [
 				'status' => 200,
@@ -1835,6 +1850,38 @@ class Api extends REST_Controller {
 				'data' => $result
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function naq_data_exist_post(){
+
+		$user_id	=	$_POST['user_id'];
+
+		if(!empty($user_id)){
+				
+			$answers = $this->common_model->select_where("*","answers", array('user_id'=>$user_id , 'type'=>'naq'));
+			
+			if($answers->num_rows()>0){
+				$response = [
+					'status' => 200,
+					'exist' => 'yes',
+					'message' => 'yes, response exist'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}else{
+				$response = [
+					'status' => 200,
+					'exist' => 'no',
+					'message' => 'no, response not exist'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
 		}else{
 			$response = [
 				'status' => 400,
