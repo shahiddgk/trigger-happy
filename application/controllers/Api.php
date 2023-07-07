@@ -703,6 +703,7 @@ class Api extends REST_Controller {
 				'response_count'=> $img,
 				'mobile_image_url'=> base_url('uploads/mobile_tree/').$img.'.png',
 				'ipad_image_url'=> base_url('uploads/ipad_tree/').$img.'.png',
+				'rose_mobile_url'=> base_url('uploads/mobile_red_rose/').$img.'.png'
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}else{
@@ -1179,28 +1180,26 @@ class Api extends REST_Controller {
 			}
 			if(isset($_POST['entry_type'])){
 				$data['entry_type'] = $_POST['entry_type'];
-				if($data['entry_type'] == 'meeting'){
-					$count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $data['user_id'], 'type'=>'column', 'response_date' => date('Y-m-d')));
+				$count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $data['user_id'], 'type'=>'column', 'response_date' => date('Y-m-d')));
 
-					if($count < 1){
+				if($count < 1){
 
-						$insert['type'] = 'column';
-						$insert['user_id'] = $data['user_id'];
-						$insert['response_date'] = date('Y-m-d');
-						$this->db->insert('scores', $insert );
+					$insert['type'] = 'column';
+					$insert['user_id'] = $data['user_id'];
+					$insert['response_date'] = date('Y-m-d');
+					$this->db->insert('scores', $insert );
 
-						$response = [
-							'status' => 200,
-							'message' => 'column score added successfully'
-						];
-						$this->set_response($response, REST_Controller::HTTP_OK);
-					}else{
-						$response = [
-							'status' => 200,
-							'message' => 'Column already exists'
-						];
-						$this->set_response($response, REST_Controller::HTTP_OK);
-					}
+					$response = [
+						'status' => 200,
+						'message' => 'column score added successfully'
+					];
+					$this->set_response($response, REST_Controller::HTTP_OK);
+				}else{
+					$response = [
+						'status' => 200,
+						'message' => 'Column already exists'
+					];
+					$this->set_response($response, REST_Controller::HTTP_OK);
 				}
 			}
 			if(isset($_POST['entry_takeaway'])){
@@ -1230,7 +1229,7 @@ class Api extends REST_Controller {
 
 		if(!empty($user_id)){
 
-				$trellis = $this->common_model->select_where("*", "session_entry", array('user_id'=>$user_id))->result_array();
+				$trellis = $this->common_model->select_where_ASC_DESC("*", "session_entry", array('user_id'=>$user_id), 'entry_date', 'desc')->result_array();
 			
 			$response = [
 				'status' => 200,
@@ -1610,6 +1609,14 @@ class Api extends REST_Controller {
 				$this->common_model->insert_array('answers', $insert_ans);
 			}
 		
+			$count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $user_id, 'type' => 'naq', 'response_date' => date('Y-m-d')));
+			if($count < 1){
+				$insert['type'] = 'naq';
+				$insert['user_id'] = $user_id;
+				$insert['response_date'] = date('Y-m-d');
+				$this->common_model->insert_array('scores', $insert);
+			}
+
 			$response = $this->common_model->join_tab_where_left("a.* , q.title",'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id'=>$response_id), 'q.id', 'ASC'); 
 		
 			if($response->num_rows()>0) {
@@ -1816,6 +1823,7 @@ class Api extends REST_Controller {
 				
 				$sorted_array[$date_index] = array(
 					'date' => $date_index,
+					'score' => $key+1,
 					'pire_count' => $pire_count,
 					'naq_count' => $naq_count
 				);
