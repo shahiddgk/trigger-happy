@@ -1708,6 +1708,62 @@ class Api extends REST_Controller {
 		}
 	}
 
+	public function response_trees_naq_post()
+	{
+		$name = $_POST['name'];
+		$email = $_POST['email'];
+		$user_id = $_POST['user_id'];
+		$type = $_POST['type'];
+	
+		$total_score = 0;
+		$answers = json_decode($_POST['answers'], true);
+	
+		if ($answers) {
+			$response_id = random_string('numeric', 8);
+			foreach ($answers as $key => $answer) {
+				$insert_ans = array();
+				if ($type == 'red') {
+					$insert_ans['question_id'] = $key;
+					$insert_ans['options'] = strtolower($answer['answer'][0]);
+					$insert_ans['text'] = strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '';
+					$insert_ans['user_id'] = $user_id;
+					$insert_ans['response_id'] = $response_id;
+					$insert_ans['type'] = 'naq';
+					$this->common_model->insert_array('tomatoes_answers', $insert_ans);
+				} elseif ($type == 'roses') {
+					$insert_ans['question_id'] = $key;
+					$insert_ans['options'] = strtolower($answer['answer'][0]);
+					$insert_ans['text'] = strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '';
+					$insert_ans['user_id'] = $user_id;
+					$insert_ans['response_id'] = $response_id;
+					$insert_ans['type'] = 'naq';
+					$this->common_model->insert_array('rose_answers', $insert_ans);
+				}
+			}
+	
+			$count = $this->common_model->select_where_table_rows('*', 'secondary_scores', array('user_id' => $user_id, 'type' => 'naq', 'response_date' => date('Y-m-d')));
+			if ($count < 1) {
+				$insert = array();
+				$insert['type'] = 'naq';
+				$insert['user_id'] = $user_id;
+				$insert['response_date'] = date('Y-m-d');
+				$this->common_model->insert_array('secondary_scores', $insert);
+			} else {
+				$response = array(
+					'status' => 200,
+					'message' => 'Data Inserted Successfully'
+				);
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}
+		} else {
+			$response = array(
+				'status' => 400,
+				'message' => 'Data error'
+			);
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}	
+	
 	public function new_tribe_insert_post(){
 		$user_id = $_POST['user_id'];
 
@@ -1894,6 +1950,73 @@ class Api extends REST_Controller {
 			$response = [
 				'status' => 400,
 				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function insert_reminder_post(){
+        $data = [
+			'user_id' => $_POST['user_id'],
+            'text' => $_POST['text'],
+            'description' => $_POST['description'],
+            'date_time' => $_POST['date_time']
+        ];
+
+        $reminder_id = $this->common_model->insert_array('reminders', $data);
+
+        if ($reminder_id) {
+			$_POST['id'] = $this->db->insert_id(); 
+			$response = [
+				'status' => 200,
+				'message' => 'Reminder successfully Created ', 
+				'post_data' => $_POST
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+        } else {
+			$response = [
+				'status' => 400,
+				'message' => 'Reminder not created'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+        }
+    }
+
+	public function read_reminder_post(){
+		$user_id = $_POST['user_id'];
+		$result = $this->common_model->select_where("*", "reminders", array('user_id'=>$user_id))->result_array();
+		if($result){
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'single_answer' => $result
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}
+		else{
+			$response = [
+				'status' => 200,
+				'message' => 'no data',
+				'single_answer' => array()
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}
+	}
+
+	public function delete_reminder_post(){
+
+		$result = $this->db->delete('reminders', array('id'=>$_POST['id']));
+	
+		if ($result) {
+			$response = [
+				'status' => 200,
+				'message' => 'Reminder deleted successfully',
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'Failed to delete reminder',
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
