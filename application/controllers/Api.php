@@ -1708,62 +1708,72 @@ class Api extends REST_Controller {
 		}
 	}
 
-	public function response_trees_naq_post()
-	{
+	public function response_submit_garden_post(){
+
 		$name = $_POST['name'];
 		$email = $_POST['email'];
 		$user_id = $_POST['user_id'];
 		$type = $_POST['type'];
-	
-		$total_score = 0;
+
+		$column_type = isset($_POST['column_type']) ? $_POST['column_type'] : '';
+
 		$answers = json_decode($_POST['answers'], true);
-	
+ 
 		if ($answers) {
 			$response_id = random_string('numeric', 8);
 			foreach ($answers as $key => $answer) {
-				$insert_ans = array();
-				if ($type == 'red') {
-					$insert_ans['question_id'] = $key;
-					$insert_ans['options'] = strtolower($answer['answer'][0]);
-					$insert_ans['text'] = strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '';
-					$insert_ans['user_id'] = $user_id;
-					$insert_ans['response_id'] = $response_id;
-					$insert_ans['type'] = 'naq';
-					$this->common_model->insert_array('tomatoes_answers', $insert_ans);
-				} elseif ($type == 'roses') {
-					$insert_ans['question_id'] = $key;
-					$insert_ans['options'] = strtolower($answer['answer'][0]);
-					$insert_ans['text'] = strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '';
-					$insert_ans['user_id'] = $user_id;
-					$insert_ans['response_id'] = $response_id;
-					$insert_ans['type'] = 'naq';
-					$this->common_model->insert_array('rose_answers', $insert_ans);
+				$data = [];
+				$data['question_id'] = $key;
+				$data['options'] = '';
+				$data['text'] = '';
+
+				if ($answer['type'] == 'radio_btn') {
+					$options = implode(",", $answer['answer']);
+					$data['options'] = $options;
+					$data['text'] = strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '';
+				} else if ($answer['type'] == 'check_box') {
+					$checks = implode(",", $answer['answer']);
+					$data['options'] = $checks;
+					$data['text'] = strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '';
+				} else if ($answer['type'] == 'open_text') {
+					$data['text'] = trim(json_encode($answer['answer']), '[""]');
+				}
+
+				$data['user_id'] = $user_id;
+				$data['response_id'] = $response_id;
+				$data['type'] = $type;
+
+				if ($column_type == 'roses') {
+					$insert = $this->common_model->insert_array('rose_answers', $data);
+				} elseif ($column_type == 'tomatoes') {
+					$insert = $this->common_model->insert_array('tomatoes_answers', $data);
 				}
 			}
-	
-			$count = $this->common_model->select_where_table_rows('*', 'secondary_scores', array('user_id' => $user_id, 'type' => 'naq', 'response_date' => date('Y-m-d')));
+ 
+			$count = $this->common_model->select_where_table_rows('*', 'secondary_scores', array('user_id' => $user_id, 'type' => $type, 'response_date' => date('Y-m-d')));
 			if ($count < 1) {
 				$insert = array();
-				$insert['type'] = 'naq';
+				$insert['type'] = $type;
 				$insert['user_id'] = $user_id;
 				$insert['response_date'] = date('Y-m-d');
 				$this->common_model->insert_array('secondary_scores', $insert);
-			} else {
-				$response = array(
+			}
+			if ($this->db->affected_rows() > 0) {
+				$response = [
 					'status' => 200,
 					'message' => 'Data Inserted Successfully'
-				);
+				];
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			}
 		} else {
-			$response = array(
+			$response = [
 				'status' => 400,
-				'message' => 'Data error'
-			);
+				'message' => 'Invalid JSON format'
+			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
-	}	
-	
+	} 
+ 
 	public function new_tribe_insert_post(){
 		$user_id = $_POST['user_id'];
 
@@ -1959,8 +1969,9 @@ class Api extends REST_Controller {
         $data = [
 			'user_id' => $_POST['user_id'],
             'text' => $_POST['text'],
-            'description' => $_POST['description'],
-            'date_time' => $_POST['date_time']
+			'day_list' => strtolower($_POST['day_list']),
+            'date_time' => $_POST['date_time'],
+			'time_type' => $_POST['time_type']
         ];
 
         $reminder_id = $this->common_model->insert_array('reminders', $data);
@@ -2002,6 +2013,50 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
 	}
+
+	public function edit_reminder_post(){
+		$id = $_POST['id'];
+		$data = [
+			'user_id' => $_POST['user_id'],
+			'text' => $_POST['text'],
+			'day_list' => strtolower($_POST['day_list']),
+			'date_time' => $_POST['date_time'],
+			'time_type' => $_POST['time_type']
+		];
+
+		$this->db->where('id', $id);
+		$reminder_exists = $this->db->get('reminders')->num_rows() > 0;
+
+		if ($reminder_exists) {
+			$this->db->where('id', $id);
+			$result = $this->db->update('reminders', $data);
+
+			if ($result) {
+				$response = [
+					'status' => 200,
+					'message' => 'Reminder updated successfully',
+					'id' => $id,
+					'updated_data' => $data
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			} else {
+				$response = [
+					'status' => 400,
+					'message' => 'Failed to update reminder',
+					'id' => $id
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+		} else {
+			$response = [
+				'status' => 404,
+				'message' => 'Reminder not found',
+				'id' => $id
+			];
+			$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
+		}
+	}
+
 
 	public function delete_reminder_post(){
 
