@@ -1970,10 +1970,16 @@ class Api extends REST_Controller {
 			'user_id' => $_POST['user_id'],
             'text' => $_POST['text'],
 			'day_list' => strtolower($_POST['day_list']),
-            'date_time' => $_POST['date_time'],
-			'time_type' => $_POST['time_type']
-        ];
+			'time_type' => $_POST['time_type'],
+			'status' => $_POST['status'],
+			'time' => $_POST['time']
+		];
 
+		if(isset($_POST['date'])){
+			$dateObj = DateTime::createFromFormat('m-d-y', $_POST['date']);
+			$data['date'] = $dateObj->format('Y-m-d');
+			$_POST['date'] = $data['date'];
+		}
         $reminder_id = $this->common_model->insert_array('reminders', $data);
 
         if ($reminder_id) {
@@ -2020,10 +2026,16 @@ class Api extends REST_Controller {
 			'user_id' => $_POST['user_id'],
 			'text' => $_POST['text'],
 			'day_list' => strtolower($_POST['day_list']),
-			'date_time' => $_POST['date_time'],
-			'time_type' => $_POST['time_type']
+			'time_type' => $_POST['time_type'],
+			'status' => $_POST['status'],
+			'time' => $_POST['time']
 		];
 
+		if(isset($_POST['date'])){
+			$dateObj = DateTime::createFromFormat('m-d-y', $_POST['date']);
+			$data['date'] = $dateObj->format('Y-m-d');
+			$_POST['date'] = $data['date'];
+		}
 		$this->db->where('id', $id);
 		$reminder_exists = $this->db->get('reminders')->num_rows() > 0;
 
