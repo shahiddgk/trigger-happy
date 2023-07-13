@@ -2023,7 +2023,6 @@ class Api extends REST_Controller {
 	public function edit_reminder_post(){
 		$id = $_POST['id'];
 		$data = [
-			'user_id' => $_POST['user_id'],
 			'text' => $_POST['text'],
 			'day_list' => strtolower($_POST['day_list']),
 			'time_type' => $_POST['time_type'],
@@ -2084,6 +2083,45 @@ class Api extends REST_Controller {
 			$response = [
 				'status' => 400,
 				'message' => 'Failed to delete reminder',
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+	 
+	public function add_reminder_status_post(){
+		$entity_id = $_POST['entity_id'];
+
+		if(!empty($entity_id)){
+			
+			if(isset($_POST['status']) && !empty($_POST['status'])){
+
+				$status = $_POST['status'];
+			}
+			else{
+				$status = 'active';
+			}
+			$this->common_model->update_array(array('id'=>$entity_id), "reminders", array('status'=>$status));
+		
+			$updated_record = $this->common_model->select_where("*", "reminders", array('id' => $entity_id))->row_array();
+
+			if (!empty($updated_record)) {
+				$response = [
+					'status' => 200,
+					'message' => 'success',
+					'data' => $updated_record
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			} else {
+				$response = [
+					'status' => 404,
+					'message' => 'Record not found'
+				];
+				$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
+			}
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
