@@ -2088,7 +2088,7 @@ class Api extends REST_Controller {
 		}
 	}
 	 
-	public function add_reminder_status_post(){
+	public function update_reminder_status_post(){
 		$entity_id = $_POST['entity_id'];
 
 		if(!empty($entity_id)){
