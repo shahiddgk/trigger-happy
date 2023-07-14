@@ -1966,28 +1966,40 @@ class Api extends REST_Controller {
 	}
 
 	public function insert_reminder_post(){
-        $data = [
-			'user_id' => $_POST['user_id'],
-            'text' => $_POST['text'],
-			'day_list' => strtolower($_POST['day_list']),
-			'time_type' => $_POST['time_type'],
-			'status' => $_POST['status'],
-			'time' => $_POST['time']
-		];
+
+		$input = $_POST['day_list'];
+		$input = str_replace(['[', ']', '\''], '', $input);
+		$weekdays = array_map('trim', explode(',', $input));
+		
+		$order = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+		usort($weekdays, function ($a, $b) use ($order) {
+			return array_search($a, $order) - array_search($b, $order);
+		});
+		$days_list = json_encode($weekdays);
 
 		if(isset($_POST['date'])){
 			$dateObj = DateTime::createFromFormat('m-d-y', $_POST['date']);
-			$data['date'] = $dateObj->format('Y-m-d');
-			$_POST['date'] = $data['date'];
+			$formated_date = $dateObj->format('Y-m-d');
 		}
-        $reminder_id = $this->common_model->insert_array('reminders', $data);
+
+        $insert_data = [
+			'user_id' => $_POST['user_id'],
+            'text' => $_POST['text'],
+			'day_list' => $days_list,
+			'time_type' => $_POST['time_type'],
+			'status' => $_POST['status'],
+			'time' => $_POST['time'],
+			'date' => $formated_date
+		];
+
+        $reminder_id = $this->common_model->insert_array('reminders', $insert_data);
 
         if ($reminder_id) {
-			$_POST['id'] = $this->db->insert_id(); 
+			$insert_data['id'] = $this->db->insert_id(); 
 			$response = [
 				'status' => 200,
 				'message' => 'Reminder successfully Created ', 
-				'post_data' => $_POST
+				'post_data' => $insert_data
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
         } else {
@@ -2022,32 +2034,44 @@ class Api extends REST_Controller {
 
 	public function edit_reminder_post(){
 		$id = $_POST['id'];
-		$data = [
-			'text' => $_POST['text'],
-			'day_list' => strtolower($_POST['day_list']),
-			'time_type' => $_POST['time_type'],
-			'status' => $_POST['status'],
-			'time' => $_POST['time']
-		];
+
+		$input = $_POST['day_list'];
+		$input = str_replace(['[', ']', '\''], '', $input);
+		$weekdays = array_map('trim', explode(',', $input));
+		
+		$order = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+		usort($weekdays, function ($a, $b) use ($order) {
+			return array_search($a, $order) - array_search($b, $order);
+		});
+		$days_list = json_encode($weekdays);
 
 		if(isset($_POST['date'])){
 			$dateObj = DateTime::createFromFormat('m-d-y', $_POST['date']);
-			$data['date'] = $dateObj->format('Y-m-d');
-			$_POST['date'] = $data['date'];
+			$formated_date = $dateObj->format('Y-m-d');
 		}
+
+		$update_data = [
+			'text' => $_POST['text'],
+			'day_list' => $days_list,
+			'time_type' => $_POST['time_type'],
+			'status' => $_POST['status'],
+			'time' => $_POST['time'],
+			'date' => $formated_date
+		];
+
 		$this->db->where('id', $id);
 		$reminder_exists = $this->db->get('reminders')->num_rows() > 0;
 
 		if ($reminder_exists) {
 			$this->db->where('id', $id);
-			$result = $this->db->update('reminders', $data);
+			$result = $this->db->update('reminders', $update_data);
 
 			if ($result) {
+				$update_data['id'] = $id;
 				$response = [
 					'status' => 200,
 					'message' => 'Reminder updated successfully',
-					'id' => $id,
-					'updated_data' => $data
+					'updated_data' => $update_data
 				];
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			} else {
