@@ -686,34 +686,94 @@ class Api extends REST_Controller {
 	}
 
 	public function growth_tree_post(){
-		$user_id = $_POST['user_id'];
+        $user_id = $_POST['user_id'];
+        if (!empty($user_id)) {
+            $this->db->select('garden_type');
+            $this->db->from('users');
+            $this->db->join('scores', 'scores.user_id = users.id');
+            $this->db->where('users.id', $user_id);
+            $query = $this->db->get();
+            if ($query->num_rows() > 0) {
+                $row = $query->row();
+                $garden_type = $row->garden_type;
+                $count = $this->common_model->select_where_groupby("*", "scores", array('user_id' => $user_id), 'response_date')->num_rows();
+                if ($count >= 0) {
+                    if ($count > 36) {
+                        $img = 37;
+                    } else {
+                        $img = $count + 1;
+                    }
+                }
+                $mobile_folder = '';
+                $ipad_folder = '';
+                if ($garden_type == 'apple') {
+                    $mobile_folder = 'mobile_tree';
+                    $ipad_folder = 'ipad_tree';
+                } elseif ($garden_type == 'rose') {
+                    $mobile_folder = 'mobile_red_rose';
+                    $ipad_folder = 'ipad_red_rose';
+                } elseif ($garden_type == 'tomato') {
+                    $mobile_folder = 'mobile_tomato';
+                    $ipad_folder = 'ipad_tomato';
+                }
+                $response = [
+                    'status' => 200,
+                    'response_count' => $img,
+                    'garden_type' => $garden_type,
+                    'mobile_image_url' => base_url('uploads/' . $mobile_folder . '/') . $img . '.png',
+                    'ipad_image_url' => base_url('uploads/' . $ipad_folder . '/') . $img . '.png',
+                ];
+                $this->set_response($response, REST_Controller::HTTP_OK);
+            } else {
+                $response = [
+                    'status' => 400,
+                    'message' => 'User not found'
+                ];
+                $this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+            }
+        } else {
+            $response = [
+                'status' => 400,
+                'message' => 'Empty user_id parameter'
+            ];
+            $this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+        }
+    }
 
-		if(!empty($user_id)){
-			$count = $this->common_model->select_where_groupby("*","scores", array('user_id'=>$user_id), 'response_date')->num_rows();
-			if($count >= 0){
-				if($count>36){
-					$img = 37;
-				}else{
-					$img = $count+1;
-				}
-			}
-
-			$response = [
-				'status' => 200,
-				'response_count'=> $img,
-				'mobile_image_url'=> base_url('uploads/mobile_tree/').$img.'.png',
-				'ipad_image_url'=> base_url('uploads/ipad_tree/').$img.'.png',
-				'rose_mobile_url'=> base_url('uploads/mobile_red_rose/').$img.'.png'
-			];
-			$this->set_response($response, REST_Controller::HTTP_OK);
-		}else{
-			$response = [
-				'status' => 400,
-				'message' => 'empty parameters'
-			];
-			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-		}
-	}
+	public function change_garden_type_post()
+    {
+        $entity_id = $_POST['user_id'];
+        if(!empty($entity_id)){
+            if(isset($_POST['garden_type']) && !empty($_POST['garden_type'])){
+                $garden_type = $_POST['garden_type'];
+            }
+            else{
+                $garden_type = 'active';
+            }
+            $this->common_model->update_array(array('id'=>$entity_id), "users", array('garden_type'=>$garden_type));
+            $updated_record = $this->common_model->select_where("*", "users", array('id ' => $entity_id))->row_array();
+            if (!empty($updated_record)) {
+                $response = [
+                    'status' => 200,
+                    'message' => 'success',
+                    'data' => $updated_record
+                ];
+                $this->set_response($response, REST_Controller::HTTP_OK);
+            } else {
+                $response = [
+                    'status' => 404,
+                    'message' => 'Record not found'
+                ];
+                $this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
+            }
+        }else{
+            $response = [
+                'status' => 400,
+                'message' => 'empty parameters'
+            ];
+            $this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+        }
+    }
 
 	public function response_history_post(){
 		
@@ -1980,26 +2040,42 @@ class Api extends REST_Controller {
 		if(isset($_POST['date'])){
 			$dateObj = DateTime::createFromFormat('m-d-y', $_POST['date']);
 			$formated_date = $dateObj->format('Y-m-d');
+
+            $time = $_POST['time'].' '.$_POST['time_type'];
+            $datetime = DateTime::createFromFormat('Y-m-d h:i A', $formated_date . ' ' . $time);
+            $datetime_str = $datetime->format('Y-m-d H:i:s');
 		}
 
         $insert_data = [
 			'user_id' => $_POST['user_id'],
             'text' => $_POST['text'],
 			'day_list' => $days_list,
-			'time_type' => $_POST['time_type'],
 			'status' => $_POST['status'],
-			'time' => $_POST['time'],
-			'date' => $formated_date
+			'date_time' => $datetime_str,
+			'reminder_type' => $_POST['reminder_type']
 		];
 
         $reminder_id = $this->common_model->insert_array('reminders', $insert_data);
 
         if ($reminder_id) {
-			$insert_data['id'] = $this->db->insert_id(); 
+			$insert_id = $this->db->insert_id(); 
+
+			$post_fields = [
+				'id' => $insert_id,
+				'user_id' => $_POST['user_id'],
+				'text' => $_POST['text'],
+				'day_list' => $days_list,
+				'date' => $_POST['date'],
+				'time' => $_POST['time'],
+				'time_type' => $_POST['time_type'],
+				'status' => $_POST['status'],
+				'reminder_type' => $_POST['reminder_type']
+			];
+
 			$response = [
 				'status' => 200,
 				'message' => 'Reminder successfully Created ', 
-				'post_data' => $insert_data
+				'post_data' => $post_fields
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
         } else {
@@ -2015,12 +2091,28 @@ class Api extends REST_Controller {
 		$user_id = $_POST['user_id'];
 		$result = $this->common_model->select_where("*", "reminders", array('user_id'=>$user_id))->result_array();
 		if($result){
+			foreach ($result as $key => $value) {
+				$date_time = $value['date_time'];
+				$date = date_create_from_format('Y-m-d H:i:s', $date_time);
+				
+				if ($date !== false) {
+					$formatted_date = date_format($date, 'Y-m-d');
+					$formatted_time = date_format($date, 'H:i');
+					$formatted_time_type = date_format($date, 'A');
+					
+					$result[$key]['date'] = $formatted_date;
+					$result[$key]['time'] = $formatted_time;
+					$result[$key]['time_type'] = $formatted_time_type;
+					
+					unset($result[$key]['date_time']);
+				}
+			}
+			
 			$response = [
 				'status' => 200,
 				'message' => 'success',
 				'single_answer' => $result
 			];
-			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
 		else{
 			$response = [
@@ -2028,8 +2120,9 @@ class Api extends REST_Controller {
 				'message' => 'no data',
 				'single_answer' => array()
 			];
-			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
+		
+		$this->set_response($response, REST_Controller::HTTP_OK);
 	}
 
 	public function edit_reminder_post(){
@@ -2048,15 +2141,18 @@ class Api extends REST_Controller {
 		if(isset($_POST['date'])){
 			$dateObj = DateTime::createFromFormat('m-d-y', $_POST['date']);
 			$formated_date = $dateObj->format('Y-m-d');
+
+			$time = $_POST['time'].' '.$_POST['time_type'];
+            $datetime = DateTime::createFromFormat('Y-m-d h:i A', $formated_date . ' ' . $time);
+            $datetime_str = $datetime->format('Y-m-d H:i:s');
 		}
 
 		$update_data = [
 			'text' => $_POST['text'],
 			'day_list' => $days_list,
-			'time_type' => $_POST['time_type'],
 			'status' => $_POST['status'],
-			'time' => $_POST['time'],
-			'date' => $formated_date
+			'date_time' => $datetime_str,
+			'reminder_type' => $_POST['reminder_type']
 		];
 
 		$this->db->where('id', $id);
@@ -2067,7 +2163,17 @@ class Api extends REST_Controller {
 			$result = $this->db->update('reminders', $update_data);
 
 			if ($result) {
-				$update_data['id'] = $id;
+				$update_data = [
+					'id' => $id,
+					'text' => $_POST['text'],
+					'day_list' => $days_list,
+					'date' => $_POST['date'],
+					'time' => $_POST['time'],
+					'time_type' => $_POST['time_type'],
+					'status' => $_POST['status'],
+					'reminder_type' => $_POST['reminder_type']
+				];
+
 				$response = [
 					'status' => 200,
 					'message' => 'Reminder updated successfully',
@@ -2143,6 +2249,29 @@ class Api extends REST_Controller {
 				$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
 			}
 		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function snooze_reminder_post() {
+		$entity_id = $_POST['entity_id'];
+	
+		if (!empty($entity_id)) {
+	
+			$this->common_model->update_array(array('id' => $entity_id), "reminders", array('snooze' => 'yes'));
+			$updated_record = $this->common_model->select_where("*", "reminders", array('id' => $entity_id))->row_array();
+	
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'data' => $updated_record
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
 			$response = [
 				'status' => 400,
 				'message' => 'empty parameters'

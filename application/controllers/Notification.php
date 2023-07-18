@@ -6,24 +6,12 @@ class Notification extends CI_Controller {
 	{
 		parent::__construct();
         date_default_timezone_set('America/New_York');
+        // date_default_timezone_set('Asia/Karachi');
 	}
 
-	public function send_notifications() {
-
-        // Get the current time in UTC
-        $current_time = new DateTime('now', new DateTimeZone('UTC'));
-    
-        // Select users with a non-empty device token
-        $this->db->select('id, name, device_token, time_zone');
-        $this->db->where('type', 'user');
-        // Kaleem & Abid
-        // $this->db->where_in('id', array(166, 205, 182));
-        $this->db->where_not_in('device_token','');
-        $this->db->where_not_in('time_zone','');
-        $users_query = $this->db->get('users');
-
-        // Define a mapping of time zone formats to their corresponding identifiers
-        $time_zone_map = array(
+    public function timezone_list(){
+            
+      return  $time_zone_map = array(
             "European Central Time (GMT+1:00)" => "Europe/Amsterdam",
             "Eastern European Time (GMT+2:00)" => "Europe/Athens",
             "Egypt Standard Time (GMT+2:00)" => "Africa/Cairo",
@@ -57,9 +45,29 @@ class Notification extends CI_Controller {
             "Brazil Eastern Time (GMT-3:00)" => "America/Sao_Paulo",
             "Central African Time (GMT-1:00)" => "Africa/Luanda"
         );
+    }
 
+    public function allowed_users(){
+        // Select users with a non-empty device token
+        $this->db->select('id, name, device_token, time_zone');
+        $this->db->where('type', 'user');
+        // Kaleem & Abid
+        // $this->db->where_in('id', array(166, 205, 182));
+        $this->db->where_not_in('device_token','');
+        $this->db->where_not_in('time_zone','');
+        return  $this->db->get('users');
+    }
 
-        foreach ($users_query->result() as $user) {
+	public function send_notifications() {
+        // Get the current time in UTC
+        $current_time = new DateTime('now', new DateTimeZone('UTC'));
+    
+        $allowed_users =  $this->allowed_users();
+
+        // Define a mapping of time zone formats to their corresponding identifiers
+        $time_zone_map = $this->timezone_list();
+
+        foreach ($allowed_users->result() as $user) {
             // Validate the time zone string
             if (!isset($time_zone_map[$user->time_zone])) {
                 continue;
@@ -76,9 +84,9 @@ class Notification extends CI_Controller {
 
                 $notification_data = array(
                     'title' => 'Hello, ' . $user->name,
+                    'type' => 'welcome_notification',
                     'message' => 'What do you need to process today?',
-                    'time' => $current_time->format('Y-m-d H:i:s'),
-                    'user_id' => $user->id,
+                    'entity_id' => '',
                     'device_token' => $user->device_token
                 );
                 
@@ -88,9 +96,88 @@ class Notification extends CI_Controller {
         exit;
     }
     
+    public function reminder_notification()
+    {
+        $active_reminders = $this->db
+            ->select('reminders.*, users.name, users.device_token, users.time_zone')
+            ->from('reminders')
+            ->join('users', 'users.id = reminders.user_id')
+            ->where('reminders.status', 'active')
+            ->where('DATE(reminders.date_time) <=', date('Y-m-d'))
+            ->where_not_in('users.device_token', '')
+            ->where_not_in('users.time_zone', '')
+            ->get()
+            ->result_array();
+    
+        $time_zone_map = $this->timezone_list();
+    
+        if (!empty($active_reminders)) {
+            foreach ($active_reminders as $reminder) {
+                $user_time_zone = $reminder['time_zone'];
+
+                if ($reminder['snooze'] == 'yes') {
+
+                    $notification_data = array(
+                        'title' => 'Hello, ' . $reminder['name'],
+                        'type' => 'reminder',
+                        'message' => $reminder['text'],
+                        'entity_id' => $reminder['id'],
+                        'device_token' => $reminder['device_token']
+                    );
+    
+                    $this->push_notification($notification_data);
+                    $this->common_model->update_array(array('id' => $reminder['id']), 'reminders', array('snooze' => 'no'));
+                }
+    
+                if (!isset($time_zone_map[$user_time_zone])) {
+                    continue;
+                }
+    
+                $valid_timezone = $time_zone_map[$user_time_zone];
+                $current_time = new DateTime('now', new DateTimeZone('UTC'));
+                $timezone = new DateTimeZone($valid_timezone);
+                $current_time->setTimezone($timezone);
+    
+                if ($reminder['reminder_type'] === 'repeat') {
+                    $days_array = json_decode($reminder['day_list'], true);
+                    $days_list = array_map('ucfirst', $days_array);
+                    $current_day = $current_time->format('D');
+    
+                    if (!in_array($current_day, $days_list)) {
+                        continue;
+                    }
+                }
+    
+                $reminder_time = new DateTime($reminder['date_time']);
+                $reminder_time->setTimezone($timezone);
+    
+                if ($current_time->format('H:i') === $reminder_time->format('H:i')) {
+
+                    $notification_data = array(
+                        'title' => 'Hello, ' . $reminder['name'],
+                        'type' => 'reminder',
+                        'message' => $reminder['text'],
+                        'entity_id' => $reminder['id'],
+                        'device_token' => $reminder['device_token']
+                    );
+    
+                    $this->push_notification($notification_data);
+                }
+            }
+        }
+    }
+    
+    
     public function push_notification($data){
+    //   echo "<pre>"; print_r($data);
+    //   return;
+
         $fields = [
             'to' => $data['device_token'],
+            'data' => [
+                'type' => $data['type'],
+                'entity_id' => $data['entity_id'],
+            ],
             'notification' => [
                 'title' => $data['title'],
                 'body' => $data['message'],
@@ -111,11 +198,17 @@ class Notification extends CI_Controller {
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($fields));
         $result = curl_exec($ch);
+
+        if ($result === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            return 'cURL request failed: ' . $error;
+        }
         curl_close($ch);
-        return $result;
-        // $response = json_decode($result, true);
-        //  echo "<pre>"; print_r($response); exit();
-        
+        $response = json_decode($result, true);
+    
+        // echo "<pre>"; print_r($response); exit();
+        return $response;
     }
 
     public function growth_tree() {
