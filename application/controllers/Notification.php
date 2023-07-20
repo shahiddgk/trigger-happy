@@ -98,7 +98,7 @@ class Notification extends CI_Controller {
     
     public function reminder_notification()
     {
-        $active_reminders = $this->db
+        $activeReminders = $this->db
             ->select('reminders.*, users.name, users.device_token, users.time_zone')
             ->from('reminders')
             ->join('users', 'users.id = reminders.user_id')
@@ -109,62 +109,56 @@ class Notification extends CI_Controller {
             ->get()
             ->result_array();
     
-        $time_zone_map = $this->timezone_list();
+        $timeZoneMap = $this->timezone_list();
     
-        if (!empty($active_reminders)) {
-            foreach ($active_reminders as $reminder) {
-                $user_time_zone = $reminder['time_zone'];
+        if (!empty($activeReminders)) {
+            foreach ($activeReminders as $reminder) {
+                $userTimeZone = $reminder['time_zone'];
 
-                if ($reminder['snooze'] == 'yes') {
-
-                    $notification_data = array(
-                        'title' => 'Hello, ' . $reminder['name'],
-                        'type' => 'reminder',
-                        'message' => $reminder['text'],
-                        'entity_id' => $reminder['id'],
-                        'device_token' => $reminder['device_token']
-                    );
-    
-                    $this->push_notification($notification_data);
-                    $this->common_model->update_array(array('id' => $reminder['id']), 'reminders', array('snooze' => 'no'));
-                }
-    
-                if (!isset($time_zone_map[$user_time_zone])) {
+                if (!isset($timeZoneMap[$userTimeZone])) {
                     continue;
                 }
     
-                $valid_timezone = $time_zone_map[$user_time_zone];
-                $current_time = new DateTime('now', new DateTimeZone('UTC'));
-                $timezone = new DateTimeZone($valid_timezone);
-                $current_time->setTimezone($timezone);
+                $validTimeZone = $timeZoneMap[$userTimeZone];
+                $currentTime = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+                $timeZone = new DateTimeZone($validTimeZone);
+                $currentTime = $currentTime->setTimezone($timeZone);
     
                 if ($reminder['reminder_type'] === 'repeat') {
-                    $days_array = json_decode($reminder['day_list'], true);
-                    $days_list = array_map('ucfirst', $days_array);
-                    $current_day = $current_time->format('D');
+                    $daysArray = json_decode($reminder['day_list'], true);
+                    $daysList = array_map('ucfirst', $daysArray);
+                    $currentDay = $currentTime->format('D');
     
-                    if (!in_array($current_day, $days_list)) {
+                    if (!in_array($currentDay, $daysList)) {
                         continue;
                     }
                 }
     
-                $reminder_time = new DateTime($reminder['date_time']);
-                $reminder_time->setTimezone($timezone);
+                $reminderTime = new DateTimeImmutable($reminder['date_time'], $timeZone);
     
-                if ($current_time->format('H:i') === $reminder_time->format('H:i')) {
+                if ($currentTime->format('H:i') === $reminderTime->format('H:i')) {
+                    $notificationData = $this->prepareNotificationData($reminder['name'], $reminder['text'], $reminder['id'], $reminder['device_token']);
+                    $this->push_notification($notificationData);
+                }
 
-                    $notification_data = array(
-                        'title' => 'Hello, ' . $reminder['name'],
-                        'type' => 'reminder',
-                        'message' => $reminder['text'],
-                        'entity_id' => $reminder['id'],
-                        'device_token' => $reminder['device_token']
-                    );
-    
-                    $this->push_notification($notification_data);
+                if ($reminder['snooze'] === 'yes' && $currentTime->format('H:i') > $reminderTime->format('H:i')) {
+                    $notificationData = $this->prepareNotificationData($reminder['name'], $reminder['text'], $reminder['id'], $reminder['device_token']);
+                    $this->push_notification($notificationData);
+                    $this->common_model->update_array(['id' => $reminder['id']], 'reminders', ['snooze' => 'no']);
                 }
             }
         }
+    }
+    
+    private function prepareNotificationData($name, $text, $id, $deviceToken)
+    {
+        return [
+            'title' => 'Hello, ' . $name,
+            'type' => 'reminder',
+            'message' => $text,
+            'entity_id' => $id,
+            'device_token' => $deviceToken
+        ];
     }
     
     

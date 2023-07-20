@@ -2027,15 +2027,22 @@ class Api extends REST_Controller {
 
 	public function insert_reminder_post(){
 
-		$input = $_POST['day_list'];
-		$input = str_replace(['[', ']', '\''], '', $input);
-		$weekdays = array_map('trim', explode(',', $input));
-		
-		$order = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-		usort($weekdays, function ($a, $b) use ($order) {
-			return array_search($a, $order) - array_search($b, $order);
-		});
-		$days_list = json_encode($weekdays);
+		if($_POST['reminder_type'] == 'once'){
+			$days_list = '[]';
+		}else{
+			$input = $_POST['day_list'];
+			$input = str_replace(['[', ']', '\''], '', $input);
+			$weekdays = array_map('trim', explode(',', $input));
+			
+			$order = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+			usort($weekdays, function ($a, $b) use ($order) {
+				return array_search(strtolower($a), $order) - array_search(strtolower($b), $order);
+			});
+			
+			$weekdays = array_map('ucfirst', $weekdays);
+			$days_list = json_encode($weekdays);
+			
+		}
 
 		if(isset($_POST['date'])){
 			$dateObj = DateTime::createFromFormat('m-d-y', $_POST['date']);
@@ -2097,7 +2104,7 @@ class Api extends REST_Controller {
 				
 				if ($date !== false) {
 					$formatted_date = date_format($date, 'Y-m-d');
-					$formatted_time = date_format($date, 'H:i');
+					$formatted_time = date_format($date, 'h:i');
 					$formatted_time_type = date_format($date, 'A');
 					
 					$result[$key]['date'] = $formatted_date;
@@ -2128,15 +2135,21 @@ class Api extends REST_Controller {
 	public function edit_reminder_post(){
 		$id = $_POST['id'];
 
-		$input = $_POST['day_list'];
-		$input = str_replace(['[', ']', '\''], '', $input);
-		$weekdays = array_map('trim', explode(',', $input));
-		
-		$order = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-		usort($weekdays, function ($a, $b) use ($order) {
-			return array_search($a, $order) - array_search($b, $order);
-		});
-		$days_list = json_encode($weekdays);
+		if($_POST['reminder_type'] == 'once'){
+			$days_list = '[]';
+		}else{
+			$input = $_POST['day_list'];
+			$input = str_replace(['[', ']', '\''], '', $input);
+			$weekdays = array_map('trim', explode(',', $input));
+			
+			$order = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+			usort($weekdays, function ($a, $b) use ($order) {
+				return array_search(strtolower($a), $order) - array_search(strtolower($b), $order);
+			});
+			
+			$weekdays = array_map('ucfirst', $weekdays);
+			$days_list = json_encode($weekdays);
+		}
 
 		if(isset($_POST['date'])){
 			$dateObj = DateTime::createFromFormat('m-d-y', $_POST['date']);
@@ -2218,23 +2231,32 @@ class Api extends REST_Controller {
 		}
 	}
 	 
-	public function update_reminder_status_post(){
-		$entity_id = $_POST['entity_id'];
-
-		if(!empty($entity_id)){
-			
-			if(isset($_POST['status']) && !empty($_POST['status'])){
-
+	public function update_reminder_status_post() {
+		$entity_id = isset($_POST['entity_id']) ? $_POST['entity_id'] : null;
+	
+		if (!empty($entity_id)) {
+			if (isset($_POST['status']) && !empty($_POST['status'])) {
 				$status = $_POST['status'];
-			}
-			else{
+			} else {
 				$status = 'active';
 			}
-			$this->common_model->update_array(array('id'=>$entity_id), "reminders", array('status'=>$status));
-		
+	
+			$this->common_model->update_array(array('id' => $entity_id), "reminders", array('status' => $status));
+	
 			$updated_record = $this->common_model->select_where("*", "reminders", array('id' => $entity_id))->row_array();
-
+	
 			if (!empty($updated_record)) {
+				$date_time = $updated_record['date_time'];
+				$date = date_create_from_format('Y-m-d H:i:s', $date_time);
+	
+				if ($date !== false) {
+					$updated_record['date'] = date_format($date, 'Y-m-d');
+					$updated_record['time'] = date_format($date, 'h:i');
+					$updated_record['time_type'] = date_format($date, 'A');
+	
+					unset($updated_record['date_time']);
+				}
+	
 				$response = [
 					'status' => 200,
 					'message' => 'success',
@@ -2248,7 +2270,7 @@ class Api extends REST_Controller {
 				];
 				$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
 			}
-		}else{
+		} else {
 			$response = [
 				'status' => 400,
 				'message' => 'empty parameters'
@@ -2263,14 +2285,20 @@ class Api extends REST_Controller {
 		if (!empty($entity_id)) {
 	
 			$this->common_model->update_array(array('id' => $entity_id), "reminders", array('snooze' => 'yes'));
-			$updated_record = $this->common_model->select_where("*", "reminders", array('id' => $entity_id))->row_array();
 	
-			$response = [
-				'status' => 200,
-				'message' => 'success',
-				'data' => $updated_record
-			];
-			$this->set_response($response, REST_Controller::HTTP_OK);
+			if($this->db->affected_rows() > 0){
+				$response = [
+					'status' => 200,
+					'message' => 'reminder updated successfully'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}else{
+				$response = [
+					'status' => 400,
+					'message' => 'reminder not updated'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
 		} else {
 			$response = [
 				'status' => 400,
