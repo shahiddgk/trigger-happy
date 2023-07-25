@@ -127,7 +127,6 @@ class Api extends REST_Controller {
 		
 		if($data['login']->num_rows()>0){
 			$row = $data['login']->row_array();
-			$valid_token  =  $row['device_token'];
 
 				$subscription = $this->common_model->select_where("*","user_subscriptions", array('user_id'=>$row['id'], 'status'=>'active'));
 				$subscription_id = '';
@@ -144,17 +143,9 @@ class Api extends REST_Controller {
 				$response['error'] = 'inactive user';
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			} 
-			if(!empty($_POST['device_token'])){
+			if(isset($_POST['device_token'])){
 				$device_token	=	$_POST['device_token'];
 				$this->common_model->update_array(array('id'=> $row['id']), 'users', array('device_token'=>$device_token));
-
-				if($this->db->affected_rows()> 0){
-					$valid_token  =  $device_token;
-				}
-			}else{
-				$device_token	=	'HHHKHKHKLHIOY88657656545454343543';
-				$this->common_model->update_array(array('id'=> $row['id']), 'users', array('device_token'=>$device_token));
-				$valid_token  =  $device_token;
 			}
 
 			$user_data = array(
@@ -165,7 +156,7 @@ class Api extends REST_Controller {
 				'useremail' => $row['email'],
 				'allowemail' => $row['mail_resp'],
 				'timezone' => $row['time_zone'],
-				'devicetoken' => $valid_token,
+				'devicetoken' => isset($_POST['device_token']) ? $_POST['device_token'] : '',
 				'premium' => $row['is_premium'],
 				'premium_type' => $row['premium_type'],
 				'subscription_id' => $subscription_id,

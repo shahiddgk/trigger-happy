@@ -103,12 +103,14 @@ class Notification extends CI_Controller {
             ->from('reminders')
             ->join('users', 'users.id = reminders.user_id')
             ->where('reminders.status', 'active')
+            // ->where_in('users.id', array(221))
             ->where('DATE(reminders.date_time) <=', date('Y-m-d'))
             ->where_not_in('users.device_token', '')
             ->where_not_in('users.time_zone', '')
             ->get()
             ->result_array();
     
+        // echo "Active Reminders: "; print_r($activeReminders); exit;
         $timeZoneMap = $this->timezone_list();
     
         if (!empty($activeReminders)) {
@@ -136,12 +138,18 @@ class Notification extends CI_Controller {
     
                 $reminderTime = new DateTimeImmutable($reminder['date_time'], $timeZone);
     
+                // echo "Current Time: ".$currentTime->format('H:i') . "<br>";
+                // echo "Reminder Time: ".$reminderTime->format('H:i') ; exit;
                 if ($currentTime->format('H:i') === $reminderTime->format('H:i')) {
                     $notificationData = $this->prepareNotificationData($reminder['name'], $reminder['text'], $reminder['id'], $reminder['device_token']);
                     $this->push_notification($notificationData);
                 }
 
-                if ($reminder['snooze'] === 'yes' && $currentTime->format('H:i') > $reminderTime->format('H:i')) {
+                // echo "Snooze: ".$reminder['snooze'] . "<br>";
+                // echo "Current Time: ".$currentTime->format('Y-m-d H:i'). "<br>";
+                // echo "Reminder Time: ".$reminderTime->format('Y-m-d H:i') ; exit;
+
+                if ($reminder['snooze'] === 'yes' && $currentTime->format('Y-m-d H:i') > $reminderTime->format('Y-m-d H:i')) {
                     $notificationData = $this->prepareNotificationData($reminder['name'], $reminder['text'], $reminder['id'], $reminder['device_token']);
                     $this->push_notification($notificationData);
                     $this->common_model->update_array(['id' => $reminder['id']], 'reminders', ['snooze' => 'no']);
