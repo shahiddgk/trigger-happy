@@ -134,6 +134,12 @@ class Notification extends CI_Controller {
                     if (!in_array($currentDay, $daysList)) {
                         continue;
                     }
+
+                    if(!empty($reminder['end_date'])){
+                        if($currentTime->format('Y-m-d') > $reminder['end_date']){
+                            continue;
+                        }
+                    }
                 }
     
                 $reminderTime = new DateTimeImmutable($reminder['date_time'], $timeZone);
@@ -161,7 +167,7 @@ class Notification extends CI_Controller {
     private function prepareNotificationData($name, $text, $id, $deviceToken)
     {
         return [
-            'title' => 'Hello, ' . $name,
+            'title' => 'Hi ' . $name. ' Did you....',
             'type' => 'reminder',
             'message' => $text,
             'entity_id' => $id,
