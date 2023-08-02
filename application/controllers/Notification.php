@@ -220,26 +220,29 @@ class Notification extends CI_Controller {
     }
 
     public function growth_tree() {
-
         $yesterday = date('Y-m-d', strtotime("-1 days"));
-
-        $this->db->select('user_id, DATE(created_at) as response_date');
-        $this->db->from('answers');
-        $this->db->where('DATE(created_at)', $yesterday);
-        $this->db->group_by('user_id');
-        $results = $this->db->get()->result_array();
-
-        foreach ($results as $data){
-            $count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $data['user_id'], 'response_date' => $data['response_date']));
-            
-            if ($count > 0){
-                continue;
-            }else{
-                $insert['type'] = 'pire';
-                $insert['user_id'] = $data['user_id'];
-                $insert['response_date'] = $data['response_date'];
-                $this->db->insert('scores', $insert );
+    
+        $pire_array = $this->common_model->select_where_groupby('user_id, type, response_id, DATE(created_at) as response_date', 'answers', array('type' => 'pire', 'DATE(created_at) <=' => $yesterday), 'user_id')->result_array();
+        
+        $naq_array = $this->common_model->select_where_groupby('user_id, type, response_id, DATE(created_at) as response_date', 'answers', array('type' => 'naq', 'DATE(created_at) <=' => $yesterday), 'user_id')->result_array();
+    
+        $data_to_insert = array();
+    
+        foreach (array_merge($pire_array, $naq_array) as $response) {
+            $count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $response['user_id'], 'type' => $response['type'], 'response_date' => $response['response_date']));
+    
+            if ($count == 0) {
+                $data_to_insert[] = array(
+                    'type' => $response['type'],
+                    'user_id' => $response['user_id'],
+                    'response_id' => $response['response_id'],
+                    'response_date' => $response['response_date']
+                );
             }
         }
-    }
+    
+        if (!empty($data_to_insert)) {
+            $this->db->insert_batch('scores', $data_to_insert);
+        }
+    }    
 }

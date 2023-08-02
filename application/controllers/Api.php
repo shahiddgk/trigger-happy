@@ -679,39 +679,28 @@ class Api extends REST_Controller {
 	public function growth_tree_post(){
         $user_id = $_POST['user_id'];
         if (!empty($user_id)) {
-            $this->db->select('garden_type');
-            $this->db->from('users');
-            $this->db->where('id', $user_id);
-            $query = $this->db->get();
-            if ($query->num_rows() > 0) {
-                $row = $query->row();
-                $garden_type = $row->garden_type;
-                $score_table = ($garden_type === 'rose' || $garden_type === 'tomato') ? 'secondary_scores' : 'scores';
-                $this->db->select('*');
-                $this->db->from($score_table);
-                $this->db->where('user_id', $user_id);
-                $count = $this->db->count_all_results();
-                if ($count >= 0) {
+			$garden_type = $this->common_model->select_single_field('garden_type', 'users', array('id'=>$user_id));
+              
+			$count =  $this->common_model->select_where_groupby('*', 'scores', array('user_id' => $user_id) , 'response_date')->num_rows();
+               
+				if ($count >= 0) {
                     if ($count > 36) {
                         $img = 37;
                     } else {
                         $img = $count + 1;
                     }
                 }
-				// if($user_id == '239'){
-				// 	$img = 37;
-				// }
                 $mobile_folder = '';
                 $ipad_folder = '';
                 if ($garden_type == 'apple') {
-                    $mobile_folder = 'mobile_tree';
-                    $ipad_folder = 'ipad_tree';
+                    $mobile_folder = 'apple_tree/apple_mobile';
+                    $ipad_folder = 'apple_tree/apple_ipad';
                 } elseif ($garden_type == 'rose') {
-                    $mobile_folder = 'mobile_red_rose';
-                    $ipad_folder = 'ipad_red_rose';
+					$mobile_folder = 'rose_tree/rose_mobile';
+                    $ipad_folder = 'rose_tree/rose_ipad';
                 } elseif ($garden_type == 'tomato') {
-                    $mobile_folder = 'mobile_tomato';
-                    $ipad_folder = 'ipad_tomato';
+					$mobile_folder = 'tomato_tree/tomato_mobile';
+                    $ipad_folder = 'tomato_tree/tomato_ipad';
                 }
                 $response = [
                     'status' => 200,
@@ -721,13 +710,6 @@ class Api extends REST_Controller {
                     'ipad_image_url' => base_url('uploads/' . $ipad_folder . '/') . $img . '.png',
                 ];
                 $this->set_response($response, REST_Controller::HTTP_OK);
-            } else {
-                $response = [
-                    'status' => 400,
-                    'message' => 'User not found'
-                ];
-                $this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-            }
         } else {
             $response = [
                 'status' => 400,
@@ -1348,6 +1330,16 @@ class Api extends REST_Controller {
 		}
 	}
 
+	public function test_query_get() {
+
+		$scores =  $this->common_model->select_where_groupby('*', 'scores', array('user_id' => '166') , 'response_date')->result_array();
+
+		// echo $this->db->last_query(); exit;
+        // echo  $scores; exit;
+        echo "<pre>"; print_r($scores); exit;
+
+	}
+
 	public function payment_settings_post() {
 		$user_id	=	$_POST['user_id'];
 			
@@ -1380,6 +1372,40 @@ class Api extends REST_Controller {
 			if($count < 1){
 
 				$insert['type'] = 'trellis';
+				$insert['user_id'] = $user_id;
+				$insert['response_date'] = date('Y-m-d');
+				$this->db->insert('scores', $insert );
+
+				$response = [
+					'status' => 200,
+					'message' => 'score updated successfully'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}else{
+				$response = [
+					'status' => 200,
+					'message' => 'You have already received reward for the day'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function ladder_trigger_post(){
+		$user_id = $_POST['user_id'];
+
+		if(!empty($user_id)){
+            $count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $user_id, 'type'=>'ladder', 'response_date' => date('Y-m-d')));
+
+			if($count < 1){
+
+				$insert['type'] = 'ladder';
 				$insert['user_id'] = $user_id;
 				$insert['response_date'] = date('Y-m-d');
 				$this->db->insert('scores', $insert );
@@ -1933,20 +1959,43 @@ class Api extends REST_Controller {
 	public function new_response_history_post(){
 		
 		if(isset($_POST['user_id']) && !empty($_POST['user_id'])){
-			$user_id = $_POST['user_id'];
-			$pire_array = $this->common_model->select_where_groupby("DATE(created_at) date", "answers", array('user_id'=>$user_id , 'type'=>'pire'), 'DATE(created_at)')->result_array();
-			$naq_array = $this->common_model->select_where_groupby("DATE(created_at) date", "answers", array('user_id'=>$user_id , 'type'=>'naq'), 'DATE(created_at)')->result_array();
 
-			$full_array = array_merge($pire_array, $naq_array);
+			$user_id = $_POST['user_id'];
+              
+			$score_data =  $this->common_model->select_where_groupby('*', 'scores', array('user_id' => $user_id) , 'response_date')->result_array();
+
+			$trellis_count = '';
+			$ladder_count = '';
+			$column_count = '';
+			$pire_count  = array();
+			$naq_count  = array();
+			
 			$sorted_array = array();
-			foreach ($full_array as $key => $value) {
-				$date_index = $value['date'];
-				$pire_count = $this->common_model->select_where_groupby("response_id", "answers", array('user_id'=>$user_id , 'type'=>'pire', 'DATE(created_at)'=> $date_index), 'response_id' )->result_array();
-				$naq_count = $this->common_model->select_where_groupby("response_id", "answers", array('user_id'=>$user_id , 'type'=>'naq', 'DATE(created_at)'=> $date_index), 'response_id' )->result_array();
+			foreach ($score_data as $key => $value) {
+				$date_index = $value['response_date'];
+
+				if($value['type'] == 'pire'){
+					$pire_count = $this->common_model->select_where_groupby("response_id", "answers", array('user_id'=>$value['user_id'] , 'type'=>'pire', 'DATE(created_at)'=> $date_index), 'response_id' )->result_array();
+				}
+				elseif($value['type'] == 'naq'){
+					$naq_count = $this->common_model->select_where_groupby("response_id", "answers", array('user_id'=>$value['user_id'] , 'type'=>'naq', 'DATE(created_at)'=> $date_index), 'response_id' )->result_array();
+				}
+				elseif($value['type'] == 'column'){
+					$trellis_count = '1';
+				}
+				elseif($value['type'] == 'trellis'){
+					$ladder_count = '1';
+				}
+				elseif($value['type'] == 'ladder'){
+					$column_count = '1';
+				}
 				
 				$sorted_array[$date_index] = array(
 					'date' => $date_index,
 					'score' => $key+1,
+					'trellis_count' => $trellis_count,
+					'ladder_count' => $ladder_count,
+					'column_count' => $column_count,
 					'pire_count' => $pire_count,
 					'naq_count' => $naq_count
 				);
