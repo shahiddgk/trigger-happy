@@ -240,6 +240,56 @@ if ( ! function_exists('random_string'))
 
 // ------------------------------------------------------------------------
 
+if ( ! function_exists('valid_timezone'))
+{
+	/**
+	 * Create a "Random" String
+	 *
+	 * @param	string	type of random string.  basic, alpha, alnum, numeric, nozero, unique, md5, encrypt and sha1
+	 * @param	int	number of characters
+	 * @return	string
+	 */
+	function valid_timezone()
+	{
+		return  array(
+            "European Central Time (GMT+1:00)" => "Europe/Amsterdam",
+            "Eastern European Time (GMT+2:00)" => "Europe/Athens",
+            "Egypt Standard Time (GMT+2:00)" => "Africa/Cairo",
+            "Eastern African Time (GMT+3:00)" => "Africa/Nairobi",
+            "Middle East Time (GMT+3:30)" => "Asia/Tehran",
+            "Near East Time (GMT+4:00)" => "Asia/Dubai",
+            "Pakistan Lahore Time (GMT+5:00)" => "Asia/Karachi",
+            "India Standard Time (GMT+5:30)" => "Asia/Kolkata",
+            "Bangladesh Standard Time (GMT+6:00)" => "Asia/Dhaka",
+            "Vietnam Standard Time (GMT+7:00)" => "Asia/Bangkok",
+            "China Taiwan Time (GMT+8:00)" => "Asia/Taipei",
+            "Japan Standard Time (GMT+9:00)" => "Asia/Tokyo",
+            "Australia Central Time (GMT+9:30)" => "Australia/Darwin",
+            "Australia Eastern Time (GMT+10:00)" => "Australia/Sydney",
+            "Solomon Standard Time (GMT+11:00)" => "Pacific/Guadalcanal",
+            "New Zealand Standard Time (GMT+12:00)" => "Pacific/Auckland",
+            "Midway Islands Time (GMT-11:00)" => "Pacific/Midway",
+            "Hawaii Standard Time (GMT-10:00)" => "Pacific/Honolulu",
+            "Alaska Standard Time (GMT-9:00)" => "America/Anchorage",
+            "Yukon Standard Time (GMT-8:00)" => "America/Whitehorse",
+            "Alaska-Hawaii Standard Time (GMT-9:00)" => "America/Adak",
+            "Pacific Standard Time (GMT-8:00)" => "America/Los_Angeles",
+            "Phoenix Standard Time (GMT-7:00)" => "America/Phoenix",
+            "Central Standard Time (GMT-6:00)" => "America/Chicago",
+            "Mountain Standard Time (GMT-7:00)" => "America/Denver",
+            "Eastern Standard Time (GMT-5:00)" => "America/New_York",
+            "Indiana Eastern Standard Time (GMT-5:00)" => "America/Indiana/Indianapolis",
+            "Puerto Rico and US Virgin Islands Time (GMT-4:00)" => "America/Puerto_Rico",
+            "Canada Newfoundland Time (GMT-3:30)" => "America/St_Johns",
+            "Argentina Standard Time (GMT-3:00)" => "America/Argentina/Buenos_Aires",
+            "Brazil Eastern Time (GMT-3:00)" => "America/Sao_Paulo",
+            "Central African Time (GMT-1:00)" => "Africa/Luanda"
+        );
+	}
+}
+
+// ------------------------------------------------------------------------
+
 if ( ! function_exists('increment_string'))
 {
 	/**
