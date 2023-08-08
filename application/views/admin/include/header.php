@@ -103,6 +103,9 @@ else{
 					<li class="nav-item">
 						<a href="<?= base_url('admin/users_by_date') ?>" class="nav-link">Response By Date</a>
 					</li>
+					<li class="nav-item">
+						<a href="<?= base_url('admin/user_activity_report') ?>" class="nav-link"> User Activity Report</a>
+					</li>
 				</ul>
 				</div>
 			</li>
