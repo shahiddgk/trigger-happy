@@ -706,12 +706,20 @@ class Api extends REST_Controller {
 					$mobile_folder = 'tomato_tree/tomato_mobile';
                     $ipad_folder = 'tomato_tree/tomato_ipad';
                 }
+				$current_garder = $this->common_model->select_where('garden_level, current_tree', 'users', array('id' => $user_id))->row_array();
+				$max_count = $this->common_model->select_single_field('count', 'garden_seeds', array('id' => $current_garder['current_tree']));
+				$previous_img = $img - 1; // Calculate the previous image number
                 $response = [
                     'status' => 200,
                     'response_count' => $img,
                     'garden_type' => $garden_type,
+					'max_count' => $max_count,
+					'level' => $current_garder['garden_level'],
+					'is_pop_up_for_new_tree_selection' => false,
                     'mobile_image_url' => base_url('uploads/' . $mobile_folder . '/') . $img . '.png',
+					'mobile_previous_image_url' => base_url('uploads/' . $mobile_folder . '/') . $previous_img . '.png', // Link to the previous image
                     'ipad_image_url' => base_url('uploads/' . $ipad_folder . '/') . $img . '.png',
+					'ipad_previous_image_url' => base_url('uploads/' . $ipad_folder . '/') . $previous_img . '.png', // Link to the previous image
                 ];
                 $this->set_response($response, REST_Controller::HTTP_OK);
         } else {
@@ -2404,26 +2412,35 @@ class Api extends REST_Controller {
 	
 			// Get user's time zone from the database
 			$userTimeZone = $this->common_model->select_single_field("time_zone", "users", array('id' => $user_id));
-			$validTimeZone = valid_timezone()[$userTimeZone];
-	
-			// Get current time in UTC and user's local time
-			$currentTimeUTC = new DateTimeImmutable('now', new DateTimeZone('UTC'));
-			$userTime = new DateTimeZone($validTimeZone);
-			$currentTime = new DateTimeImmutable('now', $userTime);
-	
-			$skipped_reminders = $this->get_skipped_reminders($user_id, $currentTime);
-	
-			if (!empty($skipped_reminders)) {
-				$response = [
-					'status' => 200,
-					'message' => 'Skipped reminders found',
-					'result' => $skipped_reminders
-				];
-				$this->set_response($response, REST_Controller::HTTP_OK);
+			if (isset(valid_timezone()[$userTimeZone])) {
+				$validTimeZone = valid_timezone()[$userTimeZone];
+		
+				// Get current time in UTC and user's local time
+				$currentTimeUTC = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+				$userTime = new DateTimeZone($validTimeZone);
+				$currentTime = new DateTimeImmutable('now', $userTime);
+		
+				$skipped_reminders = $this->get_skipped_reminders($user_id, $currentTime);
+		
+				if (!empty($skipped_reminders)) {
+					$response = [
+						'status' => 200,
+						'message' => 'Skipped reminders found',
+						'result' => $skipped_reminders
+					];
+					$this->set_response($response, REST_Controller::HTTP_OK);
+				} else {
+					$response = [
+						'status' => 200,
+						'message' => 'No skipped reminders found',
+						'result' => $skipped_reminders
+					];
+					$this->set_response($response, REST_Controller::HTTP_OK);
+				}
 			} else {
 				$response = [
 					'status' => 400,
-					'message' => 'No skipped reminders found'
+					'message' => 'Invalid or undefined time zone'
 				];
 				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 			}
