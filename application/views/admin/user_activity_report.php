@@ -11,10 +11,6 @@
             <div class="card">
                 <div class="card-body">
                     <h6 class="card-title"><?= $page_title ?></h6>
-                    <div class="col-md-2 float-right m-2 d-inline-flex form-group">
-                        <label class="p-2">Date</label>
-                        <input type="date" class="form-control pl-2" name="date_filter" id="date-input">
-                    </div>
                     <div class="table-responsive">
                         <table id="dataTableExample" class="table">
                             <thead>
