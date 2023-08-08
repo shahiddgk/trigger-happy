@@ -103,9 +103,6 @@ else{
 					<li class="nav-item">
 						<a href="<?= base_url('admin/users_by_date') ?>" class="nav-link">Response By Date</a>
 					</li>
-					<li class="nav-item">
-						<a href="<?= base_url('admin/user_activity_report') ?>" class="nav-link"> User Activity Report</a>
-					</li>
 				</ul>
 				</div>
 			</li>
@@ -119,6 +116,14 @@ else{
 				<a class="nav-link" href="<?php echo site_url('admin/settings'); ?>">
 				<i class="link-icon" data-feather="settings"></i>
 				<span class="link-title">Settings</span>
+				</a>
+			</li>
+
+			<li class="nav-item nav-category">Reports</li>
+			<li class="nav-item">
+				<a class="nav-link" href="<?php echo site_url('admin/user_activity'); ?>">
+				<i class="link-icon" data-feather="book"></i>
+				<span class="link-title">User Activity</span>
 				</a>
 			</li>
 		</ul>

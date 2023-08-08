@@ -360,8 +360,8 @@ class Admin extends CI_Controller {
 			redirect('admin/settings', 'refresh');
 	}
 
-	public function user_activity_report(){
-		$data['page_title'] = 'User Activity Report';
+	public function user_activity(){
+		$data['page_title'] = 'User Activity';
 		
 		$selectedDate = $this->input->post('selected_date'); 
 				
