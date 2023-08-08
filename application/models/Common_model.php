@@ -198,8 +198,9 @@ class Common_model extends  CI_Model {
 		FROM users
 		
 		LEFT JOIN naq_scores AS naq ON users.id = naq.user_id
-		LEFT JOIN scores AS sc ON sc.`user_id` = users.id	 
-		GROUP BY users.`id`";
+		LEFT JOIN scores AS sc ON sc.user_id = users.id	
+		WHERE users.type = 'user' AND users.email != 'test@triggerhappy.com' 
+		GROUP BY users.id ";
 
         $query = $this->db->query($sql);
         $report_data = $query->result();
