@@ -360,6 +360,16 @@ class Admin extends CI_Controller {
 			redirect('admin/settings', 'refresh');
 	}
 
+	public function user_activity_report(){
+		$data['page_title'] = 'User Activity Report';
+		
+		$selectedDate = $this->input->post('selected_date'); 
+				
+		$data['users'] = $this->common_model->user_activity_report($selectedDate);
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/user_activity_report', $data);
+		$this->load->view('admin/include/footer');
+	}
 }
 
 ?>

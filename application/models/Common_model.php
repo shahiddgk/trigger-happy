@@ -183,6 +183,58 @@ class Common_model extends  CI_Model {
 		return $result;
 		
 	}
+
+	public function user_activity_report($selectedDate) {
+		$ninetyDaysAgo = date('Y-m-d', strtotime('-90 days'));
+
+		$sql = "SELECT users.id, users.name, users.created_at, users.garden_level,
+		MIN(naq.score) AS min_naq_score, MAX(naq.score) AS max_naq_score,
+		MIN(naq.response_date) AS min_naq_response, MAX(naq.response_date) AS max_naq_response,
+		SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type = 'pire') AS count_pire,
+		SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type = 'trellis') AS count_trellis,
+		SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type = 'column') AS count_column,
+		SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type = 'ladder') AS count_ladder,
+		SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type IN ('pire', 'trellis', 'column', 'ladder', 'naq')) AS total_count
+		FROM users
+		
+		LEFT JOIN naq_scores AS naq ON users.id = naq.user_id
+		LEFT JOIN scores AS sc ON sc.`user_id` = users.id	 
+		GROUP BY users.`id`";
+
+        $query = $this->db->query($sql);
+        $report_data = $query->result();
+		// Fetch additional data using executeQuery function and combine with report_data
+		foreach ($report_data as &$user_data) {
+			$user_id = $user_data->id;
+			$additional_data = $this->executeQuery(
+				'reminders as rem',
+				'DATE(rem.created_at) AS created_at,
+				 SUM(rem.status = \'active\') AS sum_active_reminders,
+				 SUM(rem.reminder_stop = \'yes\') AS sum_yes_reminders,
+				 COUNT(rem.user_id) as sum_reminders',
+				"user_id = $user_id AND DATE(rem.created_at) >= '$ninetyDaysAgo'"
+			);
+			$user_data->additional_data = $additional_data;
+		}
+		
+    //    echo"<pre>"; print_r($report_data);exit;
+	    if ($query) {
+		return $query->result();
+	    } else {
+		echo "Database error: " . $this->db->error();
+		return array();
+	    }
+	}
+	
+	
+	private function executeQuery($tableName, $columns, $where = "") {
+		$sql = "SELECT $columns FROM $tableName";
+		if (!empty($where)) {
+			$sql .= " WHERE $where";
+		}
+		$query = $this->db->query($sql);
+		return $query->result()[0];
+	}
 	
 	function select_table_rows($select,$table)
 	{
