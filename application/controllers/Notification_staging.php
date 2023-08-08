@@ -11,7 +11,7 @@ class Notification extends CI_Controller {
 
     public function timezone_list(){
             
-      return  $time_zone_map = array(
+        return  $time_zone_map = array(
             "European Central Time (GMT+1:00)" => "Europe/Amsterdam",
             "Eastern European Time (GMT+2:00)" => "Europe/Athens",
             "Egypt Standard Time (GMT+2:00)" => "Africa/Cairo",
@@ -230,7 +230,11 @@ class Notification extends CI_Controller {
     
         foreach (array_merge($pire_array, $naq_array) as $response) {
             $count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $response['user_id'], 'type' => $response['type'], 'response_date' => $response['response_date']));
-    
+            $dead_user = $this->common_model->select_where("*", "users", array('id' => $response['user_id']))->num_rows();
+           
+            if($dead_user == 0){
+                continue;
+            }
             if ($count == 0) {
                 $data_to_insert[] = array(
                     'type' => $response['type'],
@@ -244,5 +248,47 @@ class Notification extends CI_Controller {
         if (!empty($data_to_insert)) {
             $this->db->insert_batch('scores', $data_to_insert);
         }
+
+        // Score update is level_history Table 
+        $users_list = $this->common_model->select_groupby('user_id , MIN(response_date) as start_date', 'scores', 'user_id')->result_array();
+
+        // echo "<pre>"; print_r($users_list); exit;
+        foreach($users_list as $single) {
+
+            $user_id = $single['user_id']; 
+            $start_date = $single['start_date']; 
+
+            $count =  $this->common_model->select_where_groupby('*', 'scores', array('user_id' => $user_id) , 'response_date')->num_rows();
+
+            $garden_level = $this->common_model->select_where("garden_level, current_tree", "users", array('id' => $user_id))->row_array();
+           
+            if(empty($garden_level)){
+                continue;
+            }
+            $current_level =  $garden_level['garden_level'];
+            $current_tree =  $garden_level['current_tree'];
+
+            $user_exist =  $this->common_model->select_where('*', 'level_history', array('user_id' => $user_id , 'level' => $current_level ))->num_rows();
+            $seeds_count =  $this->common_model->select_single_field('count', 'garden_seeds', array('level' => $current_level, 'id' => $current_tree ));
+            $seeds_count = $seeds_count - 1;
+
+            if($user_exist == 1){
+                  
+                if ($count == $seeds_count) {
+                    $this->common_model->update_array(['user_id' => $user_id, 'level' => $current_level], 'level_history', ['status' => 'complete', 'score' => $count , 'end_date' => date('Y-m-d'), 'updated_at' => date('Y-m-d H:i:s')]);
+                }else{
+                    $this->common_model->update_array(['user_id' => $user_id, 'level' => $current_level], 'level_history', ['status' => 'active', 'score' => $count , 'end_date' => date('Y-m-d'), 'updated_at' => date('Y-m-d H:i:s')]);
+                }
+            }else{
+                $insert['user_id'] = $user_id;
+                $insert['level'] = $current_level;
+                $insert['seed'] = $current_tree;
+                $insert['score'] = $count;
+                $insert['status'] = $count == $seeds_count ? 'complete' : 'active';
+                $insert['start_date'] = $start_date;
+                $insert['end_date'] = $count == $seeds_count ? date('Y-m-d') : '';
+                $this->common_model->insert_array('level_history', $insert);
+            }
+        }    
     }    
 }
