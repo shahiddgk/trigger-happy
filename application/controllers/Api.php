@@ -2464,8 +2464,7 @@ class Api extends REST_Controller {
 			'user_id' => $user_id,
 			'reminder_stop' => 'skip',
 			'snooze' => 'no',
-			'date_time <=' => $currentTime->format('Y-m-d H:i:s'),
-			'updated_at' => '0000-00-00 00:00:00'
+			'date_time <=' => $currentTime->format('Y-m-d H:i:s')
 		));
 	
 		if ($query->num_rows() > 0) {
