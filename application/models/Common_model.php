@@ -187,7 +187,7 @@ class Common_model extends  CI_Model {
 	public function user_activity_report($selectedDate) {
 		$ninetyDaysAgo = date('Y-m-d', strtotime('-90 days'));
 
-		$sql = "SELECT users.id, users.name, users.created_at, users.garden_level,
+		$sql = "SELECT users.id, users.name, users.created_at, users.level,
 		MIN(naq.score) AS min_naq_score, MAX(naq.score) AS max_naq_score,
 		MIN(naq.response_date) AS min_naq_response, MAX(naq.response_date) AS max_naq_response,
 		SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type = 'pire') AS count_pire,
@@ -220,10 +220,10 @@ class Common_model extends  CI_Model {
 		
     //    echo"<pre>"; print_r($report_data);exit;
 	    if ($query) {
-		return $query->result();
+			return $query->result();
 	    } else {
-		echo "Database error: " . $this->db->error();
-		return array();
+			echo "Database error: " . $this->db->error();
+			return array();
 	    }
 	}
 	
@@ -381,14 +381,13 @@ class Common_model extends  CI_Model {
 
 	}
 	
-	function join_three_tab_where_rows( $select, $from, $jointable1, $condition1, $jointable2, $condition2,  $where ){
+	function join_three_tables( $select, $from, $jointable1, $condition1, $jointable2, $condition2,  $where ){
 		$this->db->select($select);
 		$this->db->from( $from );
 		$this->db->join( $jointable1 , $condition1 );
 		$this->db->join( $jointable2 , $condition2 );
 		$this->db->where( $where );
-		$query	=	$this->db->get();
-		return 		$query->num_rows();
+		return 	$this->db->get();
 	}
 	
 	
@@ -437,9 +436,6 @@ class Common_model extends  CI_Model {
 		return $query->num_rows();
 	}
 	
-	
-	
-	
 	function join_two_tab_where_limit( $select, $from, $jointable, $condition,$where,$page,$recordperpage ){
 		$this->db->select($select);
 		$this->db->from( $from );
@@ -450,23 +446,12 @@ class Common_model extends  CI_Model {
 		return $query;
 	}
 	
-	
-	function join_two_tab_where_numrw( $select, $from, $jointable, $condition,$where){
-		$this->db->select($select);
-		$this->db->from( $from );
-		$this->db->join( $jointable , $condition );
-		$this->db->where( $where );
-		 $query=$this->db->get();
-		 return $query->num_rows();
-	}
-	
 	function join_two_tab_where_simple( $select, $from, $jointable, $condition, $where ){
 		$this->db->select($select);
 		$this->db->from( $from );
 		$this->db->join( $jointable , $condition );
 		$this->db->where( $where );
-		$query=$this->db->get();
-		return $query;
+		return $this->db->get();
 	}
 	
 	

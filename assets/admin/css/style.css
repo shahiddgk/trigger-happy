@@ -8475,6 +8475,10 @@ pre {
     margin-left: 83.33333%; }
   .offset-xl-11 {
     margin-left: 91.66667%; } }
+    
+    .excel_btn {
+      margin-bottom: 15px !important;
+    }
 
 .table {
   width: 100%;

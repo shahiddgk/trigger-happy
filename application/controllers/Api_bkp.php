@@ -8,7 +8,9 @@ class Api extends REST_Controller {
 	public function __construct()
 	{
 		parent::__construct();
-		  
+
+		date_default_timezone_set('America/New_York');
+        // date_default_timezone_set('Asia/Karachi');
 		$this->load->library('stripe_lib');
 		// Enable CORS if configured to do so
 		if ($this->config->item('enable_cors')) {
@@ -127,7 +129,6 @@ class Api extends REST_Controller {
 		
 		if($data['login']->num_rows()>0){
 			$row = $data['login']->row_array();
-			$valid_token  =  $row['device_token'];
 
 				$subscription = $this->common_model->select_where("*","user_subscriptions", array('user_id'=>$row['id'], 'status'=>'active'));
 				$subscription_id = '';
@@ -144,17 +145,9 @@ class Api extends REST_Controller {
 				$response['error'] = 'inactive user';
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			} 
-			if(!empty($_POST['device_token'])){
+			if(isset($_POST['device_token'])){
 				$device_token	=	$_POST['device_token'];
 				$this->common_model->update_array(array('id'=> $row['id']), 'users', array('device_token'=>$device_token));
-
-				if($this->db->affected_rows()> 0){
-					$valid_token  =  $device_token;
-				}
-			}else{
-				$device_token	=	'HHHKHKHKLHIOY88657656545454343543';
-				$this->common_model->update_array(array('id'=> $row['id']), 'users', array('device_token'=>$device_token));
-				$valid_token  =  $device_token;
 			}
 
 			$user_data = array(
@@ -165,9 +158,11 @@ class Api extends REST_Controller {
 				'useremail' => $row['email'],
 				'allowemail' => $row['mail_resp'],
 				'timezone' => $row['time_zone'],
-				'devicetoken' => $valid_token,
+				'devicetoken' => isset($_POST['device_token']) ? $_POST['device_token'] : '',
 				'premium' => $row['is_premium'],
 				'premium_type' => $row['premium_type'],
+				'current_level' => $row['garden_level'],
+				'current_tree' => $row['current_tree'],
 				'subscription_id' => $subscription_id,
 				'customer_id' => $customer_id,
 				'plan_amount' => $plan_amount
@@ -184,7 +179,7 @@ class Api extends REST_Controller {
 		else{
 			$response = [
 				'status' => 400,
-				'message' => 'failed to login',
+				'message' => 'your Password or email is Wrong',
 				'user_login' => 'FALSE'
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
@@ -397,6 +392,32 @@ class Api extends REST_Controller {
 		$name = $_POST['name'];
 		$email = $_POST['email'];
 		$user_id = $_POST['user_id'];
+		$response_id = '';
+
+		if (isset($_POST['res_group']) && $_POST['type'] == "naq") {
+			$res_group = $_POST['res_group'];
+			$complete = $_POST['complete'];
+
+			$response =  $this->common_model->select_where_groupby("response_id , complete", "answers", array('user_id'=>$user_id, 'type'=>'naq'), "response_id , complete" );   
+		
+			if($response->num_rows() > 0){ 
+				$response = $response->row_array();
+				$compl_status = $response['complete'];
+				if($compl_status == 'yes'){
+					$response_id = random_string('numeric',8);
+				}else if($compl_status == 'no'){
+					$response_id = $response['response_id'];
+				}
+			}else{
+				$response_id = random_string('numeric',8);
+			}	
+			
+		} else {
+			$res_group = NULL;
+			$complete = NULL;
+			$response_id =  random_string('numeric',8);     
+		}
+
 		if(isset($_POST['type'])) {
 			$type = $_POST['type'];
 		}else{
@@ -426,7 +447,8 @@ class Api extends REST_Controller {
 					$data['user_id'] = $user_id;
 					$data['response_id'] = $response_id;					
 					$data['type'] = $type;
-					$data['res_group'] = $res_group;     
+					$data['res_group'] = $res_group; 
+					$data['complete'] = $complete;      
 				}
 				else if($answer['type'] == 'open_text'){
 					$data['question_id'] = $key;
@@ -435,7 +457,8 @@ class Api extends REST_Controller {
 					$data['user_id'] = $user_id;
 					$data['response_id'] = $response_id;					
 					$data['type'] = $type;
-					$data['res_group'] = $res_group;     
+					$data['res_group'] = $res_group;  
+					$data['complete'] = $complete;     
 				}
 
 				$insert = $this->common_model->insert_array('answers', $data);
@@ -565,13 +588,13 @@ class Api extends REST_Controller {
 			if($this->db->affected_rows()> 0){
 				$response = [
 					'status' => 200,
-					'message' => 'Password changed'
+					'message' => 'Password changed Successfully'
 				];
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			}else{
 				$response = [
 					'status' => 400,
-					'message' => 'No change in password'
+					'message' => 'Your Old password is incorrect'
 				];
 				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 			}
@@ -581,13 +604,13 @@ class Api extends REST_Controller {
 			if($this->db->affected_rows()> 0){
 				$response = [
 					'status' => 200,
-					'message' => 'Password changed'
+					'message' => 'Password changed Successfully'
 				];
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			}else{
 				$response = [
 					'status' => 400,
-					'message' => 'No change in password'
+					'message' => 'Your Old password is incorrect'
 				];
 				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 			}
@@ -658,40 +681,99 @@ class Api extends REST_Controller {
 	}
 
 	public function growth_tree_post(){
-		$user_id = $_POST['user_id'];
-
-		if(!empty($user_id)){
-			$count = $this->common_model->select_where("*","scores", array('user_id'=>$user_id))->num_rows();
-			if($count >= 0){
-				if($count>36){
+        $user_id = $_POST['user_id'];
+        if (!empty($user_id)) {
+			$garden_type = $this->common_model->select_single_field('garden_type', 'users', array('id'=>$user_id));
+              
+			$count =  $this->common_model->select_where_groupby('*', 'scores', array('user_id' => $user_id) , 'response_date')->num_rows();
+               
+				if ($count >= 0) {
+                    if ($count > 36) {
+                        $img = 37;
+                    } else {
+                        $img = $count + 1;
+                    }
+                }
+				if($user_id == '239'){
 					$img = 37;
-				}else{
-					$img = $count+1;
 				}
-			}
+                $mobile_folder = '';
+                $ipad_folder = '';
+                if ($garden_type == 'apple') {
+                    $mobile_folder = 'apple_tree/apple_mobile';
+                    $ipad_folder = 'apple_tree/apple_ipad';
+                } elseif ($garden_type == 'rose') {
+					$mobile_folder = 'rose_tree/rose_mobile';
+                    $ipad_folder = 'rose_tree/rose_ipad';
+                } elseif ($garden_type == 'tomato') {
+					$mobile_folder = 'tomato_tree/tomato_mobile';
+                    $ipad_folder = 'tomato_tree/tomato_ipad';
+                }
+				$current_garder = $this->common_model->select_where('garden_level, current_tree', 'users', array('id' => $user_id))->row_array();
+				$max_count = $this->common_model->select_single_field('count', 'garden_seeds', array('id' => $current_garder['current_tree']));
+				$previous_img = $img - 1; // Calculate the previous image number
+                $response = [
+                    'status' => 200,
+                    'response_count' => $img,
+                    'garden_type' => $garden_type,
+					'max_count' => $max_count,
+					'level' => $current_garder['garden_level'],
+					'is_pop_up_for_new_tree_selection' => false,
+                    'mobile_image_url' => base_url('uploads/' . $mobile_folder . '/') . $img . '.png',
+					'mobile_previous_image_url' => base_url('uploads/' . $mobile_folder . '/') . $previous_img . '.png', // Link to the previous image
+                    'ipad_image_url' => base_url('uploads/' . $ipad_folder . '/') . $img . '.png',
+					'ipad_previous_image_url' => base_url('uploads/' . $ipad_folder . '/') . $previous_img . '.png', // Link to the previous image
+                ];
+                $this->set_response($response, REST_Controller::HTTP_OK);
+        } else {
+            $response = [
+                'status' => 400,
+                'message' => 'Empty user_id parameter'
+            ];
+            $this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+        }
+    }
 
-			$response = [
-				'status' => 200,
-				'response_count'=> $img,
-				'mobile_image_url'=> base_url('uploads/mobile_tree/').$img.'.png',
-				'ipad_image_url'=> base_url('uploads/ipad_tree/').$img.'.png',
-			];
-			$this->set_response($response, REST_Controller::HTTP_OK);
-		}else{
-			$response = [
-				'status' => 400,
-				'message' => 'empty parameters'
-			];
-			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-		}
-	}
+	public function change_garden_type_post()
+    {
+        $entity_id = $_POST['user_id'];
+        if(!empty($entity_id)){
+            if(isset($_POST['garden_type']) && !empty($_POST['garden_type'])){
+                $garden_type = $_POST['garden_type'];
+            }
+            else{
+                $garden_type = 'active';
+            }
+            $this->common_model->update_array(array('id'=>$entity_id), "users", array('garden_type'=>$garden_type));
+            $updated_record = $this->common_model->select_where("*", "users", array('id ' => $entity_id))->row_array();
+            if (!empty($updated_record)) {
+                $response = [
+                    'status' => 200,
+                    'message' => 'success',
+                    'data' => $updated_record
+                ];
+                $this->set_response($response, REST_Controller::HTTP_OK);
+            } else {
+                $response = [
+                    'status' => 404,
+                    'message' => 'Record not found'
+                ];
+                $this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
+            }
+        }else{
+            $response = [
+                'status' => 400,
+                'message' => 'empty parameters'
+            ];
+            $this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+        }
+    }
 
 	public function response_history_post(){
 		
 		if(isset($_POST['user_id']) && !empty($_POST['user_id'])){
 			$user_id = $_POST['user_id'];
-			$result_array = $this->common_model->select_where_ASC_DESC_Group_by("response_date
-			 date", "scores", array('user_id'=>$user_id , 'type'=>'pire'), 'response_date', 'ASC', 'response_date' )->result_array();
+			$result_array = $this->common_model->select_where_ASC_DESC_Group_by("DATE(created_at) as date", "answers", array('user_id'=>$user_id , 'type'=>'pire'),  'DATE(created_at)', 'ASC', 'DATE(created_at)' )->result_array();
 
 			foreach($result_array as $key => $value){
 				$count = $key+1;
@@ -1152,6 +1234,27 @@ class Api extends REST_Controller {
 			}
 			if(isset($_POST['entry_type'])){
 				$data['entry_type'] = $_POST['entry_type'];
+				$count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $data['user_id'], 'type'=>'column', 'response_date' => date('Y-m-d')));
+
+				if($count < 1){
+
+					$insert['type'] = 'column';
+					$insert['user_id'] = $data['user_id'];
+					$insert['response_date'] = date('Y-m-d');
+					$this->db->insert('scores', $insert );
+
+					$response = [
+						'status' => 200,
+						'message' => 'column score added successfully'
+					];
+					$this->set_response($response, REST_Controller::HTTP_OK);
+				}else{
+					$response = [
+						'status' => 200,
+						'message' => 'Column already exists'
+					];
+					$this->set_response($response, REST_Controller::HTTP_OK);
+				}
 			}
 			if(isset($_POST['entry_takeaway'])){
 				$data['entry_takeaway'] = $_POST['entry_takeaway'];
@@ -1180,7 +1283,7 @@ class Api extends REST_Controller {
 
 		if(!empty($user_id)){
 
-				$trellis = $this->common_model->select_where("*", "session_entry", array('user_id'=>$user_id))->result_array();
+				$trellis = $this->common_model->select_where_ASC_DESC("*", "session_entry", array('user_id'=>$user_id), 'entry_date', 'desc')->result_array();
 			
 			$response = [
 				'status' => 200,
@@ -1242,6 +1345,39 @@ class Api extends REST_Controller {
 		}
 	}
 
+	public function test_query_get() {
+
+		$scores =  $this->common_model->select_where_groupby('*', 'scores', array('user_id' => '166') , 'response_date')->result_array();
+
+		// echo $this->db->last_query(); exit;
+        // echo  $scores; exit;
+        echo "<pre>"; print_r($scores); exit;
+
+	}
+
+	public function payment_settings_post() {
+		$user_id	=	$_POST['user_id'];
+			
+		$valid_user = $this->common_model->select_where("*","users", array('id'=>$user_id, 'type'=>'user'));
+		
+		if($valid_user->num_rows()>0){
+			$payment_keys = $this->common_model->select_all("test_public_key, live_public_key", 'payment_settings')->row_array();
+		
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'data' => $payment_keys
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else{
+			$response = [
+				'status' => 400,
+				'message' => 'in valid user'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		} 
+	}
+
 	public function trellis_trigger_post(){
 		$user_id = $_POST['user_id'];
 
@@ -1262,10 +1398,44 @@ class Api extends REST_Controller {
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			}else{
 				$response = [
-					'status' => 400,
-					'message' => 'API has already been triggered today'
+					'status' => 200,
+					'message' => 'You have already received reward for the day'
 				];
-				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function ladder_trigger_post(){
+		$user_id = $_POST['user_id'];
+
+		if(!empty($user_id)){
+            $count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $user_id, 'type'=>'ladder', 'response_date' => date('Y-m-d')));
+
+			if($count < 1){
+
+				$insert['type'] = 'ladder';
+				$insert['user_id'] = $user_id;
+				$insert['response_date'] = date('Y-m-d');
+				$this->db->insert('scores', $insert );
+
+				$response = [
+					'status' => 200,
+					'message' => 'score updated successfully'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}else{
+				$response = [
+					'status' => 200,
+					'message' => 'You have already received reward for the day'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
 			}
 		}else{
 			$response = [
@@ -1511,4 +1681,872 @@ class Api extends REST_Controller {
 		}
 	}
 
+	public function response_submit_naq_post(){
+
+		$name = $_POST['name'];
+		$email = $_POST['email'];
+		$user_id = $_POST['user_id'];
+		$total_score = 0;
+		
+		$answers = json_decode($_POST['answers'], true);
+	
+		if($answers){
+			$response_id =  random_string('numeric',8);     
+			foreach ($answers as $key =>  $answer)
+			{
+				if($answer['type'] == 'radio_btn'){
+					$insert_ans['question_id'] = $key;
+					$insert_ans['options'] =  strtolower($answer['answer'][0]);
+					$insert_ans['text'] = strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '';
+					$insert_ans['user_id'] = $user_id;
+					$insert_ans['response_id'] = $response_id;
+					$insert_ans['type'] = 'naq';
+					$insert_ans['res_group'] = '1';
+					$insert_ans['complete'] = 'yes';
+				}
+				$this->common_model->insert_array('answers', $insert_ans);
+			}
+		
+			$count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $user_id, 'type' => 'naq', 'response_date' => date('Y-m-d')));
+			if($count < 1){
+				$insert['type'] = 'naq';
+				$insert['user_id'] = $user_id;
+				$insert['response_date'] = date('Y-m-d');
+				$this->common_model->insert_array('scores', $insert);
+			}
+
+			$response = $this->common_model->join_tab_where_left("a.* , q.title",'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id'=>$response_id), 'q.id', 'ASC'); 
+		
+			if($response->num_rows()>0) {
+
+				$answer_array = $response->result_array();
+				foreach ($answer_array as $key => $value ){
+					$total_score = array_reduce($answer_array, function ($acc, $value) {
+						$options = $value['options'];
+						$score = ($options === 'never') ? 1 : (($options === 'rarely') ? 2 : (($options === 'often') ? 3 : (($options === 'always') ? 4 : 0)));
+						return $acc + $score;
+					}, 0);
+				}
+				
+				$naq_score['user_id'] = $user_id;
+				$naq_score['score'] = $total_score;
+				$naq_score['response_date'] = date('Y-m-d H:i:s');
+				$this->common_model->insert_array('naq_scores', $naq_score);
+				
+				$status = $this->common_model->select_single_field('mail_resp', 'users', array('id'=>$user_id));
+			
+				if($status == 'yes') {
+					$subject = 'Response Submit Confirmation';
+					$message = "Dear <b>" .$name. " </b> <br>";
+					$message .= "Your answers for Burgeon have been submitted successfully. <br>";
+					$message .= "Your NAQ Score is <b>" .$total_score. "/100". "</b> <br>  <hr>";
+					$message .= '<table>';
+					foreach ( $answer_array as $key => $value ){
+						$no = $key+1 ;
+						$question_title =  preg_replace('/Q[0-9]+: /', ' ', strip_tags($value['title'])); 
+						$message .= "<tr> <td> <b>Question ".$no." : </b> " . $question_title. " </td> </tr>";
+
+						if($value['options'] == 'yes' && !empty($value['text']) ){
+                            $message .= "<tr> <td> <b>Why chosen yes?: </b> " . strip_tags($value['text']). "</td> </tr>";
+                        }else{
+							$message .= "<tr> <td> <b>Answer: </b> ". $text = $value['options'] ? ucfirst($value['options']) : strip_tags($value['text']). "</td> </tr>";
+                        }
+						$message .= "<tr><td><hr></td></tr>";
+					}
+					
+					$message .= '</table>';
+						$this->email->set_newline("\r\n");
+						$this->email->set_mailtype('html');
+						$this->email->from($this->smtp_user, 'Burgeon');
+						$this->email->to($email);
+						$this->email->subject($subject);
+						$this->email->message($message);
+					if($this->email->send())
+					{
+						$response = [
+							'status' => 200,
+							'message' => 'mail sent successfully',
+							'total_score' => $total_score
+						];
+						$this->set_response($response, REST_Controller::HTTP_OK);
+					}
+					else
+					{
+						$error = $this->email->print_debugger();
+						$response = [
+							'status' => 500,
+							'message' => 'Email Error:'.$error
+						];
+						$this->set_response($response, REST_Controller::HTTP_INTERNAL_SERVER_ERROR);
+					}
+				}
+				else{
+					$response = [
+						'status' => 200,
+						'message' => 'data inserted, mail not allowed',
+						'total_score' => $total_score
+					];
+					$this->set_response($response, REST_Controller::HTTP_OK);
+				}
+			}
+			else{
+				$response = [
+					'status' => 400,
+					'message' => 'Response submit failed'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+		}
+		else{
+			$response = [
+				'status' => 400,
+				'message' => 'Invalid json format'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function response_submit_garden_post(){
+
+		$name = $_POST['name'];
+		$email = $_POST['email'];
+		$user_id = $_POST['user_id'];
+		$type = $_POST['type'];
+
+		$column_type = isset($_POST['column_type']) ? $_POST['column_type'] : '';
+
+		$answers = json_decode($_POST['answers'], true);
+ 
+		if ($answers) {
+			$response_id = random_string('numeric', 8);
+			foreach ($answers as $key => $answer) {
+				$data = [];
+				$data['question_id'] = $key;
+				$data['options'] = '';
+				$data['text'] = '';
+
+				if ($answer['type'] == 'radio_btn') {
+					$options = implode(",", $answer['answer']);
+					$data['options'] = $options;
+					$data['text'] = strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '';
+				} else if ($answer['type'] == 'check_box') {
+					$checks = implode(",", $answer['answer']);
+					$data['options'] = $checks;
+					$data['text'] = strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '';
+				} else if ($answer['type'] == 'open_text') {
+					$data['text'] = trim(json_encode($answer['answer']), '[""]');
+				}
+
+				$data['user_id'] = $user_id;
+				$data['response_id'] = $response_id;
+				$data['type'] = $type;
+
+				if ($column_type == 'roses') {
+					$insert = $this->common_model->insert_array('rose_answers', $data);
+				} elseif ($column_type == 'tomatoes') {
+					$insert = $this->common_model->insert_array('tomatoes_answers', $data);
+				}
+			}
+ 
+			$count = $this->common_model->select_where_table_rows('*', 'secondary_scores', array('user_id' => $user_id, 'type' => $type, 'response_date' => date('Y-m-d')));
+			if ($count < 1) {
+				$insert = array();
+				$insert['type'] = $type;
+				$insert['user_id'] = $user_id;
+				$insert['response_date'] = date('Y-m-d');
+				$this->common_model->insert_array('secondary_scores', $insert);
+			}
+			if ($this->db->affected_rows() > 0) {
+				$response = [
+					'status' => 200,
+					'message' => 'Data Inserted Successfully'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'Invalid JSON format'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	} 
+ 
+	public function new_tribe_insert_post(){
+		$user_id = $_POST['user_id'];
+
+		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id, 'type'=>'user'));
+		
+		if($data['login']->num_rows()>0) {
+			$user_data = $data['login']->row_array();
+
+			$row_count = $this->common_model->select_where_groupby("*", "tribe_new", array('user_id'=>$user_id), "type")->num_rows();
+			if($row_count >= 3){
+				$tibe_rows = 1;
+			}else{
+				$tibe_rows = 0;
+			}
+			
+			$tribe = $this->common_model->select_single_field("tribe", "settings", array('id'=>'1'));
+			
+			if($user_data['is_premium'] == 'no' && $tibe_rows == $tribe){ 
+				
+				$response = [
+					'status' => 400,
+					'message' => 'more responses not allowed'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+			else{
+				$insert['user_id'] = $user_id;
+				$insert['type'] = $_POST['type'];
+				$insert['text'] = $_POST['text'];
+				
+				$this->common_model->insert_array('tribe_new', $insert);
+				$last_insert_id = $this->db->insert_id(); 
+				$_POST['id'] = $last_insert_id;
+				$response = [
+					'status' => 200,
+					'message' => 'success',
+					'post_data' => $_POST
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}
+		}
+		else{
+			$response = [
+				'status' => 400,
+				'message' => 'invalid user'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		} 
+	}
+
+	public function new_tribe_read_post(){
+		$user_id = $_POST['user_id'];
+
+		if(!empty($user_id)){
+			$trellis['tribe'] = $this->common_model->select_where("*", "tribe_new", array('user_id'=>$user_id))->result_array();
+
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'data' => $trellis
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function new_tribe_delete_post(){
+		$record_id = $_POST['record_id'];
+
+		if(!empty($record_id)){
+
+			$this->db->delete("tribe_new", array('id'=>$record_id));
+			if($this->db->affected_rows()> 0){
+				$response = [
+					'status' => 200,
+					'message' => 'deleted successfully'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}	else{
+				$response = [
+					'status' => 400,
+					'message' => 'data not found'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+		} 	else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function new_response_history_post() {
+		if (isset($_POST['user_id']) && !empty($_POST['user_id'])) {
+			$user_id = $_POST['user_id'];
+			$score_data =  $this->common_model->select_where('*', 'scores', array('user_id' => $user_id))->result_array();
+	
+			$sorted_array = array();
+			$score = 1;
+			foreach ($score_data as $value) {
+				$date_index = $value['response_date'];
+	
+				if (!isset($sorted_array[$date_index])) {
+					$sorted_array[$date_index] = array(
+						'date' => $date_index,
+						'score' => $score,
+						'trellis_count' => '',
+						'ladder_count' => '',
+						'column_count' => '',
+						'pire_count' => array(),
+						'naq_count' => array()
+					);
+					$score++;
+				}
+	
+				if ($value['type'] == 'pire') {
+						$sorted_array[$date_index]['pire_count'] = $this->common_model->select_where_groupby("response_id", "answers", array('user_id'=>$value['user_id'], 'type'=>'pire', 'DATE(created_at)'=>$date_index), 'response_id' )->result_array();
+					} elseif ($value['type'] == 'naq') {
+						$sorted_array[$date_index]['naq_count'] = $this->common_model->select_where_groupby("response_id", "answers", array('user_id'=>$value['user_id'], 'type'=>'naq', 'DATE(created_at)'=>$date_index), 'response_id' )->result_array();
+					} elseif ($value['type'] == 'column') {
+						$sorted_array[$date_index]['column_count'] = '1';
+					} elseif ($value['type'] == 'trellis') {
+						$sorted_array[$date_index]['trellis_count'] = '1';
+					} elseif ($value['type'] == 'ladder') {
+						$sorted_array[$date_index]['ladder_count'] = '1';
+					}
+			}
+	
+			ksort($sorted_array);
+	
+			$final_array = array_values($sorted_array);
+			$response = [
+				'status' => 200,
+				'response_data' => $final_array
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+	
+	public function history_details_post(){
+		$response_id = $_POST['response_id'];
+
+		if(!empty($response_id)){
+			$result = $this->common_model->join_tab_where_left("q.id, a.user_id, a.type, q.title as question, a.options, a.text, a.created_at",'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id'=>$response_id), 'q.id', 'ASC')->result_array();
+
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'data' => $result
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function naq_data_exist_post(){
+
+		$user_id	=	$_POST['user_id'];
+
+		if(!empty($user_id)){
+				
+			$answers = $this->common_model->select_where("*","answers", array('user_id'=>$user_id , 'type'=>'naq'));
+			
+			if($answers->num_rows()>0){
+				$response = [
+					'status' => 200,
+					'exist' => 'yes',
+					'message' => 'yes, response exist'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}else{
+				$response = [
+					'status' => 200,
+					'exist' => 'no',
+					'message' => 'no, response not exist'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function insert_reminder_post(){
+		$formated_date = '';
+		if($_POST['reminder_type'] == 'once'){
+			$days_list = '[]';
+		}else{
+			$input = $_POST['day_list'];
+			$input = str_replace(['[', ']', '\''], '', $input);
+			$weekdays = array_map('trim', explode(',', $input));
+			
+			$order = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+			usort($weekdays, function ($a, $b) use ($order) {
+				return array_search(strtolower($a), $order) - array_search(strtolower($b), $order);
+			});
+			
+			$weekdays = array_map('ucfirst', $weekdays);
+			$days_list = json_encode($weekdays);
+			
+		}
+
+		if(isset($_POST['date'])){
+			$dateObj = DateTime::createFromFormat('m-d-y', $_POST['date']);
+			$formated_date = $dateObj->format('Y-m-d');
+
+            $time = $_POST['time'].' '.$_POST['time_type'];
+            $datetime = DateTime::createFromFormat('Y-m-d h:i A', $formated_date . ' ' . $time);
+            $datetime_str = $datetime->format('Y-m-d H:i:s');
+		}
+
+		$end_date = NULL;
+        if (isset($_POST['end_date']) && !empty($_POST['end_date'])) {
+            $dateObj = DateTime::createFromFormat('m-d-y', $_POST['end_date']);
+            $end_date = $dateObj->format('Y-m-d');
+        }
+
+        $insert_data = [
+			'user_id' => $_POST['user_id'],
+            'text' => $_POST['text'],
+			'day_list' => $days_list,
+			'status' => $_POST['status'],
+			'date_time' => $datetime_str,
+			'end_date' => $end_date,
+			'reminder_type' => $_POST['reminder_type']
+		];
+
+        $reminder_id = $this->common_model->insert_array('reminders', $insert_data);
+
+        if ($reminder_id) {
+			$insert_id = $this->db->insert_id(); 
+
+			$post_fields = [
+				'id' => $insert_id,
+				'user_id' => $_POST['user_id'],
+				'text' => $_POST['text'],
+				'day_list' => $days_list,
+				'date' => $formated_date,
+				'time' => $_POST['time'],
+				'time_type' => $_POST['time_type'],
+				'end_date' => $end_date,
+				'status' => $_POST['status'],
+				'reminder_type' => $_POST['reminder_type']
+			];
+
+			$response = [
+				'status' => 200,
+				'message' => 'Reminder successfully Created ', 
+				'post_data' => $post_fields
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+        } else {
+			$response = [
+				'status' => 400,
+				'message' => 'Reminder not created'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+        }
+    }
+
+	public function read_reminder_post(){
+		$user_id = $_POST['user_id'];
+		$result = $this->common_model->select_where("*", "reminders", array('user_id'=>$user_id))->result_array();
+		if($result){
+			foreach ($result as $key => $value) {
+				$date_time = $value['date_time'];
+				$date = date_create_from_format('Y-m-d H:i:s', $date_time);
+				
+				if ($date !== false) {
+					$formatted_date = date_format($date, 'Y-m-d');
+					$formatted_time = date_format($date, 'h:i');
+					$formatted_time_type = date_format($date, 'A');
+					
+					$result[$key]['date'] = $formatted_date;
+					$result[$key]['time'] = $formatted_time;
+					$result[$key]['time_type'] = $formatted_time_type;
+					$result[$key]['end_date'] = $value['end_date'];
+					
+					unset($result[$key]['date_time']);
+				}
+			}
+			
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'single_answer' => $result
+			];
+		}
+		else{
+			$response = [
+				'status' => 200,
+				'message' => 'no data',
+				'single_answer' => array()
+			];
+		}
+		
+		$this->set_response($response, REST_Controller::HTTP_OK);
+	}
+
+	public function edit_reminder_post(){
+		$formated_date = '';
+		$id = $_POST['id'];
+
+		if($_POST['reminder_type'] == 'once'){
+			$days_list = '[]';
+		}else{
+			$input = $_POST['day_list'];
+			$input = str_replace(['[', ']', '\''], '', $input);
+			$weekdays = array_map('trim', explode(',', $input));
+			
+			$order = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+			usort($weekdays, function ($a, $b) use ($order) {
+				return array_search(strtolower($a), $order) - array_search(strtolower($b), $order);
+			});
+			
+			$weekdays = array_map('ucfirst', $weekdays);
+			$days_list = json_encode($weekdays);
+		}
+
+		if(isset($_POST['date'])){
+			$dateObj = DateTime::createFromFormat('m-d-y', $_POST['date']);
+			$formated_date = $dateObj->format('Y-m-d');
+
+			$time = $_POST['time'].' '.$_POST['time_type'];
+            $datetime = DateTime::createFromFormat('Y-m-d h:i A', $formated_date . ' ' . $time);
+            $datetime_str = $datetime->format('Y-m-d H:i:s');
+		}
+
+		$end_date = NULL;
+        if (isset($_POST['end_date']) && !empty($_POST['end_date'])) {
+            $dateObj = DateTime::createFromFormat('m-d-y', $_POST['end_date']);
+            $end_date = $dateObj->format('Y-m-d');
+        }
+
+		$update_data = [
+			'text' => $_POST['text'],
+			'day_list' => $days_list,
+			'status' => $_POST['status'],
+			'date_time' => $datetime_str,
+			'end_date' => $end_date,
+			'reminder_type' => $_POST['reminder_type']
+		];
+
+		$this->db->where('id', $id);
+		$reminder_exists = $this->db->get('reminders')->num_rows() > 0;
+
+		if ($reminder_exists) {
+			$this->db->where('id', $id);
+			$result = $this->db->update('reminders', $update_data);
+
+			if ($result) {
+				$update_data = [
+					'id' => $id,
+					'text' => $_POST['text'],
+					'day_list' => $days_list,
+					'date' => $formated_date,
+					'time' => $_POST['time'],
+					'time_type' => $_POST['time_type'],
+					'end_date' => $end_date,
+					'status' => $_POST['status'],
+					'reminder_type' => $_POST['reminder_type']
+				];
+
+				$response = [
+					'status' => 200,
+					'message' => 'Reminder updated successfully',
+					'updated_data' => $update_data
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			} else {
+				$response = [
+					'status' => 400,
+					'message' => 'Failed to update reminder',
+					'id' => $id
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+		} else {
+			$response = [
+				'status' => 404,
+				'message' => 'Reminder not found',
+				'id' => $id
+			];
+			$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
+		}
+	}
+
+	public function delete_reminder_post(){
+
+		$result = $this->db->delete('reminders', array('id'=>$_POST['id']));
+	
+		if ($result) {
+			$response = [
+				'status' => 200,
+				'message' => 'Reminder deleted successfully',
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'Failed to delete reminder',
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+	 
+	public function update_reminder_status_post() {
+		$entity_id = isset($_POST['entity_id']) ? $_POST['entity_id'] : null;
+	
+		if (!empty($entity_id)) {
+			if (isset($_POST['status']) && !empty($_POST['status'])) {
+				$status = $_POST['status'];
+			} else {
+				$status = 'active';
+			}
+	
+			$this->common_model->update_array(array('id' => $entity_id), "reminders", array('status' => $status));
+	
+			$updated_record = $this->common_model->select_where("*", "reminders", array('id' => $entity_id))->row_array();
+	
+			if (!empty($updated_record)) {
+				$date_time = $updated_record['date_time'];
+				$date = date_create_from_format('Y-m-d H:i:s', $date_time);
+	
+				if ($date !== false) {
+					$updated_record['date'] = date_format($date, 'Y-m-d');
+					$updated_record['time'] = date_format($date, 'h:i');
+					$updated_record['time_type'] = date_format($date, 'A');
+	
+					unset($updated_record['date_time']);
+				}
+	
+				$response = [
+					'status' => 200,
+					'message' => 'success',
+					'data' => $updated_record
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			} else {
+				$response = [
+					'status' => 404,
+					'message' => 'Record not found'
+				];
+				$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
+			}
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function snooze_reminder_post() {
+		
+		if (isset($_POST['entity_id']) && !empty($_POST['entity_id'])) {
+			$entity_id = $_POST['entity_id'];
+	
+			$this->common_model->update_array(array('id' => $entity_id), "reminders", array('snooze' => 'yes', 'updated_at' => date('Y-m-d H:i:s')));
+	
+			if($this->db->affected_rows() > 0){
+				$response = [
+					'status' => 200,
+					'message' => 'reminder updated successfully'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}else{
+				$response = [
+					'status' => 400,
+					'message' => 'reminder not updated'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function reminder_stop_post() {
+	
+		if (isset($_POST['entity_id']) && isset($_POST['reminder_stop']) && !empty($_POST['entity_id'] && $_POST['reminder_stop'])) {
+	
+			$entity_id = $_POST['entity_id'];
+			$reminder_stop = $_POST['reminder_stop'];
+
+			$this->common_model->update_array(array('id' => $entity_id), "reminders", array('reminder_stop' => $reminder_stop, 'updated_at' => date('Y-m-d H:i:s')));
+
+			if($this->db->affected_rows() > 0){
+				$response = [
+					'status' => 200,
+					'message' => 'reminder updated successfully'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}else{
+				$response = [
+					'status' => 400,
+					'message' => 'reminder not updated'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+	
+	public function skip_reminders_post() {
+		if (isset($_POST['user_id']) && !empty($_POST['user_id'])) {
+			$user_id = $_POST['user_id'];
+	
+			// Get user's time zone from the database
+			$userTimeZone = $this->common_model->select_single_field("time_zone", "users", array('id' => $user_id));
+			if (isset(valid_timezone()[$userTimeZone])) {
+				$validTimeZone = valid_timezone()[$userTimeZone];
+		
+				// Get current time in UTC and user's local time
+				$currentTimeUTC = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+				$userTime = new DateTimeZone($validTimeZone);
+				$currentTime = new DateTimeImmutable('now', $userTime);
+		
+				$skipped_reminders = $this->get_skipped_reminders($user_id, $currentTime);
+		
+				if (!empty($skipped_reminders)) {
+					$response = [
+						'status' => 200,
+						'message' => 'Skipped reminders found',
+						'result' => $skipped_reminders
+					];
+					$this->set_response($response, REST_Controller::HTTP_OK);
+				} else {
+					$response = [
+						'status' => 200,
+						'message' => 'No skipped reminders found',
+						'result' => $skipped_reminders
+					];
+					$this->set_response($response, REST_Controller::HTTP_OK);
+				}
+			} else {
+				$response = [
+					'status' => 400,
+					'message' => 'Invalid or undefined time zone'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'Empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+	
+	// Helper function to get skipped reminders
+	private function get_skipped_reminders($user_id, $currentTime) {
+
+		// echo 'get_skipped_reminders'. $currentTime->format('Y-m-d H:i:s'); exit;
+		$skipped_reminders = [];
+	
+		$query = $this->common_model->select_where("*", "reminders", array(
+			'status' => 'active',
+			'user_id' => $user_id,
+			'reminder_stop' => 'skip',
+			'snooze' => 'no',
+			'date_time <=' => $currentTime->format('Y-m-d H:i:s')
+		));
+	
+		if ($query->num_rows() > 0) {
+			$skipped_reminders = $query->result_array();
+		}
+	
+		return $skipped_reminders;
+	}
+
+
+	// Garden Upgraded with new schema
+	public function garden_seed_post(){
+	
+		if (isset($_POST['level']) && !empty($_POST['level'])) {
+			$level  = $_POST['level'];
+			$garden_seeds = $this->common_model->select_where("*" , 'garden_seeds', array('level'=>$level , 'status' => 'active'))->result_array();
+			$response = [
+				'status' => 200,
+				'message' => "Garden level ".$level." seeds",
+				'result' => $garden_seeds,
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters',
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function level_switch_post()
+    {
+        if(isset($_POST['user_id']) && !empty($_POST['user_id'])){
+
+			$count = $this->common_model->select_where('*', 'level_history', array('user_id' => $_POST['user_id'], 'level' => 'one', 'score' => '36'))->num_rows();
+
+			if($count == 1){
+
+				$count = $this->common_model->select_where('*', 'level_history', array('user_id' => $_POST['user_id'], 'level' => $_POST['level'], 'seed' => $_POST['seed']))->num_rows();
+
+				if($count == 0){
+				
+					$insert['user_id'] = $_POST['user_id'];
+					$insert['level'] = $_POST['level'];
+					$insert['seed'] = $_POST['seed'];
+					$insert['score'] = '0';
+					$insert['status'] = 'active';
+					$insert['start_date'] = date('Y-m-d');
+					$result = $this->common_model->insert_array('level_history', $insert);
+					if($result){
+						$response = [
+							'status' => 200,
+							'message' => 'level switched successfully',
+							'result' => $insert
+						];
+						$this->set_response($response, REST_Controller::HTTP_OK);
+					}
+				}
+				else{
+					$response = [
+						'status' => 400,
+						'message' => 'level already exists',
+					];
+					$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+				}
+			}else{
+				$response = [
+					'status' => 400,
+					'message' => 'level switch not allowed',
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+        }else{
+            $response = [
+                'status' => 400,
+                'message' => 'empty parameters'
+            ];
+            $this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+        }
+    }
+	
 }
