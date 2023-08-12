@@ -43,6 +43,7 @@ else{
   <!-- End layout styles -->
   <link rel="shortcut icon" href="<?= base_url()?>assets/admin/images/favicon.png" />
   <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.16.10/dist/xlsx.full.min.js"></script>
 </head>
 
 

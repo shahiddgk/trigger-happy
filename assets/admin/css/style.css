@@ -8475,7 +8475,11 @@ pre {
     margin-left: 83.33333%; }
   .offset-xl-11 {
     margin-left: 91.66667%; } }
-
+    /* Haseeb Css */
+.excel_btn {
+  margin-bottom: 15px !important;
+}
+  /* haseeb css end */
 .table {
   width: 100%;
   margin-bottom: 1rem;
