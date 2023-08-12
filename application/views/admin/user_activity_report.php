@@ -11,8 +11,11 @@
             <div class="card">
                 <div class="card-body">
                     <h6 class="card-title"><?= $page_title ?></h6>
+                    <div class="col-md-2 float-right m-2 d-inline-flex form-group ">
+                    <button id="exportCsvBtn" class="btn btn-primary excel_btn">Export to Csv</button>
+                    </div>
                     <div class="table-responsive">
-                        <table id="dataTableExample" class="table">
+                        <table id="dataTable" class="table">
                             <thead>
                                 <tr>
                                     <th>User</th>
@@ -54,4 +57,26 @@
             </div>
         </div>
     </div>
+    <script>
+        $(document).ready(function() {
+            var dataTable = $('#dataTable').DataTable();
+
+            $('#exportCsvBtn').on('click', function() {
+                var data = dataTable.data().toArray();
+                var headers = dataTable.columns().header().toArray().map(header => $(header).text());
+                var csvContent = "data:text/csv;charset=utf-8,";
+
+                csvContent += '"' + headers.join('","') + '"\n';
+
+                csvContent += data.map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
+
+                var encodedUri = encodeURI(csvContent);
+                var link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "User_activity.csv");
+                document.body.appendChild(link);
+                link.click();
+            });
+        });
+    </script>
 </div>
