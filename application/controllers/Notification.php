@@ -185,12 +185,12 @@ class Notification extends CI_Controller {
             'to' => $data['device_token'],
             'data' => [
                 'type' => $data['type'],
+                'click_action' => 'FLUTTER_POPUP_ACTION',
                 'date_time' => @$data['date_time'],
                 'entity_id' => @$data['entity_id'],
             ],
             'notification' => [
                 'title' => $data['title'],
-                'click_action' => 'FLUTTER_POPUP_ACTION',
                 'body' => $data['message'],
                 'sound' => 'default'
             ]
