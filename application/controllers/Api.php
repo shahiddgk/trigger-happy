@@ -1062,6 +1062,51 @@ class Api extends REST_Controller {
 		} 
 	}
 
+	public function ladder_update_post() {
+		$id = $_POST['id']; 
+		
+		$ladder_entry = $this->common_model->select_where("*", "ladder", array('id' => $id))->row_array();
+		
+		if ($ladder_entry) {
+			$type = $_POST['type'];
+			
+			$update = array('type' => $type);
+			if (isset($_POST['option1']) && !empty($_POST['option1'])) {
+				$update['option1'] = $_POST['option1'];
+			}
+			if (isset($_POST['option2']) && !empty($_POST['option2'])) {
+				$update['option2'] = $_POST['option2'];
+			}
+			if (isset($_POST['date']) && !empty($_POST['date'])) {
+				$dateObj = DateTime::createFromFormat('m-d-y', $_POST['date']);
+				if ($dateObj !== false) {
+					$update['date'] = $dateObj->format('Y-m-d');
+				}
+			}
+			if (isset($_POST['text']) && !empty($_POST['text'])) {
+				$update['text'] = $_POST['text'];
+			}
+			if (isset($_POST['description']) && !empty($_POST['description'])) {
+				$update['description'] = $_POST['description'];
+			}
+			
+			$this->common_model->update_array(array('id' => $id), 'ladder', $update);
+			
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'updated_data' => $update
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'no ladder entry found'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
 	public function add_fav_ladder_post(){
 		$entity_id = $_POST['entity_id'];
 
