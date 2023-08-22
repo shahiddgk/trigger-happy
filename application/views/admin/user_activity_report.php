@@ -39,7 +39,7 @@
                                         <td><?= (new DateTime($user->created_at))->format('Y-m-d') ?></td>
                                         <td><?= ($user->min_naq_response ? '(' . date('d-m-Y', strtotime($user->min_naq_response)) . ' )' . $user->min_naq_score : '') ?></td>
                                         <td><?= ($user->max_naq_response ? '(' . date('d-m-Y', strtotime($user->max_naq_response)) . ' )' . $user->max_naq_score : '') ?></td>
-                                        <td><?= $user->garden_level ?></td>
+                                        <td><?= $user->level ?></td>
                                         <td><?= $user->max_naq_score - $user->min_naq_score ?></td>
                                         <td><?= $user->total_count ?></td>
                                         <td><?= $user->count_pire ?></td>

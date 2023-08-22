@@ -1457,6 +1457,11 @@ class Api extends REST_Controller {
 			$pkg_amount = $_POST['pkg_amount'];
 			$pkg_interval = $_POST['pkg_interval'];
 
+			// Special User Package 08-12-2023
+			if($user_id == '123' && $pkg_interval == 'month'){
+				$pkg_amount = '1';
+			}
+
 			$user = $this->common_model->select_where("*", "users", array('id'=>$user_id))->row_array();
 			if($user){
 				$customer = $this->stripe_lib->addCustomer($user['name'], $user['email'], $token['id']); 
@@ -1806,71 +1811,71 @@ class Api extends REST_Controller {
 		}
 	}
 
-	public function response_submit_garden_post(){
+	// public function response_submit_garden_post(){
 
-		$name = $_POST['name'];
-		$email = $_POST['email'];
-		$user_id = $_POST['user_id'];
-		$type = $_POST['type'];
+	// 	$name = $_POST['name'];
+	// 	$email = $_POST['email'];
+	// 	$user_id = $_POST['user_id'];
+	// 	$type = $_POST['type'];
 
-		$column_type = isset($_POST['column_type']) ? $_POST['column_type'] : '';
+	// 	$column_type = isset($_POST['column_type']) ? $_POST['column_type'] : '';
 
-		$answers = json_decode($_POST['answers'], true);
+	// 	$answers = json_decode($_POST['answers'], true);
  
-		if ($answers) {
-			$response_id = random_string('numeric', 8);
-			foreach ($answers as $key => $answer) {
-				$data = [];
-				$data['question_id'] = $key;
-				$data['options'] = '';
-				$data['text'] = '';
+	// 	if ($answers) {
+	// 		$response_id = random_string('numeric', 8);
+	// 		foreach ($answers as $key => $answer) {
+	// 			$data = [];
+	// 			$data['question_id'] = $key;
+	// 			$data['options'] = '';
+	// 			$data['text'] = '';
 
-				if ($answer['type'] == 'radio_btn') {
-					$options = implode(",", $answer['answer']);
-					$data['options'] = $options;
-					$data['text'] = strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '';
-				} else if ($answer['type'] == 'check_box') {
-					$checks = implode(",", $answer['answer']);
-					$data['options'] = $checks;
-					$data['text'] = strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '';
-				} else if ($answer['type'] == 'open_text') {
-					$data['text'] = trim(json_encode($answer['answer']), '[""]');
-				}
+	// 			if ($answer['type'] == 'radio_btn') {
+	// 				$options = implode(",", $answer['answer']);
+	// 				$data['options'] = $options;
+	// 				$data['text'] = strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '';
+	// 			} else if ($answer['type'] == 'check_box') {
+	// 				$checks = implode(",", $answer['answer']);
+	// 				$data['options'] = $checks;
+	// 				$data['text'] = strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '';
+	// 			} else if ($answer['type'] == 'open_text') {
+	// 				$data['text'] = trim(json_encode($answer['answer']), '[""]');
+	// 			}
 
-				$data['user_id'] = $user_id;
-				$data['response_id'] = $response_id;
-				$data['type'] = $type;
+	// 			$data['user_id'] = $user_id;
+	// 			$data['response_id'] = $response_id;
+	// 			$data['type'] = $type;
 
-				if ($column_type == 'roses') {
-					$insert = $this->common_model->insert_array('rose_answers', $data);
-				} elseif ($column_type == 'tomatoes') {
-					$insert = $this->common_model->insert_array('tomatoes_answers', $data);
-				}
-			}
+	// 			if ($column_type == 'roses') {
+	// 				$insert = $this->common_model->insert_array('rose_answers', $data);
+	// 			} elseif ($column_type == 'tomatoes') {
+	// 				$insert = $this->common_model->insert_array('tomatoes_answers', $data);
+	// 			}
+	// 		}
  
-			$count = $this->common_model->select_where_table_rows('*', 'secondary_scores', array('user_id' => $user_id, 'type' => $type, 'response_date' => date('Y-m-d')));
-			if ($count < 1) {
-				$insert = array();
-				$insert['type'] = $type;
-				$insert['user_id'] = $user_id;
-				$insert['response_date'] = date('Y-m-d');
-				$this->common_model->insert_array('secondary_scores', $insert);
-			}
-			if ($this->db->affected_rows() > 0) {
-				$response = [
-					'status' => 200,
-					'message' => 'Data Inserted Successfully'
-				];
-				$this->set_response($response, REST_Controller::HTTP_OK);
-			}
-		} else {
-			$response = [
-				'status' => 400,
-				'message' => 'Invalid JSON format'
-			];
-			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-		}
-	} 
+	// 		$count = $this->common_model->select_where_table_rows('*', 'secondary_scores', array('user_id' => $user_id, 'type' => $type, 'response_date' => date('Y-m-d')));
+	// 		if ($count < 1) {
+	// 			$insert = array();
+	// 			$insert['type'] = $type;
+	// 			$insert['user_id'] = $user_id;
+	// 			$insert['response_date'] = date('Y-m-d');
+	// 			$this->common_model->insert_array('secondary_scores', $insert);
+	// 		}
+	// 		if ($this->db->affected_rows() > 0) {
+	// 			$response = [
+	// 				'status' => 200,
+	// 				'message' => 'Data Inserted Successfully'
+	// 			];
+	// 			$this->set_response($response, REST_Controller::HTTP_OK);
+	// 		}
+	// 	} else {
+	// 		$response = [
+	// 			'status' => 400,
+	// 			'message' => 'Invalid JSON format'
+	// 		];
+	// 		$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+	// 	}
+	// } 
  
 	public function new_tribe_insert_post(){
 		$user_id = $_POST['user_id'];

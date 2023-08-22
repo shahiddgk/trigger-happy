@@ -815,8 +815,8 @@ class Api extends REST_Controller {
 					'*', 'scores', array('user_id' => $user_id, 'level' => $level, 'seed' => $seed), 'response_date'
 				)->num_rows();
 
-				if ($level == 1 && (in_array($user_id, ['166', '239', '286'])) || $score >= $max_count) {
-					$score = $max_count; // Ensure the score doesn't exceed max_count
+				if (($user_id == '166' && $level == '1') || ($user_id == '182' && in_array($level, ['1', '2']))) {
+					$score = $max_count;
 				}
 	
 				$img = $score + 1;
@@ -1068,9 +1068,9 @@ class Api extends REST_Controller {
 		$ladder_entry = $this->common_model->select_where("*", "ladder", array('id' => $id))->row_array();
 		
 		if ($ladder_entry) {
-			$type = $_POST['type'];
 			
-			$update = array('type' => $type);
+			$update['type'] = $_POST['type'];
+			$update['updated_at'] = date('Y-m-d H:i:s');
 			if (isset($_POST['option1']) && !empty($_POST['option1'])) {
 				$update['option1'] = $_POST['option1'];
 			}
@@ -1091,11 +1091,12 @@ class Api extends REST_Controller {
 			}
 			
 			$this->common_model->update_array(array('id' => $id), 'ladder', $update);
+			$update_row = $this->common_model->select_where("*", 'ladder', array('id' => $id))->row_array();
 			
 			$response = [
 				'status' => 200,
 				'message' => 'success',
-				'updated_data' => $update
+				'updated_data' => $update_row
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		} else {
@@ -1881,72 +1882,6 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
-
-	public function response_submit_garden_post(){
-
-		$name = $_POST['name'];
-		$email = $_POST['email'];
-		$user_id = $_POST['user_id'];
-		$type = $_POST['type'];
-
-		$column_type = isset($_POST['column_type']) ? $_POST['column_type'] : '';
-
-		$answers = json_decode($_POST['answers'], true);
- 
-		if ($answers) {
-			$response_id = random_string('numeric', 8);
-			foreach ($answers as $key => $answer) {
-				$data = [];
-				$data['question_id'] = $key;
-				$data['options'] = '';
-				$data['text'] = '';
-
-				if ($answer['type'] == 'radio_btn') {
-					$options = implode(",", $answer['answer']);
-					$data['options'] = $options;
-					$data['text'] = strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '';
-				} else if ($answer['type'] == 'check_box') {
-					$checks = implode(",", $answer['answer']);
-					$data['options'] = $checks;
-					$data['text'] = strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '';
-				} else if ($answer['type'] == 'open_text') {
-					$data['text'] = trim(json_encode($answer['answer']), '[""]');
-				}
-
-				$data['user_id'] = $user_id;
-				$data['response_id'] = $response_id;
-				$data['type'] = $type;
-
-				if ($column_type == 'roses') {
-					$insert = $this->common_model->insert_array('rose_answers', $data);
-				} elseif ($column_type == 'tomatoes') {
-					$insert = $this->common_model->insert_array('tomatoes_answers', $data);
-				}
-			}
- 
-			$count = $this->common_model->select_where_table_rows('*', 'secondary_scores', array('user_id' => $user_id, 'type' => $type, 'response_date' => date('Y-m-d')));
-			if ($count < 1) {
-				$insert = array();
-				$insert['type'] = $type;
-				$insert['user_id'] = $user_id;
-				$insert['response_date'] = date('Y-m-d');
-				$this->common_model->insert_array('secondary_scores', $insert);
-			}
-			if ($this->db->affected_rows() > 0) {
-				$response = [
-					'status' => 200,
-					'message' => 'Data Inserted Successfully'
-				];
-				$this->set_response($response, REST_Controller::HTTP_OK);
-			}
-		} else {
-			$response = [
-				'status' => 400,
-				'message' => 'Invalid JSON format'
-			];
-			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-		}
-	} 
  
 	public function new_tribe_insert_post(){
 		$user_id = $_POST['user_id'];
@@ -2595,8 +2530,9 @@ class Api extends REST_Controller {
 	}
 
 	public function level_switch_post()
-    {
-        if(isset($_POST['user_id']) && !empty($_POST['user_id'])){
+	{
+		if (isset($_POST['user_id']) && isset($_POST['level']) && isset($_POST['seed']) && $_POST['level'] != 0 &&  $_POST['seed'] != 0) {
+				
 			$user_id = $_POST['user_id'];
 			$level = $_POST['level'];
 			$seed = $_POST['seed'];
@@ -2613,12 +2549,10 @@ class Api extends REST_Controller {
 
 			$count = $this->common_model->select_where('*', 'level_history', array('user_id' => $user_id, 'level' => $current_level, 'seed' => $current_seed, 'score >=' => $current_max_count))->num_rows();
 
-			if($count == 1){
-
+			if ($count == 1) {
 				$exists = $this->common_model->select_where('*', 'level_history', array('user_id' => $user_id, 'level' => $level, 'seed' => $seed))->num_rows();
 
-				if($exists == 0){
-				
+				if ($exists == 0) {
 					$insert['user_id'] = $user_id;
 					$insert['level'] = $level;
 					$insert['seed'] = $seed;
@@ -2626,40 +2560,39 @@ class Api extends REST_Controller {
 					$insert['status'] = 'active';
 					$insert['start_date'] = date('Y-m-d');
 					$result = $this->common_model->insert_array('level_history', $insert);
-					if($result){
 
-						$this->common_model->update_array(array('user_id'=> $user_id, 'level' => $current_level, 'seed' => $current_seed), 'level_history', array('end_date' => date('Y-m-d') , 'status' => 'complete'));
+					if ($result) {
+						$this->common_model->update_array(array('user_id'=> $user_id, 'level' => $current_level, 'seed' => $current_seed), 'level_history', array('end_date' => date('Y-m-d'), 'status' => 'complete'));
 						$this->common_model->update_array(array('id'=> $user_id), 'users', array('level' => $level , 'seed' => $seed));
 						
 						$response = [
 							'status' => 200,
-							'message' => 'level switched successfully',
+							'message' => 'Level switched successfully',
 							'new_level' => $insert
 						];
 						$this->set_response($response, REST_Controller::HTTP_OK);
 					}
-				}
-				else{
+				} else {
 					$response = [
 						'status' => 400,
-						'message' => 'level already exists',
+						'message' => 'Level already exists',
 					];
 					$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 				}
-			}else{
+			} else {
 				$response = [
 					'status' => 400,
-					'message' => 'current level incomplete',
+					'message' => 'Current level incomplete',
 				];
 				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 			}
-        }else{
-            $response = [
-                'status' => 400,
-                'message' => 'empty parameters'
-            ];
-            $this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-        }
-    }
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'Empty parameters',
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
 	
 }

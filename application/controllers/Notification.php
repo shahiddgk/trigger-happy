@@ -143,17 +143,11 @@ class Notification extends CI_Controller {
                 }
     
                 $reminderTime = new DateTimeImmutable($reminder['date_time'], $timeZone);
-    
-                // echo "Current Time: ".$currentTime->format('H:i') . "<br>";
-                // echo "Reminder Time: ".$reminderTime->format('H:i') ; exit;
+                
                 if ($currentTime->format('H:i') === $reminderTime->format('H:i')) {
                     $notificationData = $this->prepareNotificationData($reminder['name'], $reminder['text'], $reminder['id'], $reminder['device_token'], $reminderTime->format('Y-m-d H:i:s'));
                     $this->push_notification($notificationData);
                 }
-
-                // echo "Snooze: ".$reminder['snooze'] . "<br>";
-                // echo "Current Time: ".$currentTime->format('Y-m-d H:i'). "<br>";
-                // echo "Reminder Time: ".$reminderTime->format('Y-m-d H:i') ; exit;
 
                 if ($reminder['snooze'] === 'yes' && $currentTime->format('Y-m-d H:i') > $reminderTime->format('Y-m-d H:i')) {
                     $notificationData = $this->prepareNotificationData($reminder['name'], $reminder['text'], $reminder['id'], $reminder['device_token'], $reminderTime->format('Y-m-d H:i:s'));

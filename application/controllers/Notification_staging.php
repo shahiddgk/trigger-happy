@@ -110,7 +110,7 @@ class Notification extends CI_Controller {
             ->get()
             ->result_array();
     
-        // echo "Active Reminders: "; print_r($activeReminders); exit;
+        // echo "Active Reminders:<pre> "; print_r($activeReminders); exit;
         $timeZoneMap = $this->timezone_list();
     
         if (!empty($activeReminders)) {
@@ -147,7 +147,7 @@ class Notification extends CI_Controller {
                 // echo "Current Time: ".$currentTime->format('H:i') . "<br>";
                 // echo "Reminder Time: ".$reminderTime->format('H:i') ; exit;
                 if ($currentTime->format('H:i') === $reminderTime->format('H:i')) {
-                    $notificationData = $this->prepareNotificationData($reminder['name'], $reminder['text'], $reminder['id'], $reminder['device_token']);
+                    $notificationData = $this->prepareNotificationData($reminder['name'], $reminder['text'], $reminder['id'], $reminder['device_token'], $reminderTime->format('Y-m-d H:i:s'));
                     $this->push_notification($notificationData);
                 }
 
@@ -156,7 +156,7 @@ class Notification extends CI_Controller {
                 // echo "Reminder Time: ".$reminderTime->format('Y-m-d H:i') ; exit;
 
                 if ($reminder['snooze'] === 'yes' && $currentTime->format('Y-m-d H:i') > $reminderTime->format('Y-m-d H:i')) {
-                    $notificationData = $this->prepareNotificationData($reminder['name'], $reminder['text'], $reminder['id'], $reminder['device_token']);
+                    $notificationData = $this->prepareNotificationData($reminder['name'], $reminder['text'], $reminder['id'], $reminder['device_token'], $reminderTime->format('Y-m-d H:i:s'));
                     $this->push_notification($notificationData);
                     $this->common_model->update_array(['id' => $reminder['id']], 'reminders', ['snooze' => 'no']);
                 }
@@ -164,12 +164,13 @@ class Notification extends CI_Controller {
         }
     }
     
-    private function prepareNotificationData($name, $text, $id, $deviceToken)
+    private function prepareNotificationData($name, $text, $id, $deviceToken, $date_time)
     {
         return [
             'title' => 'Hi ' . $name. ' Did you....',
             'type' => 'reminder',
             'message' => $text,
+            'date_time' => $date_time,
             'entity_id' => $id,
             'device_token' => $deviceToken
         ];
@@ -184,7 +185,9 @@ class Notification extends CI_Controller {
             'to' => $data['device_token'],
             'data' => [
                 'type' => $data['type'],
-                'entity_id' => $data['entity_id'],
+                'click_action' => 'FLUTTER_POPUP_ACTION',
+                'date_time' => @$data['date_time'],
+                'entity_id' => @$data['entity_id'],
             ],
             'notification' => [
                 'title' => $data['title'],
@@ -222,9 +225,9 @@ class Notification extends CI_Controller {
     public function growth_tree() {
         $yesterday = date('Y-m-d', strtotime("-1 days"));
     
-        $pire_array = $this->common_model->select_where_groupby('user_id, type, response_id, DATE(created_at) as response_date', 'answers', array('type' => 'pire', 'DATE(created_at) <=' => $yesterday), 'user_id')->result_array();
+        $pire_array = $this->common_model->select_where_groupby('user_id, type, response_id, DATE(created_at) as response_date, level, seed', 'answers', array('type' => 'pire', 'DATE(created_at) <=' => $yesterday), 'user_id')->result_array();
         
-        $naq_array = $this->common_model->select_where_groupby('user_id, type, response_id, DATE(created_at) as response_date', 'answers', array('type' => 'naq', 'DATE(created_at) <=' => $yesterday), 'user_id')->result_array();
+        $naq_array = $this->common_model->select_where_groupby('user_id, type, response_id, DATE(created_at) as response_date, level, seed', 'answers', array('type' => 'naq', 'DATE(created_at) <=' => $yesterday), 'user_id')->result_array();
     
         $data_to_insert = array();
     
@@ -239,6 +242,8 @@ class Notification extends CI_Controller {
                 $data_to_insert[] = array(
                     'type' => $response['type'],
                     'user_id' => $response['user_id'],
+                    'level' => $response['level'],
+                    'seed' => $response['seed'],
                     'response_id' => $response['response_id'],
                     'response_date' => $response['response_date']
                 );
@@ -260,24 +265,24 @@ class Notification extends CI_Controller {
 
             $count =  $this->common_model->select_where_groupby('*', 'scores', array('user_id' => $user_id) , 'response_date')->num_rows();
 
-            $garden_level = $this->common_model->select_where("garden_level, current_tree", "users", array('id' => $user_id))->row_array();
+            $garden_level = $this->common_model->select_where("level, seed", "users", array('id' => $user_id))->row_array();
            
             if(empty($garden_level)){
                 continue;
             }
-            $current_level =  $garden_level['garden_level'];
-            $current_tree =  $garden_level['current_tree'];
+            $current_level =  $garden_level['level'];
+            $current_tree =  $garden_level['seed'];
 
             $user_exist =  $this->common_model->select_where('*', 'level_history', array('user_id' => $user_id , 'level' => $current_level ))->num_rows();
             $seeds_count =  $this->common_model->select_single_field('count', 'garden_seeds', array('level' => $current_level, 'id' => $current_tree ));
-            $seeds_count = $seeds_count - 1;
+            // $seeds_count = $seeds_count - 1;
 
             if($user_exist == 1){
                   
                 if ($count == $seeds_count) {
-                    $this->common_model->update_array(['user_id' => $user_id, 'level' => $current_level], 'level_history', ['status' => 'complete', 'score' => $count , 'end_date' => date('Y-m-d'), 'updated_at' => date('Y-m-d H:i:s')]);
+                    $this->common_model->update_array(['user_id' => $user_id, 'level' => $current_level], 'level_history', ['status' => 'complete', 'score' => $count , 'updated_at' => date('Y-m-d H:i:s')]);
                 }else{
-                    $this->common_model->update_array(['user_id' => $user_id, 'level' => $current_level], 'level_history', ['status' => 'active', 'score' => $count , 'end_date' => date('Y-m-d'), 'updated_at' => date('Y-m-d H:i:s')]);
+                    $this->common_model->update_array(['user_id' => $user_id, 'level' => $current_level], 'level_history', ['status' => 'active', 'score' => $count , 'updated_at' => date('Y-m-d H:i:s')]);
                 }
             }else{
                 $insert['user_id'] = $user_id;
