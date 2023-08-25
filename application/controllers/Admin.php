@@ -385,12 +385,18 @@ class Admin extends CI_Controller {
 	}
 
 	public function export_csv() {
-		$start_date = $this->input->get('selectedStartDate');
-		$end_date = $this->input->get('selectedEndDate');
-		$naq_report = $this->common_model->get_naq_report($start_date, $end_date);
-	
-		header('Content-Type: text/csv');
-		header('Content-Disposition: attachment; filename="naq_report.csv"');
+    $start_date = $this->input->get('selectedStartDate');
+    $end_date = $this->input->get('selectedEndDate');
+    $naq_report = $this->common_model->get_naq_report($start_date, $end_date);
+
+    // Generate the file name
+	if (!empty($start_date) && !empty($end_date)) {
+		$filename = "naq-report-" . date('mdy', strtotime($start_date)) . "-" . date('mdy', strtotime($end_date)) . ".csv";
+	} else {
+		$filename = "naq-report.csv";
+	}
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
 	
 		$output = fopen('php://output', 'w');
 	
