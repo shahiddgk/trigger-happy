@@ -560,6 +560,7 @@ class Api extends REST_Controller {
 				$naq_score = array(
 					'user_id' => $user_id,
 					'score' => $total_score,
+					'response_id' => $response_id,
 					'level' => $level,
 					'seed' => $seed,
 					'response_date' => date('Y-m-d H:i:s')
