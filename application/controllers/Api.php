@@ -815,9 +815,10 @@ class Api extends REST_Controller {
 					'*', 'scores', array('user_id' => $user_id, 'level' => $level, 'seed' => $seed), 'response_date'
 				)->num_rows();
 
-				if (($user_id == '166' && $level == '1') || ($user_id == '182' && in_array($level, ['1', '2']))) {
-					$score = $max_count;
-				}
+				// To qualify for the next level
+				// if (($user_id == '166' && $level == '1') || ($user_id == '182' && in_array($level, ['1', '2']))) {
+				// 	$score = $max_count;
+				// }
 	
 				$img = $score + 1;
 				// $img = min(max($score + 1, 1), $max_count);
