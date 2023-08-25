@@ -227,6 +227,42 @@ class Common_model extends  CI_Model {
 	    }
 	}
 	
+	public function get_naq_report($start_date, $end_date) {
+
+		if (!empty($start_date) && !empty($end_date)) {
+			$where_date_filter = " AND DATE(answers.created_at) BETWEEN '$start_date' AND '$end_date'";
+		} else {
+			$where_date_filter = "";
+		}
+
+		$sql = "SELECT answers.response_id, DATE(answers.created_at) as naq_date, users.name,
+				questions.id AS question_id, questions.title AS question_title,
+				answers.options, answers.text, naq_scores.score
+				FROM answers
+				JOIN users ON users.id = answers.user_id
+				JOIN questions ON questions.id = answers.question_id
+				LEFT JOIN naq_scores ON naq_scores.response_id = answers.response_id
+				WHERE answers.type = 'naq' $where_date_filter
+				GROUP BY response_id, question_id";
+
+		$query = $this->db->query($sql);
+		$naq_records = $query->result_array();
+	
+		$result = [];
+		foreach ($naq_records as $value) {
+			$result[$value['response_id']]['name'] = $value['name'];
+			$result[$value['response_id']]['naq_date'] = $value['naq_date'];
+			$result[$value['response_id']]['score'] = $value['score'];
+			$result[$value['response_id']]['questions_and_answers'][$value['question_id']] = [
+				'question_title' => $value['question_title'],
+				'options' => $value['options'],
+				'text' => $value['text']
+			];
+		}
+	
+		return $result;
+	}
+
 	
 	private function executeQuery($tableName, $columns, $where = "") {
 		$sql = "SELECT $columns FROM $tableName";

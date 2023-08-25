@@ -370,6 +370,99 @@ class Admin extends CI_Controller {
 		$this->load->view('admin/user_activity_report', $data);
 		$this->load->view('admin/include/footer');
 	}
+	public function naq_report() {
+		$data['page_title'] = 'NAQ Reports';
+	
+		$start_date = $this->input->get('selectedStartDate'); // Get start date from URL parameter
+		$end_date = $this->input->get('selectedEndDate');     // Get end date from URL parameter
+	
+		$data['naq_report'] = $this->common_model->get_naq_report($start_date, $end_date);
+		$data['selected_start_date'] = $start_date;
+		$data['selected_end_date'] = $end_date;
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/naq_report', $data);
+		$this->load->view('admin/include/footer');
+	}
+
+	public function export_csv() {
+		$start_date = $this->input->get('selectedStartDate');
+		$end_date = $this->input->get('selectedEndDate');
+		$naq_report = $this->common_model->get_naq_report($start_date, $end_date);
+	
+		header('Content-Type: text/csv');
+		header('Content-Disposition: attachment; filename="naq_report.csv"');
+	
+		$output = fopen('php://output', 'w');
+	
+		$csv_headers = array(
+			'Name',
+			'NAQ Date',
+		);
+	
+		if (!empty($naq_report) && !empty($naq_report[array_key_first($naq_report)]['questions_and_answers'])) {
+			foreach ($naq_report[array_key_first($naq_report)]['questions_and_answers'] as $index => $qa) {
+				$csv_headers[] = preg_replace('/^[^:]+:\s*/', '', strip_tags($qa['question_title']));
+	
+				if ($index == 56) {
+					$csv_headers[] = 'Why Chosen Yes?';
+				} elseif ($index == 57) {
+					$csv_headers[] = 'Why Chosen Yes?';
+				}
+			}
+		}
+	
+		// Add the "Score" header
+		$csv_headers[] = 'Score';
+	
+		fputcsv($output, $csv_headers);
+	
+		// Add data rows
+		foreach ($naq_report as $naq) {
+			$csv_data = array(
+				$naq['name'],
+				$naq['naq_date'],
+			);
+	
+			if (!empty($naq['questions_and_answers'])) {
+				foreach ($naq['questions_and_answers'] as $index => $qa) {
+					$options = strtolower($qa['options']);
+	
+					switch ($options) {
+                        case 'never':
+                            $option = '1-'.$options ;
+                            break;
+                        case 'rarely':
+                            $option = '2-'.$options ;
+                            break;
+                        case 'often':
+                            $option = '3-'.$options ;
+                            break;
+                        case 'always':
+                            $option = '4-'.$options ;
+                            break;
+						default:
+						 	$option = $options ;
+                    }
+										
+					$csv_data[] = $option;
+
+					if ($index == 56) {
+						$csv_data[] = $qa['text'];
+					} elseif ($index == 57) {
+						$csv_data[] = $qa['text'];
+					}
+				}
+			}
+	
+			// Add the score value to the data
+			$csv_data[] = $naq['score'];
+	
+			fputcsv($output, $csv_data);
+		}
+	
+		fclose($output);
+	}	
+	
 }
 
 ?>

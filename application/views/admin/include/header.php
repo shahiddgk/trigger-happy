@@ -127,6 +127,12 @@ else{
 				<span class="link-title">User Activity</span>
 				</a>
 			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="<?php echo site_url('admin/naq_report'); ?>">
+				<i class="link-icon" data-feather="file-minus"></i>
+				<span class="link-title">NAQ Report </span>
+				</a>
+			</li>			
 		</ul>
 		</div>
 	</nav>
