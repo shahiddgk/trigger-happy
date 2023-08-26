@@ -2596,5 +2596,40 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
+
+    public function user_activity_post(){
 	
+		$user_id = $this->input->post('user_id');
+
+		if (isset($user_id) && !empty($user_id)) {
+			$user_activity = $this->common_model->api_user_activity_report($user_id);
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'user_id' => $user_id,
+				'name' => $user_activity['name'],
+                'date' => $user_activity['created_at'],
+				'min_naq_response' => $user_activity['min_naq_response'],
+				'max_naq_response' => $user_activity['max_naq_response'],
+				'level' => $user_activity['level'],
+				'delta' => $user_activity['delta'],
+				'count_pire' => $user_activity['count_pire'],
+				'count_trellis' => $user_activity['count_trellis'],
+				'count_column' => $user_activity['count_column'],
+				'count_ladder' => $user_activity['count_ladder'],
+				'total_count' => $user_activity['total_count'],
+				'sum_active_reminders' => $user_activity['additional_data']->sum_active_reminders,
+				'sum_yes_reminders' => $user_activity['additional_data']->sum_yes_reminders,
+				'sum_reminders' => $user_activity['additional_data']->sum_reminders
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}	
+    }
+
 }

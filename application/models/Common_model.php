@@ -227,6 +227,48 @@ class Common_model extends  CI_Model {
 	    }
 	}
 	
+	public function api_user_activity_report($user_id) {
+		
+		$ninetyDaysAgo = date('Y-m-d', strtotime('-90 days'));
+
+		$sql = "SELECT users.id, users.name, DATE(users.created_at) AS created_at,
+		DATE(MIN(naq.response_date)) AS min_naq_response,
+        DATE(MAX(naq.response_date)) AS max_naq_response, users.level,
+		MAX(naq.score) - MIN(naq.score) AS delta,
+		SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type = 'pire') AS count_pire,
+		SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type = 'trellis') AS count_trellis,
+		SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type = 'column') AS count_column,
+		SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type = 'ladder') AS count_ladder,
+		SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type IN ('pire', 'trellis', 'column', 'ladder', 'naq')) AS total_count
+		FROM users
+		
+		LEFT JOIN naq_scores AS naq ON users.id = naq.user_id
+		LEFT JOIN scores AS sc ON sc.user_id = users.id	
+		WHERE users.id = $user_id
+		GROUP BY users.id ";
+
+        $query = $this->db->query($sql);
+        $report_data = $query->result();
+		foreach ($report_data as &$user_data) {
+			$user_id = $user_data->id;
+			$additional_data = $this->executeQuery(
+				'reminders as rem',
+				'DATE(rem.created_at) AS created_at,
+				 SUM(rem.status = \'active\') AS sum_active_reminders,
+				 SUM(rem.reminder_stop = \'yes\') AS sum_yes_reminders,
+				 COUNT(rem.user_id) as sum_reminders',
+				"user_id = $user_id AND DATE(rem.created_at) >= '$ninetyDaysAgo'"
+			);
+			$user_data->additional_data = $additional_data;
+		}
+		
+	    if ($query) {
+			return $query->row_array();
+	    } else {
+			echo "Database error: " . $this->db->error();
+			return array();
+	    }
+	}
 	public function get_naq_report($start_date, $end_date) {
 
 		if (!empty($start_date) && !empty($end_date)) {
