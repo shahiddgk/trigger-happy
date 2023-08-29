@@ -1998,6 +1998,8 @@ class Api extends REST_Controller {
 					$sorted_array[$date_index] = array(
 						'date' => $date_index,
 						'score' => $score,
+						'mobile_image_url' => base_url('uploads/apple_tree/apple_mobile/') . ($score + 1) . '.png',
+                        'ipad_image_url' => base_url('uploads/apple_tree/apple_ipad/') . ($score + 1) . '.png',
 						'trellis_count' => '',
 						'ladder_count' => '',
 						'column_count' => '',
