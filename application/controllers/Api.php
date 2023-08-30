@@ -974,6 +974,7 @@ class Api extends REST_Controller {
 		$seed = $current_garden['seed'];
 		$response_id = random_string('numeric', 8);
 
+		$data['response_id'] = $response_id;
 		$data['level'] = $level;
 		$data['seed'] = $seed;
 		if(isset($_POST['name'])){
@@ -1023,7 +1024,6 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}else{
 			$data['user_id'] = $user_id;
-			$data['response_id'] = $response_id;
 			$count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $user_id, 'type' => 'trellis', 'response_date' => date('Y-m-d')));
 			if ($count < 1) {
 				$score_data = array(
@@ -1133,11 +1133,13 @@ class Api extends REST_Controller {
 
 	public function ladder_update_post() {
 		$id = $_POST['id']; 
-		
+		$response_id = random_string('numeric', 8);
+
 		$ladder_entry = $this->common_model->select_where("*", "ladder", array('id' => $id))->row_array();
 		
 		if ($ladder_entry) {
 			
+			$update['response_id'] = $response_id;
 			$update['type'] = $_POST['type'];
 			$update['updated_at'] = date('Y-m-d H:i:s');
 			if (isset($_POST['option1']) && !empty($_POST['option1'])) {
@@ -2735,5 +2737,87 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}	
     }
+
+	public function level_history_post() {
+		if (isset($_POST['user_id']) && !empty($_POST['user_id'])) {
+			$user_id = $_POST['user_id'];
+			$score_data =  $this->common_model->select_where('*', 'scores', array('user_id' => $user_id))->result_array();
+	
+			$sorted_array = array();
+			$score = 1;
+			foreach ($score_data as $value) {
+				$date_index = $value['response_date'];
+	
+				if (!isset($sorted_array[$date_index])) {
+					$sorted_array[$date_index] = array(
+						'date' => $date_index,
+						'score' => $score,
+						'mobile_image_url' => base_url('uploads/apple_tree/apple_mobile/') . ($score + 1) . '.png',
+                        'ipad_image_url' => base_url('uploads/apple_tree/apple_ipad/') . ($score + 1) . '.png',
+						'trellis_count' => '',
+						'ladder_count' => array(),
+						'column_count' => array(),
+					);
+					$score++;
+				}
+	
+				if ($value['type'] == 'pire') {
+						$sorted_array[$date_index]['pire_count'] = $this->common_model->select_where_groupby("response_id", "answers", array('user_id'=>$value['user_id'], 'type'=>'pire', 'DATE(created_at)'=>$date_index), 'response_id' )->result_array();
+					} elseif ($value['type'] == 'naq') {
+						$sorted_array[$date_index]['naq_count'] = $this->common_model->select_where_groupby("response_id", "answers", array('user_id'=>$value['user_id'], 'type'=>'naq', 'DATE(created_at)'=>$date_index), 'response_id' )->result_array();
+					} elseif ($value['type'] == 'column') {
+						$sorted_array[$date_index]['column_count'] = $this->common_model->select_where_groupby("response_id", "session_entry", array('user_id'=>$value['user_id'], 'DATE(created_at)'=>$date_index), 'response_id' )->result_array();
+					} elseif ($value['type'] == 'trellis') {
+						$sorted_array[$date_index]['trellis_count'] = $this->common_model->select_where_groupby("response_id", "trellis_history", array('user_id'=>$value['user_id'], 'DATE(created_at)'=>$date_index), 'response_id', 'DATE(created_at)' )->result_array();
+					} elseif ($value['type'] == 'ladder') {
+						$sorted_array[$date_index]['ladder_count'] = $this->common_model->select_where_groupby("response_id", "ladder_history", array('user_id'=>$value['user_id'], 'DATE(created_at)'=>$date_index), 'response_id')->result_array();
+					}
+			}
+	
+			ksort($sorted_array);
+	
+			$final_array = array_values($sorted_array);
+			$response = [
+				'status' => 200,
+				'response_data' => $final_array
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function level_history_details_post(){
+		$response_id = $_POST['response_id'];
+		$table_name = $_POST['table_name'];
+
+		if($table_name == 'ladder'){
+			$table_name = 'ladder_history' ;
+		}elseif($table_name == 'trellis'){
+			$table_name = 'trellis_history' ;
+		}
+
+         
+		if(!empty($response_id)){
+			$result = $this->common_model->select_where("*", $table_name, array('response_id' => $response_id))->row_array();
+
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'data' => $result
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
 
 }
