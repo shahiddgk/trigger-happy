@@ -968,7 +968,14 @@ class Api extends REST_Controller {
 
 	public function trellis_post(){
 		$user_id = $_POST['user_id'];
-		
+
+		$current_garden = $this->common_model->select_where("level, seed", "users", array('id' => $user_id))->row_array();
+		$level = $current_garden['level'];
+		$seed = $current_garden['seed'];
+		$response_id = random_string('numeric', 8);
+
+		$data['level'] = $level;
+		$data['seed'] = $seed;
 		if(isset($_POST['name'])){
 			$data['name'] = $_POST['name'];
 		}
@@ -982,8 +989,33 @@ class Api extends REST_Controller {
 		$row_count = $this->common_model->select_where("*", "trellis", array('user_id'=>$user_id))->num_rows();
 
 		if($row_count == 1){
-					
-			$this->common_model->update_array(array('user_id'=> $user_id), 'trellis', $data);
+
+			$trellis_entry = $this->common_model->select_where("*", "trellis", array('user_id' => $user_id))->row_array();
+	
+			$this->common_model->update_array(array('user_id' => $user_id), 'trellis', $data);
+	
+			$history_data = array(
+				'user_id' => $trellis_entry['user_id'],
+				'response_id' => $trellis_entry['response_id'],
+				'name' => $trellis_entry['name'],
+				'name_desc' => $trellis_entry['name_desc'],
+				'purpose' => $trellis_entry['purpose'],
+			);
+			$this->common_model->insert_array('trellis_history', $history_data);
+	
+			$count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $user_id, 'type' => 'trellis', 'response_date' => date('Y-m-d')));
+			if ($count < 1) {
+				$score_data = array(
+					'type' => 'trellis',
+					'user_id' => $user_id,
+					'response_id' => $trellis_entry['response_id'],
+					'level' => $level,
+					'seed' => $seed,
+					'response_date' => date('Y-m-d')
+				);
+				$this->common_model->insert_array('scores', $score_data);
+			}
+	
 			$response = [
 				'status' => 200,
 				'message' => 'data updated'
@@ -991,6 +1023,19 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}else{
 			$data['user_id'] = $user_id;
+			$data['response_id'] = $response_id;
+			$count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $user_id, 'type' => 'trellis', 'response_date' => date('Y-m-d')));
+			if ($count < 1) {
+				$score_data = array(
+					'type' => 'trellis',
+					'user_id' => $user_id,
+					'response_id' => $response_id,
+					'level' => $level,
+					'seed' => $seed,
+					'response_date' => date('Y-m-d')
+				);
+				$this->common_model->insert_array('scores', $score_data);
+			}
 			$this->common_model->insert_array('trellis', $data);
 			$response = [
 				'status' => 200,
@@ -998,13 +1043,19 @@ class Api extends REST_Controller {
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
-	
-		
+ 
+  
 	}
 
 	// Trellis API's Start
 	public function ladder_post(){
 		$user_id = $_POST['user_id'];
+
+		$response_id = random_string('numeric', 8);
+		
+		$current_garden = $this->common_model->select_where("level, seed", "users", array('id' => $user_id))->row_array();
+		$level = $current_garden['level'];
+		$seed = $current_garden['seed'];
 
 		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id, 'type'=>'user'));
 		
@@ -1018,13 +1069,17 @@ class Api extends REST_Controller {
 				
 				$response = [
 					'status' => 400,
-					'message' => 'more responses not allowed'
+					'message' => 'more responses not allowed'	
 				];
 				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 			}
 			else{
+				
 				$insert['user_id'] = $user_id;
+				$insert['response_id'] = $response_id;
 				$insert['type'] = $_POST['type'];
+				$insert['level'] = $level;
+		        $insert['seed'] = $seed;
 				if(isset($_POST['option1']) && !empty($_POST['option1'])){
 					$insert['option1'] = $_POST['option1'];
 				}
@@ -1044,6 +1099,18 @@ class Api extends REST_Controller {
 				}
 				
 				$this->common_model->insert_array('ladder', $insert);
+				$count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $user_id, 'type' => 'ladder', 'response_date' => date('Y-m-d')));
+				if ($count < 1) {
+					$score_data = array(
+						'type' => 'ladder',
+						'user_id' => $user_id,
+						'response_id' => $response_id,
+						'level' => $level,
+						'seed' => $seed,
+						'response_date' => date('Y-m-d')
+					);
+					$this->common_model->insert_array('scores', $score_data);
+				}
 				$last_insert_id = $this->db->insert_id(); 
 				$_POST['id'] = $last_insert_id;
 				$_POST['favourite'] = 'no';
@@ -1093,6 +1160,37 @@ class Api extends REST_Controller {
 			}
 			
 			$this->common_model->update_array(array('id' => $id), 'ladder', $update);
+			
+			$history_data = array(
+				'user_id' => $ladder_entry['user_id'],
+				'response_id' => $ladder_entry['response_id'],
+				'type' => $ladder_entry['type'],
+				'option1' => $ladder_entry['option1'],
+				'option2' => $ladder_entry['option2'],
+				'date' => $ladder_entry['date'],
+				'text' => $ladder_entry['text'],
+				'description' => $ladder_entry['description']
+			);
+			$this->common_model->insert_array('ladder_history', $history_data);
+			
+			$user_id = $ladder_entry['user_id'];
+			$count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $user_id, 'type' => 'ladder', 'response_date' => date('Y-m-d')));
+	
+			if ($count < 1) {
+				$current_garden = $this->common_model->select_where("level, seed", "users", array('id' => $user_id))->row_array();
+				$level = $current_garden['level'];
+				$seed = $current_garden['seed'];
+				$score_data = array(
+					'type' => 'ladder',
+					'user_id' => $user_id,
+					'response_id' => $ladder_entry['response_id'],
+					'level' => $level,
+					'seed' => $seed,
+					'response_date' => date('Y-m-d')
+				);
+				$this->common_model->insert_array('scores', $score_data);
+			}
+			
 			$update_row = $this->common_model->select_where("*", 'ladder', array('id' => $id))->row_array();
 			
 			$response = [
@@ -1397,6 +1495,7 @@ class Api extends REST_Controller {
 	}
 
 	public function session_entry_post(){
+		$response_id = random_string('numeric', 8);
 
 		if(isset($_POST['user_id']) && !empty($_POST['user_id'])){
 
@@ -1405,7 +1504,9 @@ class Api extends REST_Controller {
 			$seed = $current_garden['seed'];
 
 			$data['user_id'] = $_POST['user_id'];
-
+			$data['response_id'] = $response_id;
+			$data['level'] = $level;
+			$data['seed'] = $seed;
 			if(isset($_POST['entry_title'])){
 				$data['entry_title'] = $_POST['entry_title'];
 			}
@@ -1425,6 +1526,7 @@ class Api extends REST_Controller {
 
 					$insert['type'] = 'column';
 					$insert['user_id'] = $data['user_id'];
+					$insert['response_id'] = $response_id;
 					$insert['response_date'] = date('Y-m-d');
 					$insert['level'] = $level;
 					$insert['seed'] = $seed;
