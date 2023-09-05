@@ -2754,9 +2754,11 @@ class Api extends REST_Controller {
 						'score' => $score,
 						'mobile_image_url' => base_url('uploads/apple_tree/apple_mobile/') . ($score + 1) . '.png',
                         'ipad_image_url' => base_url('uploads/apple_tree/apple_ipad/') . ($score + 1) . '.png',
-						'trellis_count' => '',
+						'trellis_count' => array(),
 						'ladder_count' => array(),
 						'column_count' => array(),
+						'pire_count' => array(),
+                        'naq_count' => array()
 					);
 					$score++;
 				}
@@ -2766,11 +2768,11 @@ class Api extends REST_Controller {
 					} elseif ($value['type'] == 'naq') {
 						$sorted_array[$date_index]['naq_count'] = $this->common_model->select_where_groupby("response_id", "answers", array('user_id'=>$value['user_id'], 'type'=>'naq', 'DATE(created_at)'=>$date_index), 'response_id' )->result_array();
 					} elseif ($value['type'] == 'column') {
-						$sorted_array[$date_index]['column_count'] = $this->common_model->select_where_groupby("response_id", "session_entry", array('user_id'=>$value['user_id'], 'DATE(created_at)'=>$date_index), 'response_id' )->result_array();
+						$sorted_array[$date_index]['column_count'] = $this->common_model->select_where("response_id", "session_entry", array('user_id'=>$value['user_id'], 'response_id != '=>'0', 'DATE(created_at)'=>$date_index) )->result_array();
 					} elseif ($value['type'] == 'trellis') {
-						$sorted_array[$date_index]['trellis_count'] = $this->common_model->select_where_groupby("response_id", "trellis_history", array('user_id'=>$value['user_id'], 'DATE(created_at)'=>$date_index), 'response_id', 'DATE(created_at)' )->result_array();
+						$sorted_array[$date_index]['trellis_count'] = $this->common_model->select_where("response_id", "trellis_history", array('user_id'=>$value['user_id'], 'response_id != '=>'0', 'DATE(created_at)'=>$date_index))->result_array();
 					} elseif ($value['type'] == 'ladder') {
-						$sorted_array[$date_index]['ladder_count'] = $this->common_model->select_where_groupby("response_id", "ladder_history", array('user_id'=>$value['user_id'], 'DATE(created_at)'=>$date_index), 'response_id')->result_array();
+						$sorted_array[$date_index]['ladder_count'] = $this->common_model->select_where("response_id", "ladder_history", array('user_id'=>$value['user_id'], 'response_id != '=>'0', 'DATE(created_at)'=>$date_index))->result_array();
 					}
 			}
 	
@@ -2799,6 +2801,8 @@ class Api extends REST_Controller {
 			$table_name = 'ladder_history' ;
 		}elseif($table_name == 'trellis'){
 			$table_name = 'trellis_history' ;
+		}elseif($table_name == 'column') {
+			$table_name = 'session_entry' ;
 		}
 
          
