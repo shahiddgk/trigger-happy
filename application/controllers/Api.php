@@ -1315,6 +1315,7 @@ class Api extends REST_Controller {
 			$response = [
 				'status' => 200,
 				'message' => 'success',
+				'updated_data' => $update
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}else {
@@ -1393,7 +1394,8 @@ class Api extends REST_Controller {
 			$this->common_model->update_array(array('id' => $id), 'principles', $update);
 			$response = [
 				'status' => 200,
-				'message' => 'success'
+				'message' => 'success',
+				'updated_data' => $update
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
@@ -1468,7 +1470,8 @@ class Api extends REST_Controller {
 			$this->common_model->update_array(array('id' => $id), 'identity', $update);
 			$response = [
 				'status' => 200,
-				'message' => 'success'
+				'message' => 'success',
+				'updated_data' => $update
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
