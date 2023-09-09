@@ -184,7 +184,7 @@ class Common_model extends  CI_Model {
 		
 	}
 
-	public function user_activity_report($selectedDate) {
+	public function user_activity_report() {
 		$ninetyDaysAgo = date('Y-m-d', strtotime('-90 days'));
 
 		$sql = "SELECT users.id, users.name, users.created_at, users.level,
