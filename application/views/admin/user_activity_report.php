@@ -11,7 +11,7 @@
             <div class="card">
                 <div class="card-body">
                     <h6 class="card-title"><?= $page_title ?></h6>
-                    <div class="col-md-2 float-right m-2 d-inline-flex form-group ">
+                    <div class="col-md-2 float-right m-2 d-inline-flex form-group">
                         <button id="exportCsvBtn" class="btn btn-primary excel_btn">Export to Csv</button>
                     </div>
                     <div class="table-responsive">
@@ -37,10 +37,10 @@
                                     <tr>
                                         <td><?= $user->name ?></td>
                                         <td><?= (new DateTime($user->created_at))->format('Y-m-d') ?></td>
-                                        <td><?= ($user->min_naq_response ? '(' . date('d-m-Y', strtotime($user->min_naq_response)) . ' )' . $user->min_naq_score : '') ?></td>
-                                        <td><?= ($user->max_naq_response ? '(' . date('d-m-Y', strtotime($user->max_naq_response)) . ' )' . $user->max_naq_score : '') ?></td>
+                                        <td><?= ($user->naq_score->min_naq_response ? '(' . date('d-m-Y', strtotime($user->naq_score->min_naq_response)) . ' )' . $user->naq_score->min_naq_score : '') ?></td>
+                                        <td><?= ($user->naq_score->max_naq_response ? '(' . date('d-m-Y', strtotime($user->naq_score->max_naq_response)) . ' )' . $user->naq_score->max_naq_score : '') ?></td>
                                         <td><?= $user->level ?></td>
-                                        <td><?= $user->max_naq_score - $user->min_naq_score ?></td>
+                                        <td><?= $user->naq_score->delta ?></td>
                                         <td><?= $user->total_count ?></td>
                                         <td><?= $user->count_pire ?></td>
                                         <td><?= $user->count_trellis ?></td>
