@@ -196,8 +196,7 @@ class Common_model extends  CI_Model {
 			SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type = 'pire') AS count_pire,
 			SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type = 'trellis') AS count_trellis,
 			SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type = 'column') AS count_column,
-			SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type = 'ladder') AS count_ladder,
-			SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type IN ('pire', 'trellis', 'column', 'ladder', 'naq')) AS total_count
+			SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type = 'ladder') AS count_ladder
 		FROM
 			users
 		LEFT JOIN
@@ -230,10 +229,18 @@ class Common_model extends  CI_Model {
 				DATE(MAX(naq.response_date)) AS max_naq_response,
 				MAX(naq.score) AS max_naq_score,
 				MIN(naq.score) AS min_naq_score,
-				MAX(naq.score) - MIN(naq.score) AS delta',
+				CASE 
+					WHEN MAX(naq.score) < MIN(naq.score) 
+						THEN MAX(naq.score) - MIN(naq.score)
+					ELSE 
+						MIN(naq.score) - MAX(naq.score) 
+				END AS delta',
 				"user_id = $user_id"
 			);
 			$user_data->naq_score = $naq_score;
+
+			$user_data->total_count = $this->select_where_groupby('*', 'scores', array('user_id' => $user_id , 'response_date >=' => $ninetyDaysAgo) , 'response_date')->num_rows();
+
 		}
 	
 		if ($query) {
@@ -253,8 +260,7 @@ class Common_model extends  CI_Model {
 		SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type = 'pire') AS count_pire,
 		SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type = 'trellis') AS count_trellis,
 		SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type = 'column') AS count_column,
-		SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type = 'ladder') AS count_ladder,
-		SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type IN ('pire', 'trellis', 'column', 'ladder', 'naq')) AS total_count
+		SUM(sc.response_date >= '$ninetyDaysAgo' AND sc.type = 'ladder') AS count_ladder
 		FROM users
 		
 		LEFT JOIN scores AS sc ON sc.user_id = users.id	
@@ -281,10 +287,18 @@ class Common_model extends  CI_Model {
 				DATE(MAX(naq.response_date)) AS max_naq_response,
 				MAX(naq.score) AS max_naq_score,
 				MIN(naq.score) AS min_naq_score,
-				MAX(naq.score) - MIN(naq.score) AS delta',
+				CASE 
+					WHEN MAX(naq.score) < MIN(naq.score) 
+						THEN MAX(naq.score) - MIN(naq.score)
+					ELSE 
+						MIN(naq.score) - MAX(naq.score) 
+				END AS delta',
 				"user_id = $user_id"
 			);
 			$user_data->naq_score = $naq_score;
+			
+			$user_data->total_count = $this->select_where_groupby('*', 'scores', array('user_id' => $user_id , 'response_date >=' => $ninetyDaysAgo) , 'response_date')->num_rows();
+
 		}
 		
 	    if ($query) {
