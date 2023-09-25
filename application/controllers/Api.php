@@ -221,6 +221,41 @@ class Api extends REST_Controller {
 		} 
 	}
 
+	public function questions_post(){
+		if($this->input->post('type')){
+			$type = $this->input->post('type');
+		}else{
+			$type = 'pire';
+		}
+		$questions = $this->common_model->select_where_ASC_DESC("*", "questions", array('type'=>$type), 'id', 'ASC')->result_array();
+		if($questions){
+
+			foreach ($questions as $key=>$question) {
+				if(!empty($question['options'])){
+					$options = explode(",", json_decode($question['options']));
+					$questions[$key]['options'] = $options;
+				}
+			}
+			if($type == 'naq'){
+				$questions = array_chunk($questions, 3);
+			}
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'questions' => $questions
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+			
+		} else {
+			$response = [
+				'status' => 200,
+				'message' => 'no data found',
+				'questions' => array()
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} 
+	}
+
 	public function social_login_post(){
 
 		$name	    =	$_POST['name'];
@@ -767,6 +802,34 @@ class Api extends REST_Controller {
     
 	}
 
+	public function delete_user_post()
+	{
+		$user_id = $_POST['user_id'];
+		if(!empty($user_id)){
+			$this->db->delete('users', array('id'=>$user_id));
+			if($this->db->affected_rows()> 0){
+				$response = [
+					'status' => 200,
+					'message' => 'user deleted successfully'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}else{
+				$response = [
+					'status' => 400,
+					'message' => 'user not found'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+    
+	}
+
 	public function logout_post()
 	{
 		$user_id = $_POST['user_id'];
@@ -1099,6 +1162,9 @@ class Api extends REST_Controller {
 				}
 				
 				$this->common_model->insert_array('ladder', $insert);
+				
+				$last_insert_id = $this->db->insert_id(); 
+				
 				$count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $user_id, 'type' => 'ladder', 'response_date' => date('Y-m-d')));
 				if ($count < 1) {
 					$score_data = array(
@@ -1111,7 +1177,6 @@ class Api extends REST_Controller {
 					);
 					$this->common_model->insert_array('scores', $score_data);
 				}
-				$last_insert_id = $this->db->insert_id(); 
 				$_POST['id'] = $last_insert_id;
 				$_POST['favourite'] = 'no';
 				$response = [
@@ -1799,14 +1864,22 @@ class Api extends REST_Controller {
 		}
 	}
 
-	public function test_query_get() {
-
-		$scores =  $this->common_model->select_where_groupby('*', 'scores', array('user_id' => '166') , 'response_date')->result_array();
-
-		// echo $this->db->last_query(); exit;
-        // echo  $scores; exit;
-        echo "<pre>"; print_r($scores); exit;
-
+	public function app_version_post() {
+		$result_array = $this->common_model->select_all("*", 'settings')->result_array();
+		if (count($result_array) > 0) {
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'data' => $result_array
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'no data found'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
 	}
 
 	public function payment_settings_post() {
@@ -2761,6 +2834,18 @@ class Api extends REST_Controller {
 
 	// Garden Upgraded with new schema
 	public function garden_levels_get(){
+	
+		$garden_levels = $this->common_model->select_where("*" , 'garden_levels', array('status' => 'active'))->result_array();
+		$response = [
+			'status' => 200,
+			'message' => "active levels",
+			'result' => $garden_levels,
+		];
+		$this->set_response($response, REST_Controller::HTTP_OK);
+		
+	}
+
+	public function new_garden_levels_post(){
 	
 		$garden_levels = $this->common_model->select_where("*" , 'garden_levels', array('status' => 'active'))->result_array();
 		$response = [

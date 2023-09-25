@@ -186,13 +186,47 @@ class Api extends REST_Controller {
 		} 
 	}
 
-	public function questions_post(){
-		if(isset($_POST['type'])){
-			$type = $_POST['type'];
+	public function questions_get(){
+		if($this->input->get('type')){
+			$type = $this->input->get('type');
 		}else{
 			$type = 'pire';
 		}
-		
+		$questions = $this->common_model->select_where_ASC_DESC("*", "questions", array('type'=>$type), 'id', 'ASC')->result_array();
+		if($questions){
+
+			foreach ($questions as $key=>$question) {
+				if(!empty($question['options'])){
+					$options = explode(",", json_decode($question['options']));
+					$questions[$key]['options'] = $options;
+				}
+			}
+			if($type == 'naq'){
+				$questions = array_chunk($questions, 3);
+			}
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'questions' => $questions
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+			
+		} else {
+			$response = [
+				'status' => 200,
+				'message' => 'no data found',
+				'questions' => array()
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} 
+	}
+
+	public function questions_post(){
+		if($this->input->post('type')){
+			$type = $this->input->post('type');
+		}else{
+			$type = 'pire';
+		}
 		$questions = $this->common_model->select_where_ASC_DESC("*", "questions", array('type'=>$type), 'id', 'ASC')->result_array();
 		if($questions){
 
@@ -730,7 +764,7 @@ class Api extends REST_Controller {
 		}
 	}
 
-	public function delete_user_get()
+	public function delete_user_post()
 	{
 		// "DELETE u, ul, gs, lh, s, sc, r
 		// FROM users AS u
@@ -742,7 +776,7 @@ class Api extends REST_Controller {
 		// LEFT JOIN other_related_table AS r ON u.id = r.user_id
 		// WHERE u.id = <user_id>";
 
-		$user_id = $_GET['user_id'];
+		$user_id = $_POST['user_id'];
 		if(!empty($user_id)){
 			$this->db->delete('users', array('id'=>$user_id));
 			if($this->db->affected_rows()> 0){
@@ -1800,14 +1834,22 @@ class Api extends REST_Controller {
 		}
 	}
 
-	public function test_query_get() {
-
-		$scores =  $this->common_model->select_where_groupby('*', 'scores', array('user_id' => '166') , 'response_date')->result_array();
-
-		// echo $this->db->last_query(); exit;
-        // echo  $scores; exit;
-        echo "<pre>"; print_r($scores); exit;
-
+	public function app_version_post() {
+		$result_array = $this->common_model->select_all("*", 'settings')->result_array();
+		if (count($result_array) > 0) {
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'data' => $result_array
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'no data found'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
 	}
 
 	public function payment_settings_post() {
@@ -2879,10 +2921,10 @@ class Api extends REST_Controller {
 				'user_id' => $user_id,
 				'name' => $user_activity['name'],
                 'date' => $user_activity['created_at'],
-				'min_naq_response' => $user_activity['min_naq_response'],
-				'max_naq_response' => $user_activity['max_naq_response'],
+				'min_naq_response' => $user_activity['naq_score']->min_naq_response,
+				'max_naq_response' => $user_activity['naq_score']->max_naq_response,
 				'level' => $user_activity['level'],
-				'delta' => $user_activity['delta'],
+				'delta' => $user_activity['naq_score']->delta,
 				'count_pire' => $user_activity['count_pire'],
 				'count_trellis' => $user_activity['count_trellis'],
 				'count_column' => $user_activity['count_column'],
