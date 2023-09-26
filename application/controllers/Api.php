@@ -543,134 +543,157 @@ class Api extends REST_Controller {
 		$user_id = $_POST['user_id'];
 		$response_id = random_string('numeric', 8);
 	
-		$current_garden = $this->common_model->select_where("level, seed", "users", array('id' => $user_id))->row_array();
-		$level = $current_garden['level'];
-		$seed = $current_garden['seed'];
+		$data['login'] = $this->common_model->select_where("*", "users", array('id' => $user_id, 'type' => 'user'));
 	
-		$total_score = 0;
+		if ($data['login']->num_rows() > 0) {
+			$user_data = $data['login']->row_array();
 	
-		$answers = json_decode($_POST['answers'], true);
+			$row_count = $this->common_model->select_where_groupby("*", "answers", array('user_id' => $user_id, 'type' => 'naq'), "response_id")->num_rows();
 	
-		if ($answers) {
-			foreach ($answers as $key => $answer) {
-				if ($answer['type'] == 'radio_btn') {
-					$insert_ans = array(
-						'question_id' => $key,
-						'options' => strtolower($answer['answer'][0]),
-						'text' => strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '',
+			if ($user_data['is_premium'] == 'no' && $row_count >= 2) {
+				$response = [
+					'status' => 400,
+					'message' => 'More responses not allowed.'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+				return;
+			}
+	
+			$current_garden = $this->common_model->select_where("level, seed", "users", array('id' => $user_id))->row_array();
+			$level = $current_garden['level'];
+			$seed = $current_garden['seed'];
+	
+			$total_score = 0;
+	
+			$answers = json_decode($_POST['answers'], true);
+	
+			if ($answers) {
+				foreach ($answers as $key => $answer) {
+					if ($answer['type'] == 'radio_btn') {
+						$insert_ans = array(
+							'question_id' => $key,
+							'options' => strtolower($answer['answer'][0]),
+							'text' => strtolower($answer['answer'][0]) == 'yes' ? $answer['res_text'] : '',
+							'user_id' => $user_id,
+							'response_id' => $response_id,
+							'type' => 'naq',
+							'level' => $level,
+							'seed' => $seed
+						);
+						$this->common_model->insert_array('answers', $insert_ans);
+					}
+				}
+	
+				$count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $user_id, 'type' => 'naq', 'response_date' => date('Y-m-d')));
+				if ($count < 1) {
+					$score_data = array(
+						'type' => 'naq',
 						'user_id' => $user_id,
 						'response_id' => $response_id,
-						'type' => 'naq',
 						'level' => $level,
-						'seed' => $seed
+						'seed' => $seed,
+						'response_date' => date('Y-m-d')
 					);
-					$this->common_model->insert_array('answers', $insert_ans);
+					$this->common_model->insert_array('scores', $score_data);
 				}
-			}
 	
-			$count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $user_id, 'type' => 'naq', 'response_date' => date('Y-m-d')));
-			if ($count < 1) {
-				$score_data = array(
-					'type' => 'naq',
-					'user_id' => $user_id,
-					'response_id' => $response_id,
-					'level' => $level,
-					'seed' => $seed,
-					'response_date' => date('Y-m-d')
-				);
-				$this->common_model->insert_array('scores', $score_data);
-			}
+				$response = $this->common_model->join_tab_where_left("a.*, q.title", 'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id' => $response_id), 'q.id', 'ASC');
 	
-			$response = $this->common_model->join_tab_where_left("a.*, q.title", 'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id' => $response_id), 'q.id', 'ASC');
+				if ($response->num_rows() > 0) {
+					$answer_array = $response->result_array();
 	
-			if ($response->num_rows() > 0) {
-				$answer_array = $response->result_array();
+					$total_score = array_reduce($answer_array, function ($acc, $value) {
+						$options = $value['options'];
+						$score = ($options === 'never') ? 1 : (($options === 'rarely') ? 2 : (($options === 'often') ? 3 : (($options === 'always') ? 4 : 0)));
+						return $acc + $score;
+					}, 0);
 	
-				$total_score = array_reduce($answer_array, function ($acc, $value) {
-					$options = $value['options'];
-					$score = ($options === 'never') ? 1 : (($options === 'rarely') ? 2 : (($options === 'often') ? 3 : (($options === 'always') ? 4 : 0)));
-					return $acc + $score;
-				}, 0);
+					$naq_score = array(
+						'user_id' => $user_id,
+						'score' => $total_score,
+						'response_id' => $response_id,
+						'level' => $level,
+						'seed' => $seed,
+						'response_date' => date('Y-m-d H:i:s')
+					);
+					$this->common_model->insert_array('naq_scores', $naq_score);
 	
-				$naq_score = array(
-					'user_id' => $user_id,
-					'score' => $total_score,
-					'response_id' => $response_id,
-					'level' => $level,
-					'seed' => $seed,
-					'response_date' => date('Y-m-d H:i:s')
-				);
-				$this->common_model->insert_array('naq_scores', $naq_score);
+					$status = $this->common_model->select_single_field('mail_resp', 'users', array('id' => $user_id));
 	
-				$status = $this->common_model->select_single_field('mail_resp', 'users', array('id' => $user_id));
+					if ($status == 'yes') {
+						$subject = 'Response Submit Confirmation';
+						$message = "Dear <b>" . $name . " </b> <br>";
+						$message .= "Your answers for Burgeon have been submitted successfully. <br>";
+						$message .= "Your NAQ Score is <b>" . $total_score . "/100" . "</b> <br>  <hr>";
+						$message .= '<table>';
 	
-				if ($status == 'yes') {
-					$subject = 'Response Submit Confirmation';
-					$message = "Dear <b>" . $name . " </b> <br>";
-					$message .= "Your answers for Burgeon have been submitted successfully. <br>";
-					$message .= "Your NAQ Score is <b>" . $total_score . "/100" . "</b> <br>  <hr>";
-					$message .= '<table>';
+						foreach ($answer_array as $key => $value) {
+							$no = $key + 1;
+							$question_title = preg_replace('/Q[0-9]+: /', ' ', strip_tags($value['title']));
+							$message .= "<tr> <td> <b>Question " . $no . " : </b> " . $question_title . " </td> </tr>";
 	
-					foreach ($answer_array as $key => $value) {
-						$no = $key + 1;
-						$question_title = preg_replace('/Q[0-9]+: /', ' ', strip_tags($value['title']));
-						$message .= "<tr> <td> <b>Question " . $no . " : </b> " . $question_title . " </td> </tr>";
-	
-						if ($value['options'] == 'yes' && !empty($value['text'])) {
-							$message .= "<tr> <td> <b>Why chosen yes?: </b> " . strip_tags($value['text']) . "</td> </tr>";
-						} else {
-							$message .= "<tr> <td> <b>Answer: </b> " . ($value['options'] ? ucfirst($value['options']) : strip_tags($value['text'])) . "</td> </tr>";
+							if ($value['options'] == 'yes' && !empty($value['text'])) {
+								$message .= "<tr> <td> <b>Why chosen yes?: </b> " . strip_tags($value['text']) . "</td> </tr>";
+							} else {
+								$message .= "<tr> <td> <b>Answer: </b> " . ($value['options'] ? ucfirst($value['options']) : strip_tags($value['text'])) . "</td> </tr>";
+							}
+							$message .= "<tr><td><hr></td></tr>";
 						}
-						$message .= "<tr><td><hr></td></tr>";
-					}
 	
-					$message .= '</table>';
+						$message .= '</table>';
 	
-					$this->email->set_newline("\r\n");
-					$this->email->set_mailtype('html');
-					$this->email->from($this->smtp_user, 'Burgeon');
-					$this->email->to($email);
-					$this->email->subject($subject);
-					$this->email->message($message);
-	
-					if ($this->email->send()) {
+					    $this->email->set_newline("\r\n");
+						$this->email->set_mailtype('html');
+						$this->email->from($this->smtp_user, 'Burgeon');
+						$this->email->to($email);
+						$this->email->subject($subject);
+						$this->email->message($message);
+						if ($this->email->send()) {
+							$response = [
+								'status' => 200,
+								'message' => 'Mail sent successfully',
+								'total_score' => $total_score
+							];
+							$this->set_response($response, REST_Controller::HTTP_OK);
+						} else {
+							$error = $this->email->print_debugger();
+							$response = [
+								'status' => 500,
+								'message' => 'Email Error:' . $error
+							];
+							$this->set_response($response, REST_Controller::HTTP_INTERNAL_SERVER_ERROR);
+						}
+					} else {
 						$response = [
 							'status' => 200,
-							'message' => 'Mail sent successfully',
+							'message' => 'Data inserted, mail not allowed',
 							'total_score' => $total_score
 						];
 						$this->set_response($response, REST_Controller::HTTP_OK);
-					} else {
-						$error = $this->email->print_debugger();
-						$response = [
-							'status' => 500,
-							'message' => 'Email Error:' . $error
-						];
-						$this->set_response($response, REST_Controller::HTTP_INTERNAL_SERVER_ERROR);
 					}
 				} else {
 					$response = [
-						'status' => 200,
-						'message' => 'Data inserted, mail not allowed',
-						'total_score' => $total_score
+						'status' => 400,
+						'message' => 'Response submit failed'
 					];
-					$this->set_response($response, REST_Controller::HTTP_OK);
+					$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 				}
 			} else {
 				$response = [
 					'status' => 400,
-					'message' => 'Response submit failed'
+					'message' => 'Invalid JSON format'
 				];
 				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 			}
-		} else {
+		}
+		else{
 			$response = [
 				'status' => 400,
-				'message' => 'Invalid JSON format'
+				'message' => 'User Not Found'
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
-	}
+	}	
 
 	public function forgot_password_post()
 	{
@@ -2432,82 +2455,108 @@ class Api extends REST_Controller {
 		}
 	}
 
-	public function insert_reminder_post(){
-		$formated_date = '';
-		if($_POST['reminder_type'] == 'once'){
-			$days_list = '[]';
-		}else{
-			$input = $_POST['day_list'];
-			$input = str_replace(['[', ']', '\''], '', $input);
-			$weekdays = array_map('trim', explode(',', $input));
-			
-			$order = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-			usort($weekdays, function ($a, $b) use ($order) {
-				return array_search(strtolower($a), $order) - array_search(strtolower($b), $order);
-			});
-			
-			$weekdays = array_map('ucfirst', $weekdays);
-			$days_list = json_encode($weekdays);
-			
-		}
-
-		if(isset($_POST['date'])){
-			$dateObj = DateTime::createFromFormat('m-d-y', $_POST['date']);
-			$formated_date = $dateObj->format('Y-m-d');
-
-            $time = $_POST['time'].' '.$_POST['time_type'];
-            $datetime = DateTime::createFromFormat('Y-m-d h:i A', $formated_date . ' ' . $time);
-            $datetime_str = $datetime->format('Y-m-d H:i:s');
-		}
-
-		$end_date = NULL;
-        if (isset($_POST['end_date']) && !empty($_POST['end_date'])) {
-            $dateObj = DateTime::createFromFormat('m-d-y', $_POST['end_date']);
-            $end_date = $dateObj->format('Y-m-d');
-        }
-
-        $insert_data = [
-			'user_id' => $_POST['user_id'],
-            'text' => $_POST['text'],
-			'day_list' => $days_list,
-			'status' => $_POST['status'],
-			'date_time' => $datetime_str,
-			'end_date' => $end_date,
-			'reminder_type' => $_POST['reminder_type']
-		];
-
-        $reminder_id = $this->common_model->insert_array('reminders', $insert_data);
-
-        if ($reminder_id) {
-			$insert_id = $this->db->insert_id(); 
-
-			$post_fields = [
-				'id' => $insert_id,
+	public function insert_reminder_post() {
+		$user_id = $_POST['user_id'];
+	
+		$data['login'] = $this->common_model->select_where("*", "users", array('id' => $user_id, 'type' => 'user'));
+	
+		if ($data['login']->num_rows() > 0) {
+			$user_data = $data['login']->row_array();
+	
+			$row_count = $this->common_model->select_where("*", "reminders", array('user_id' => $user_id))->num_rows();
+	
+			if ($user_data['is_premium'] == 'no' && $row_count >= 2) {
+				$response = [
+					'status' => 400,
+					'message' => 'More responses not allowed.'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+				return; // Exit the function if the limit is reached.
+			}
+	
+			$formatted_date = '';
+	
+			if ($_POST['reminder_type'] == 'once') {
+				$days_list = '[]';
+			} else {
+				$input = $_POST['day_list'];
+				$input = str_replace(['[', ']', '\''], '', $input);
+				$weekdays = array_map('trim', explode(',', $input));
+	
+				$order = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+				usort($weekdays, function ($a, $b) use ($order) {
+					return array_search(strtolower($a), $order) - array_search(strtolower($b), $order);
+				});
+	
+				$weekdays = array_map('ucfirst', $weekdays);
+				$days_list = json_encode($weekdays);
+			}
+	
+			if (isset($_POST['date'])) {
+				$dateObj = DateTime::createFromFormat('m-d-y', $_POST['date']);
+				$formatted_date = $dateObj->format('Y-m-d');
+	
+				$time = $_POST['time'] . ' ' . $_POST['time_type'];
+				$datetime = DateTime::createFromFormat('Y-m-d h:i A', $formatted_date . ' ' . $time);
+				$datetime_str = $datetime->format('Y-m-d H:i:s');
+			}
+	
+			$end_date = NULL;
+	
+			if (isset($_POST['end_date']) && !empty($_POST['end_date'])) {
+				$dateObj = DateTime::createFromFormat('m-d-y', $_POST['end_date']);
+				$end_date = $dateObj->format('Y-m-d');
+			}
+	
+			$insert_data = [
 				'user_id' => $_POST['user_id'],
 				'text' => $_POST['text'],
 				'day_list' => $days_list,
-				'date' => $formated_date,
-				'time' => $_POST['time'],
-				'time_type' => $_POST['time_type'],
-				'end_date' => $end_date,
 				'status' => $_POST['status'],
+				'date_time' => $datetime_str,
+				'end_date' => $end_date,
 				'reminder_type' => $_POST['reminder_type']
 			];
-
-			$response = [
-				'status' => 200,
-				'message' => 'Reminder successfully Created ', 
-				'post_data' => $post_fields
-			];
-			$this->set_response($response, REST_Controller::HTTP_OK);
-        } else {
+	
+			$reminder_id = $this->common_model->insert_array('reminders', $insert_data);
+	
+			if ($reminder_id) {
+				$insert_id = $this->db->insert_id();
+	
+				$post_fields = [
+					'id' => $insert_id,
+					'user_id' => $_POST['user_id'],
+					'text' => $_POST['text'],
+					'day_list' => $days_list,
+					'date' => $formatted_date,
+					'time' => $_POST['time'],
+					'time_type' => $_POST['time_type'],
+					'end_date' => $end_date,
+					'status' => $_POST['status'],
+					'reminder_type' => $_POST['reminder_type']
+				];
+	
+				$response = [
+					'status' => 200,
+					'message' => 'Reminder successfully created',
+					'post_data' => $post_fields
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			} else {
+				$response = [
+					'status' => 400,
+					'message' => 'Reminder not created'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+	   	} else {
 			$response = [
 				'status' => 400,
-				'message' => 'Reminder not created'
+				'message' => 'user not created'
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-        }
-    }
+		}
+	}
 
 	public function read_reminder_post(){
 		$user_id = $_POST['user_id'];
