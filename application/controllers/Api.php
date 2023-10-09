@@ -61,7 +61,7 @@ class Api extends REST_Controller {
 				if(isset($_POST['device_token'])){
 					$data['device_token'] = $_POST['device_token'];
 				}
-					
+ 				
 				$data['password'] = sha1($password);
 				$data['type'] = 'user';
 				$data['status'] = 'active';
@@ -90,33 +90,45 @@ class Api extends REST_Controller {
 		$user_id	=	$_POST['user_id'];
 		$result = $this->common_model->select_where("*", "users", array('id'=>$user_id , 'type'=>'user'))->result_array();
 		if($result){
+			$update = array();
 			if(!empty($_POST['name'])){
 				$update['name'] = $_POST['name'];
-				$this->common_model->update_array(array('id'=> $user_id), 'users', $update);
 			}if(!empty($_POST['email'])){
 				$update['email'] = $_POST['email'];
-				$this->common_model->update_array(array('id'=> $user_id), 'users', $update);
 			}if(!empty($_POST['time_zone'])){
 				$update['time_zone'] = $_POST['time_zone'];
-				$this->common_model->update_array(array('id'=> $user_id), 'users', $update);
 			}if(!empty($_POST['device_token'])){
 				$update['device_token'] = $_POST['device_token'];
-				$this->common_model->update_array(array('id'=> $user_id), 'users', $update);
+			}if ($_FILES['profile_img']['name'] != '') {
+				$temp = $_FILES['profile_img']['tmp_name'];
+			
+				$image_filename = $user_id . '.png';
+				$path = './uploads/app_users/' . $image_filename;
+			
+				if (isset($result[0]['image'])) {
+					$old_image_path = './uploads/app_users/' . $result[0]['image'];
+					if (file_exists($old_image_path) && is_file($old_image_path)) {
+						unlink($old_image_path);
+					}
+				}
+				move_uploaded_file($temp, $path);
+				$update['image'] = $image_filename;
 			}
-			// if($this->db->affected_rows()> 0){
-				$response = [
-					'status' => 200,
-					'message' => 'profile updated successfully'
-				];
-				$this->set_response($response, REST_Controller::HTTP_OK);
-			// }
-		}
-		else{
-				$response = [
-					'status' => 200,
-					'message' => 'user not found'
-				];
-				$this->set_response($response, REST_Controller::HTTP_OK);
+			if (!empty($update)) {
+				$this->common_model->update_array(array('id' => $user_id), 'users', $update);
+			}
+	
+			$response = [
+				'status' => 200,
+				'message' => 'Profile updated successfully'
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 200,
+				'message' => 'User not found'
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
 	}
 
@@ -3121,4 +3133,333 @@ class Api extends REST_Controller {
 		}
 	}
 
+	public function search_user_post(){
+		$name = $_POST['name'];
+		$sender_id = $_POST['sender_id'];
+	
+		$where_condition = "name LIKE '%" . $name . "%'";
+		$results = $this->common_model->select_where("id, name, email, time_zone, image", 'users', $where_condition)->result_array();
+	
+		if (!empty($results)) {
+
+			$response_data = [];
+			foreach ($results as $user) {
+				$user['image_url'] = base_url('uploads/app_user/') . $user['image'];
+				$user['connection_exist'] = $this->common_model->select_where('*', 'connection', ['sender_id' => $sender_id , 'receiver_id' => $user['id']])->num_rows() > 0 ? 'yes' : 'no';
+				$response_data[] = $user;
+			}			
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'users_data' => $response_data,
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+	
+	public function mail_confirmation_post() {
+		$sender_id = $this->input->post('sender_id');
+		$receiver_email = $this->input->post('email');
+		$receiver_name = $this->input->post('name');
+		$receiver_role = $this->input->post('role');	
+		$sender = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
+	
+		if (empty($sender)) {
+			$response = [
+				'status' => 404,
+				'message' => 'Sender not found in the database',
+			];
+			$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
+			return;
+		}
+	
+		$receiver = $this->common_model->select_where('*', 'users', ['email' => $receiver_email])->row_array();
+	
+		if (empty($receiver)) {
+			$response = [
+				'status' => 404,
+				'message' => 'Receiver not found in the database',
+			];
+			$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
+			return;
+		}
+	
+		$existing_notification = $this->common_model->select_where('*', 'connection', [
+			'receiver_id' => $receiver['id'],
+			'sender_id' => $sender_id,
+		])->row_array();
+	
+		if (empty($existing_notification)) {
+			$notification_data = [
+				'sender_id' => $sender_id,
+				'receiver_id' => $receiver['id'],
+				'role' => $receiver_role,
+				'message' => $sender['name'] . ' has sent you the invitation for ' . $receiver_role,
+			];
+	
+			$this->common_model->insert_array('connection', $notification_data);
+	
+			$data_array = [
+				'receiver_name' => $receiver_name,
+				'receiver_role' => $receiver_role,
+				'sender_name' => $sender['name'],
+				'receiver_id' => $receiver['id'],
+				'sender_id' => $sender_id
+			];
+	
+			$data_json = json_encode($data_array);
+			$data_encoded = urlencode($data_json);
+			$url = base_url() . "welcome/invitation_email?data=" . $data_encoded;
+	
+			$message = "<p>Hi " . $receiver_name . ",</p>";
+			$message .= "<p>" . $sender['name'] . " has sent you the invitation for " . $receiver_role . "</p>";
+			$message .= "<p>Click the link below to accept or reject the invitation</p>";
+			$message .= "<p><a href='" . $url . "'>Invitation Link</a></p>";
+	
+			$this->email->set_newline("\r\n");
+			$this->email->set_mailtype('html');
+			$this->email->from($this->smtp_user, 'Burgeon');
+			$this->email->to($receiver_email);
+			$this->email->subject('Burgeon Invitation');
+			$this->email->message($message);
+	
+			if ($this->email->send()) {
+				$response = [
+					'status' => 200,
+					'message' => 'Invitation sent successfully',
+					'user_email' => $receiver_email,
+				];
+			} else {
+				$response = [
+					'status' => 500,
+					'message' => 'Failed to send invitation email',
+				];
+			}
+		} else {
+			$response = [
+				'status' => 200,
+				'message' => 'you have already sent an invitation',
+			];
+		}
+	
+		$this->set_response($response, REST_Controller::HTTP_OK);
+	}
+
+	public function accept_invite_get() {
+		$receiver_id = $this->input->get('receiver_id');
+		$sender_id = $this->input->get('sender_id');
+		$receiver_role = $this->input->get('receiver_role');
+		
+		$update_data = ['accept' => 'yes'];
+	
+		$conditions = [
+			'receiver_id' => $receiver_id,
+			'sender_id' => $sender_id,
+		];
+	
+		$tribe_new = $this->common_model->select_where("*", "connection", $conditions)->row_array();
+	
+		if ($tribe_new) {
+			$this->common_model->update_array($conditions, 'connection', $update_data);
+			redirect('welcome/thank_you');
+		} else {
+			return 'error';
+		}
+	}
+	
+	public function reject_invite_get() {
+		$sender_id = $_GET['sender_id'];
+		$receiver_id = $_GET['receiver_id'];
+	
+		$sender = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
+		$receiver = $this->common_model->select_where('*', 'users', ['id' => $receiver_id])->row_array();	
+
+		$message = 'Hi ' . $sender['name'] . ',<br /><br />';
+		$message .= $receiver['name']. ' has rejected your invitation.<br />';
+
+		$this->email->set_newline("\r\n");
+		$this->email->set_mailtype('html');
+		$this->email->from($this->smtp_user, 'Burgeon');
+		$this->email->to($sender['email']);
+		$this->email->subject('Burgeon Invitation Rejected');
+		$this->email->message($message);
+
+		if ($this->email->send()) {
+			redirect('welcome/thank_you');
+		} else {
+			$response = [
+				'status' => 500,
+				'message' => 'Failed to send rejection email to sender',
+			];
+			$this->set_response($response, REST_Controller::HTTP_INTERNAL_SERVER_ERROR);
+		}
+
+	}
+
+	public function invite_notification_post() {
+		$user_id = $_POST['user_id'];
+	
+		$connection_data = $this->common_model->select_where('*', 'connection', ['receiver_id' => $user_id])->result_array();
+	
+		if (empty($connection_data)) {
+			$response = [
+				'status' => 200,
+				'message' => 'No notifications found for the user',
+			];
+		} else {
+			$response = [
+				'status' => 200,
+				'data' => [],
+			];
+	
+			foreach ($connection_data as $connection) {
+				$sender_id = $connection['sender_id'];
+	
+				$user_data = $this->common_model->select_where('*', 'users', ['id' => $user_id])->row_array();
+				$sender_data = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
+	
+				$connection_info = [
+					'id' => $connection['id'],
+					'sender_id' => $sender_id,
+					'receiver_id' => $connection['receiver_id'],
+					'role' => $connection['role'],
+					'message' => $connection['message'],
+					'image' => base_url()."uploads/app_users/" . $user_data['image'],
+					'sender_name' => $sender_data['name'],
+					'receiver_name' => $user_data['name'],
+				];
+	
+				$response['data'][] = $connection_info;
+			}
+		}
+	
+		$this->set_response($response, REST_Controller::HTTP_OK);
+	}
+	
+	public function chat_connection_post() {
+		$user_id = $_POST['user_id'];
+	
+		$condition = [
+			'receiver_id' => $user_id,
+			'accept' => 'yes',
+		];
+	
+		$connection_data = $this->common_model->select_where('*', 'connection', $condition)->result_array();
+        	
+		if (empty($connection_data)) {
+			$response = [
+				'status' => 200,
+				'message' => 'No notifications found for the user',
+			];
+		} else {
+			$response = [
+				'status' => 200,
+				'data' => [],
+			];
+	
+			foreach ($connection_data as $connection) {
+				$sender_id = $connection['sender_id'];
+	
+				$user_data = $this->common_model->select_where('*', 'users', ['id' => $user_id])->row_array();
+				$sender_data = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
+	
+				$connection_info = [
+					'id' => $connection['id'],
+					'accept' => $connection['accept'],
+					'sender_id' => $sender_id,
+					'receiver_id' => $connection['receiver_id'],
+					'role' => $connection['role'],
+					'message' => $connection['message'],
+					'image' => base_url()."uploads/app_users/" . $user_data['image'],
+					'sender_name' => $sender_data['name'],
+					'receiver_name' => $user_data['name'],
+				];
+	
+				$response['data'][] = $connection_info;
+			}
+		}
+	
+		$this->set_response($response, REST_Controller::HTTP_OK);
+
+	}
+	
+	public function chat_connection_delete_post() {
+		$sender_id = $_POST['sender_id'];
+		$receiver_id = $_POST['receiver_id'];
+
+		$delete_co = $this->db-> where(['sender_id' => $sender_id, 'receiver_id' => $receiver_id])->delete('connection');
+
+		if ($delete_co) {
+			$response = [
+				'status' => 200,
+				'response' => 'Connection deleted successfully',
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$error_response = [
+				'status' => 400, 
+				'response' => 'Data deletion failed',
+			];
+			$this->set_response($error_response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+
+	}
+
+	public function chat_room_insert_post() {
+		$sender_id = $_POST['sender_id'];
+		$receiver_id = $_POST['receiver_id'];
+		$entry_text = $_POST['entry_text'];
+		$chat_id = $_POST['chat_id'];
+	
+		$data = [
+			'receiver_id' => $receiver_id,
+			'sender_id' => $sender_id,
+			'chat_id' => $chat_id,
+			'entry_text' => $entry_text,
+		];
+	
+		$insert_result = $this->common_model->insert_array('chat_room', $data);
+	
+		if ($insert_result) {
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'response' => $data,
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$error_response = [
+				'status' => 400, 
+				'message' => 'Data insertion failed',
+			];
+			$this->set_response($error_response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function chat_room_read_post() {
+		$chat_id = $_POST['chat_id'];
+
+		$data = $this->common_model->select_where('*', 'chat_room', ['chat_id' => $chat_id])->result_array();
+
+		if (!empty($data)) {
+			$response = [
+				'status' => 200,
+				'response' => $data,
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$response = [
+				'status' => 200,
+				'response' => 'No data found',
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}
+	}
+         
 }

@@ -84,4 +84,12 @@ class Welcome extends CI_Controller {
 
 	// 	}
 	// }
+
+	public function invitation_email(){
+		$this->load->view('admin/mail_confirmation');
+	}
+
+	public function thank_you(){
+		$this->load->view('thank_you');
+	}
 }
