@@ -595,5 +595,51 @@ class Common_model extends  CI_Model {
 		return $result;	
 		
 	}
+
+	public function getChatRoomData() {
+		$this->db->select('chat_room.read_at, chat_room.chat_id, chat_room.receiver_id, users.name, users.image, chat_room.entry_text, chat_room.sender_id');
+		$this->db->from('chat_room');
+		$this->db->join('users', 'chat_room.sender_id = users.id');
+		$this->db->group_by('chat_room.chat_id');
+
+		$query = $this->db->get();
+	
+		if ($query->num_rows() > 0) {
+			return $query->result();
+		} else {
+			return array();
+		}
+	}
+	
+
+    public function chat_messages($chat_id) {
+        $this->db->select('chat_room.chat_id, chat_room.receiver_id, users.name, users.image, chat_room.entry_text, chat_room.sender_id, DATE_FORMAT(chat_room.created_at, "%h:%i %p") as created_at');
+        $this->db->from('chat_room');
+        $this->db->join('users', 'chat_room.sender_id = users.id');
+        $this->db->where('chat_room.chat_id', $chat_id);
+        $query = $this->db->get();
+
+        if ($query->num_rows() > 0) {
+            return $query->result();
+        } else {
+            return array();
+        }
+    }
+
+	public function unread_messages_count($chat_id) {
+		$this->db->select('COUNT(*) as count');
+		$this->db->from('chat_room');
+		$this->db->where('chat_room.chat_id', $chat_id);
+		$this->db->where('chat_room.read_at', NULL);
+		$query = $this->db->get();
+
+		if ($query->num_rows() > 0) {
+			return $query->result();
+		} else {
+			return array();
+		}
+	}
+	
+
 }
 ?>

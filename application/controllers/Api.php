@@ -1148,6 +1148,7 @@ class Api extends REST_Controller {
 	// Trellis API's Start
 	public function ladder_post(){
 		$user_id = $_POST['user_id'];
+		$insert_from = $_POST['insert_from'];
 
 		$response_id = random_string('numeric', 8);
 		
@@ -1178,6 +1179,12 @@ class Api extends REST_Controller {
 				$insert['type'] = $_POST['type'];
 				$insert['level'] = $level;
 		        $insert['seed'] = $seed;
+
+				if ($insert_from == 'ladder') {
+					$insert['favourite'] = 'no';
+				} elseif ($insert_from == 'trellis') {
+					$insert['favourite'] = 'yes';
+				}				 
 				if(isset($_POST['option1']) && !empty($_POST['option1'])){
 					$insert['option1'] = $_POST['option1'];
 				}
@@ -1213,7 +1220,7 @@ class Api extends REST_Controller {
 					$this->common_model->insert_array('scores', $score_data);
 				}
 				$_POST['id'] = $last_insert_id;
-				$_POST['favourite'] = 'no';
+				$_POST['insert_from'] = $insert_from;
 				$response = [
 					'status' => 200,
 					'message' => 'success',
@@ -3310,7 +3317,7 @@ class Api extends REST_Controller {
 		if (empty($connection_data)) {
 			$response = [
 				'status' => 200,
-				'message' => 'No notifications found for the user',
+				'data' => [],
 			];
 		} else {
 			$response = [
@@ -3355,7 +3362,7 @@ class Api extends REST_Controller {
 		if (empty($connection_data)) {
 			$response = [
 				'status' => 200,
-				'message' => 'No notifications found for the user',
+                'data' => [], 
 			];
 		} else {
 			$response = [
@@ -3456,10 +3463,151 @@ class Api extends REST_Controller {
 		} else {
 			$response = [
 				'status' => 200,
-				'response' => 'No data found',
+				'data' => [],
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
 	}
-         
+
+	public function accept_invite_app_get() {
+		$receiver_id = $this->input->get('receiver_id');
+		$sender_id = $this->input->get('sender_id');
+		$receiver_role = $this->input->get('receiver_role');
+		
+		$update_data = ['accept' => 'yes'];
+	
+		$conditions = [
+			'receiver_id' => $receiver_id,
+			'sender_id' => $sender_id,
+		];
+	
+		$tribe_new = $this->common_model->select_where("*", "connection", $conditions)->row_array();
+	
+		if ($tribe_new) {
+			$this->common_model->update_array($conditions, 'connection', $update_data);
+			
+		   $response = [
+				'status' => 200,
+				'response' => 'You have accepted this connection',
+		   ];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+
+		} else {
+			$response = [
+				'status' => 400, 
+				'response' => 'you have rejected this connection',
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+	
+	public function reject_invite_app_get() {
+		$sender_id = $_GET['sender_id'];
+		$receiver_id = $_GET['receiver_id'];
+	
+		$sender = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
+		$receiver = $this->common_model->select_where('*', 'users', ['id' => $receiver_id])->row_array();	
+
+		$message = 'Hi ' . $sender['name'] . ',<br /><br />';
+		$message .= $receiver['name']. ' has rejected your invitation.<br />';
+
+		$this->email->set_newline("\r\n");
+		$this->email->set_mailtype('html');
+		$this->email->from($this->smtp_user, 'Burgeon');
+		$this->email->to($sender['email']);
+		$this->email->subject('Burgeon Invitation Rejected');
+		$this->email->message($message);
+
+		if ($this->email->send()) {
+			$response = [
+				'status' => 200,
+				'message' => 'Invitation rejected successfully',
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$response = [
+				'status' => 500,
+				'message' => 'Failed to send rejection email to sender',
+			];
+			$this->set_response($response, REST_Controller::HTTP_INTERNAL_SERVER_ERROR);
+		}
+
+	}
+
+	public function single_naq_response_post() {
+		$response_id = $_POST['response_id'];
+		
+		if ($response_id <= 0) {
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters',
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+		
+		$data = $this->common_model->select_where('options, text, response_id', 'answers', ['response_id' => $response_id, 'type' => 'naq'])->result_array();
+		
+		if (empty($data)) {
+			$response = [
+				'status' => 400,
+				'message' => 'Response not found',
+			];
+			$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
+		} else {
+			$response = [
+				'status' => 200,
+				'responses' => $data,
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}
+	}
+		 
+	public function single_pire_response_post() {
+		$response_id = $_POST['response_id'];
+		
+		if ($response_id <= 0) {
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters',
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+		
+		$data = $this->common_model->select_where('options, text, response_id', 'answers', ['response_id' => $response_id, 'type' => 'pire'])->result_array();
+		
+		if (empty($data)) {
+			$response = [
+				'status' => 400,
+				'message' => 'Response not found',
+			];
+			$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
+		} else {
+			$response = [
+				'status' => 200,
+				'responses' => $data,
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+	    }
+	}
+
+	public function all_answers_response_post() {
+		$user_id = $_POST['user_id'];
+		$type = $_POST['type'];
+
+		$data = $this->common_model->select_where_groupby('type, response_id', 'answers', ['user_id' => $user_id, 'type' => $type], 'response_id')->result_array();
+
+		if (empty($data)) {
+			$response = [
+				'status' => 400,
+				'message' => 'Response not found',
+			];
+			$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
+		} else {
+			$response = [
+				'status' => 200,
+				'responses' => $data,
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}
+	}
 }

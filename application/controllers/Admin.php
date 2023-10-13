@@ -434,18 +434,18 @@ class Admin extends CI_Controller {
                         case 'never':
                             $option = '1-'.$options ;
                             break;
-                        case 'rarely':
-                            $option = '2-'.$options ;
-                            break;
-                        case 'often':
-                            $option = '3-'.$options ;
-                            break;
-                        case 'always':
-                            $option = '4-'.$options ;
-                            break;
-						default:
-						 	$option = $options ;
-                    }
+							case 'rarely':
+							$option = '2-'.$options ;
+							break;
+							case 'often':
+								$option = '3-'.$options ;
+								break;
+							case 'always':
+								$option = '4-'.$options ;
+								break;
+							default:
+								$option = $options ;
+							}
 										
 					$csv_data[] = $option;
 
@@ -465,8 +465,69 @@ class Admin extends CI_Controller {
 	
 		fclose($output);
 	}	
+
+	public function chat_room(){	
+		$chat_rooms = $this->common_model->getChatRoomData();
+		$data['chat_room'] = [];
+		
+		foreach ($chat_rooms as $chat_room) {
+			$unread_count = $this->common_model->unread_messages_count($chat_room->chat_id);
+			$chat_entry = [
+				'chat_id' => $chat_room->chat_id,
+				'receiver_id' => $chat_room->receiver_id,
+				'name' => $chat_room->name,
+				'image' => $chat_room->image,
+				'entry_text' => $chat_room->entry_text,
+				'sender_id' => $chat_room->sender_id,
+				'unread_count' => isset($unread_count[0]->count) ? $unread_count[0]->count : 0,
+			];
+		
+			$data['chat_room'][] = $chat_entry;
+		}
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/chat_room', $data);
+		$this->load->view('admin/include/footer');
+		
+
+	}
 	
-}
+	public function chat_messages($chat_id) {
+		$chats = $this->common_model->chat_messages($chat_id);
+		$logged_id = $this->session->userdata('userid');
+		$messages = [
+			'messages' => $chats,
+			'logged_id' => $logged_id
+		];
+	
+		echo json_encode($messages);
+	}
 
+	public function insert_feedback() {
+		$sender_id = $this->session->userdata('userid');
+		$chat_id = $this->input->post('chat_id');
+		$entry_text = $this->input->post('entry_text');
+
+		$data = array(
+			'chat_id' => $chat_id,
+			'sender_id' => $sender_id,
+			'entry_text' => $entry_text,
+		);
+		$result = $this->common_model->insert_array('chat_room', $data);
+
+		if ($result) {
+			echo 'success';
+		} else {
+			echo 'error';
+		}
+	}
+
+	public function read_chat_messages($chat_id) {
+		if ($chat_id) {
+			$data = [
+				'read_at' => date('Y-m-d H:i:s'),
+			];
+			$this->common_model->update_array(array('chat_id'=> $chat_id), 'chat_room', $data);
+		}
+	}
+} 
 ?>
-
