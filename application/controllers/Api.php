@@ -2807,7 +2807,14 @@ class Api extends REST_Controller {
 			$entity_id = $_POST['entity_id'];
 			$reminder_stop = $_POST['reminder_stop'];
 
-			$this->common_model->update_array(array('id' => $entity_id), "reminders", array('reminder_stop' => $reminder_stop, 'updated_at' => date('Y-m-d H:i:s')));
+			$interactionData = array(
+				'entity_id' => $entity_id,
+				'reminder_stop' => $reminder_stop,
+				'created_at' => date('Y-m-d H:i:s')
+			);
+			$this->common_model->insert_array("reminder_history", $interactionData);
+
+			$this->common_model->update_array(array('id' => $entity_id), "reminders", array('reminder_stop' => 'skip', 'updated_at' => date('Y-m-d H:i:s')));
 
 			if($this->db->affected_rows() > 0){
 				$response = [
@@ -2845,7 +2852,7 @@ class Api extends REST_Controller {
 				$userTime = new DateTimeZone($validTimeZone);
 				$currentTime = new DateTimeImmutable('now', $userTime);
 		
-				$skipped_reminders = $this->get_skipped_reminders($user_id, $currentTime);
+				$skipped_reminders = $this->common_model->get_reminders($user_id, $currentTime);
 		
 				if (!empty($skipped_reminders)) {
 					$response = [
@@ -2877,27 +2884,7 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
-	
-	// Helper function to get skipped reminders
-	private function get_skipped_reminders($user_id, $currentTime) {
-
-		// echo 'get_skipped_reminders'. $currentTime->format('Y-m-d H:i:s'); exit;
-		$skipped_reminders = [];
-	
-		$query = $this->common_model->select_where("*", "reminders", array(
-			'status' => 'active',
-			'user_id' => $user_id,
-			'reminder_stop' => 'skip',
-			'snooze' => 'no',
-			'date_time <=' => $currentTime->format('Y-m-d H:i:s')
-		));
-	
-		if ($query->num_rows() > 0) {
-			$skipped_reminders = $query->result_array();
-		}
-	
-		return $skipped_reminders;
-	}
+ 
 
 
 	// Garden Upgraded with new schema
