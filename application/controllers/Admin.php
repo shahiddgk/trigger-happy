@@ -48,6 +48,12 @@ class Admin extends CI_Controller {
 			});
 		}
 
+		$allowedTypes = ['pire', 'naq'];
+
+		$questions = array_filter($questions, function($question) use ($allowedTypes) {
+			return in_array($question['type'], $allowedTypes);
+		});
+
 		$data['questions'] = $questions;
 
 		$this->load->view('admin/include/header');
@@ -528,6 +534,85 @@ class Admin extends CI_Controller {
 			];
 			$this->common_model->update_array(array('chat_id'=> $chat_id), 'chat_room', $data);
 		}
+	}
+
+	// pire positive questions
+
+	public function pire_positive(){
+		$data['page_title'] = 'Pire Pos Questions List';
+		$questions = $this->common_model->select_all_order_by('*', 'questions', 'id', 'ASC')->result_array();
+	
+		// Filter questions where 'type' is equal to 'pire_pos'
+		$filteredQuestions = array_filter($questions, function($question) {
+			return $question['type'] === 'pire_pos';
+		});
+	
+		$data['questions'] = $filteredQuestions;
+	
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/pire_positive', $data);
+		$this->load->view('admin/include/footer');
+	}
+
+	public function add_pire_positive(){
+		$data['page_title'] = 'Pire Positive Question';
+
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/add_pire_positive', $data);
+		$this->load->view('admin/include/footer');
+	}
+
+	public function insert_pire_positive(){
+		$json_options = 'NULL';
+		$data['title'] = $this->input->post('q_title');
+		$data['response_type'] = $this->input->post('res_type');
+		$data['sub_title'] = $this->input->post('sub_title');
+		$data['video_url'] = $this->input->post('video_url');
+		if($_POST['res_type'] == 'open_text'){
+			$data['text_length'] = $this->input->post('text_length');
+		}
+		if(!empty($_POST['q_options'])){
+			$json_options = json_encode($this->input->post('q_options'));
+		}
+		$data['options'] = $json_options;
+		$data['type'] = $this->input->post('question_for');
+		$this->db->insert('questions', $data);
+
+		redirect('admin/pire_positive'); 
+	}
+
+	public function edit_pire_positive($id){
+
+		$data['page_title'] = 'Edit Question';
+		$data['question'] = $this->common_model->select_where("*" , 'questions', array('id'=> $id))->row_array();
+		$this->load->view('admin/include/header');
+        $this->load->view('admin/edit_pire_positive', $data);
+        $this->load->view('admin/include/footer');
+	}
+
+	public function delete_pire_positive($id){
+
+		$this->common_model->delete_where(array('id'=> $id), 'questions');
+		redirect('admin/pire_positive'); 
+	}
+
+	public function update_pire_positive($id){
+		$json_options = 'NULL';
+		$data['title'] = $this->input->post('q_title');
+		$data['video_url'] = $this->input->post('video_url');
+		$data['response_type'] = $this->input->post('res_type');
+		$data['sub_title'] = $this->input->post('sub_title');
+		if($_POST['res_type'] == 'open_text'){
+			$data['text_length'] = $this->input->post('text_length');
+		}
+		if(!empty($_POST['q_options'])){
+			$json_options = json_encode($this->input->post('q_options'));
+		}
+		$data['options'] = $json_options;
+		$data['type'] = $this->input->post('question_for');
+		$this->common_model->update_array(array('id' => $id), 'questions', $data);
+
+		redirect('admin/pire_positive'); 
 	}
 } 
 ?>

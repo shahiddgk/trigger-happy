@@ -87,6 +87,9 @@ else{
 					<li class="nav-item">
 						<a href="<?= base_url('admin/questions'); ?>" class="nav-link">Questions List</a>
 					</li>
+					<li class="nav-item">
+						<a href="<?= base_url('admin/pire_positive'); ?>" class="nav-link">Pire Positive</a>
+					</li>
 				</ul>
 				</div>
 			</li>

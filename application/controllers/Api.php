@@ -113,6 +113,11 @@ class Api extends REST_Controller {
 				}
 				move_uploaded_file($temp, $path);
 				$update['image'] = $image_filename;
+			}else{
+				$default_image_path = './uploads/app_users/default.png';
+				if (file_exists($default_image_path) && is_file($default_image_path)) {
+					$update['image'] = 'default.png';
+				}
 			}
 			if (!empty($update)) {
 				$this->common_model->update_array(array('id' => $user_id), 'users', $update);
@@ -705,7 +710,120 @@ class Api extends REST_Controller {
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
-	}	
+	}
+	
+	// pire positive submit
+	public function response_submit_pire_positive_post() {
+		$name = $_POST['name'];
+		$email = $_POST['email'];
+		$user_id = $_POST['user_id'];
+		$response_id = random_string('numeric', 8);
+	
+		$current_garden = $this->common_model->select_where("level, seed", "users", array('id' => $user_id))->row_array();
+		$level = $current_garden['level'];
+		$seed = $current_garden['seed'];
+	
+		$answers = json_decode($_POST['answers'], true);
+	
+		if ($answers) {
+			foreach ($answers as $key => $answer) {
+				$data = array(
+					'question_id' => $key,
+					'user_id' => $user_id,
+					'response_id' => $response_id,
+					'level' => $level,
+					'seed' => $seed,
+					'type' => 'pire_pos'
+				);
+	
+				if ($answer['type'] == 'radio_btn' || $answer['type'] == 'check_box') {
+					$data['options'] = implode(",", $answer['answer']);
+					$data['text'] = '';
+				} elseif ($answer['type'] == 'open_text') {
+					$data['options'] = '';
+					$data['text'] = trim(json_encode($answer['answer']), '[""]');
+				}
+	
+				$insert = $this->common_model->insert_array('answers', $data);
+			}
+	
+			$count = $this->common_model->select_where_table_rows('*', 'scores', array('user_id' => $user_id, 'type' => 'pire_pos', 'response_date' => date('Y-m-d')));
+			if ($count == 0) {
+				$score_data = array(
+					'type' => 'pire_pos',
+					'user_id' => $user_id,
+					'response_id' => $response_id,
+					'level' => $level,
+					'seed' => $seed,
+					'response_date' => date('Y-m-d')
+				);
+				$this->common_model->insert_array('scores', $score_data);
+
+			}
+			$status = $this->common_model->select_single_field('mail_resp', 'users', array('id' => $user_id));
+	
+			if ($insert && $status == 'yes') {
+				$response = $this->common_model->select_two_tab_join_where("a.*, q.title", 'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id' => $response_id));
+	
+				if ($response->num_rows() > 0) {
+					$data['answers'] = $response->result_array();
+					$subject = 'Response Submit Confirmation';
+					$message = "Dear <b>" . $name . " </b> <br>";
+					$message .= "Your answers for Burgeon have been submitted successfully. <br> <hr>";
+					$message .= '<table>';
+	
+					foreach ($data['answers'] as $key => $value) {
+						$no = $key + 1;
+						$message .= "<tr> <td> <b>Question " . $no . " : </b> " . strip_tags($value['title']) . " </td> </tr>";
+						$message .= "<tr> <td> <b>Answer: </b> " . ($value['options'] ? strip_tags($value['options']) : strip_tags($value['text'])) . "</td> </tr>";
+						$message .= "<tr><td><hr></td></tr>";
+					}
+	
+					$message .= '</table>';
+	
+					$this->email->set_newline("\r\n");
+					$this->email->set_mailtype('html');
+					$this->email->from($this->smtp_user, 'Burgeon');
+					$this->email->to($email);
+					$this->email->subject($subject);
+					$this->email->message($message);
+	
+					if ($this->email->send()) {
+						$response = [
+							'status' => 200,
+							'message' => 'Mail sent successfully'
+						];
+						$this->set_response($response, REST_Controller::HTTP_OK);
+					} else {
+						$error = $this->email->print_debugger();
+						$response = [
+							'status' => 500,
+							'message' => $error
+						];
+						$this->set_response($response, REST_Controller::HTTP_INTERNAL_SERVER_ERROR);
+					}
+				} else {
+					$response = [
+						'status' => 200,
+						'message' => 'Data inserted'
+					];
+					$this->set_response($response, REST_Controller::HTTP_OK);
+				}
+			} else {
+				$response = [
+					'status' => 200,
+					'message' => 'Data inserted, mail not allowed'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			}
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'Invalid JSON format'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
 
 	public function forgot_password_post()
 	{
