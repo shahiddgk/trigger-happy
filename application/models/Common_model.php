@@ -640,23 +640,42 @@ class Common_model extends  CI_Model {
 		}
 	}
  
-	public function get_reminders($user_id, $current_time) {
-		$currentdate = $current_time->format('Y-m-d');
-		$data_time = $current_time->format('Y-m-d H:i:00');
-	
-		$this->db->select('*');
-		$this->db->from('reminders r');
-		$this->db->where('r.user_id', $user_id);
-		$this->db->where('r.date_time', $data_time);
-		$this->db->where('NOT EXISTS (SELECT 1 FROM reminder_history rh WHERE r.id = rh.entity_id AND DATE(rh.created_at) = ' . $this->db->escape($currentdate) . ')');
-	
-		$query = $this->db->get();
-	
-		if ($query->num_rows() > 0) {
-			return $query->result_array();
-		} else {
-			return array();
-		}
-	}
+    public function due_reminders($user_id, $current_time) {
+        $currentdate = $current_time->format('Y-m-d');
+        $currentdatetime = $current_time->format('Y-m-d H:i:00');
+
+        // $this->db->select('*');
+        // $this->db->from('reminders r');
+        // $this->db->where('r.user_id', $user_id);
+        // $this->db->where('NOT EXISTS (SELECT 1 FROM reminder_hi story rh WHERE r.id = rh.entity_id AND DATE(rh.created_at) = ' . $this->db->escape($currentdate) . ')');
+
+		// $sql = "SELECT * FROM reminders r WHERE r.user_id = $user_id AND NOT EXISTS (SELECT 1 FROM reminder_history rh WHERE r.id = rh.entity_id AND DATE(rh.created_at) = '$currentdate')";
+
+		$sql = "SELECT *
+        FROM reminders r
+        WHERE r.user_id = $user_id
+        AND NOT EXISTS (
+            SELECT 1
+            FROM reminder_history rh
+            WHERE r.id = rh.entity_id
+            AND DATE(rh.created_at) = '$currentdate'
+        )
+        AND (
+            (r.reminder_type = 'once' AND DATE(r.date_time) = '$currentdate' AND r.date_time < '$currentdatetime')
+            OR
+            (r.reminder_type = 'repeat' AND r.end_date IS NOT NULL AND r.end_date >= '$currentdate' AND r.date_time < '$currentdatetime')
+            OR
+            (r.reminder_type = 'repeat' AND r.end_date IS NULL AND r.date_time < '$currentdatetime')
+        )";
+
+		$query = $this->db->query($sql);
+
+
+        if ($query->num_rows() > 0) {
+            return $query->result_array();
+        } else {
+            return array();
+        }
+    }
 }
 ?>

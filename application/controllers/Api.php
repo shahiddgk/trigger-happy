@@ -2970,19 +2970,19 @@ class Api extends REST_Controller {
 				$userTime = new DateTimeZone($validTimeZone);
 				$currentTime = new DateTimeImmutable('now', $userTime);
 		
-				$skipped_reminders = $this->common_model->get_reminders($user_id, $currentTime);
+				$skipped_reminders = $this->common_model->due_reminders($user_id, $currentTime);
 		
 				if (!empty($skipped_reminders)) {
 					$response = [
 						'status' => 200,
-						'message' => 'Skipped reminders found',
+						'message' => 'Due reminders found',
 						'result' => $skipped_reminders
 					];
 					$this->set_response($response, REST_Controller::HTTP_OK);
 				} else {
 					$response = [
 						'status' => 200,
-						'message' => 'No skipped reminders found',
+						'message' => 'No Due reminders found',
 						'result' => $skipped_reminders
 					];
 					$this->set_response($response, REST_Controller::HTTP_OK);
