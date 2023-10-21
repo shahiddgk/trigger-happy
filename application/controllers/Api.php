@@ -125,6 +125,7 @@ class Api extends REST_Controller {
 	
 			$response = [
 				'status' => 200,
+				'image_url' => base_url() . 'uploads/app_users/' . $image_filename,
 				'message' => 'Profile updated successfully'
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
@@ -173,6 +174,7 @@ class Api extends REST_Controller {
 				'userid' => $row['id'],
 				'username' => $row['name'],
 				'useremail' => $row['email'],
+				'image_url' => base_url('uploads/app_user/') . $row['image'],
 				'allowemail' => $row['mail_resp'],
 				'timezone' => $row['time_zone'],
 				'devicetoken' => isset($_POST['device_token']) ? $_POST['device_token'] : '',
