@@ -99,35 +99,33 @@ class Api extends REST_Controller {
 				$update['time_zone'] = $_POST['time_zone'];
 			}if(!empty($_POST['device_token'])){
 				$update['device_token'] = $_POST['device_token'];
-			}if ($_FILES['profile_img']['name'] != '') {
-				$temp = $_FILES['profile_img']['tmp_name'];
-			
-				$image_filename = $user_id . '.png';
-				$path = './uploads/app_users/' . $image_filename;
-			
-				if (isset($result[0]['image'])) {
-					$old_image_path = './uploads/app_users/' . $result[0]['image'];
-					if (file_exists($old_image_path) && is_file($old_image_path)) {
-						unlink($old_image_path);
-					}
-				}
-				move_uploaded_file($temp, $path);
-				$update['image'] = $image_filename;
-			}else{
-				$default_image_path = './uploads/app_users/default.png';
-				if (file_exists($default_image_path) && is_file($default_image_path)) {
-					$update['image'] = 'default.png';
-				}
 			}
+			// if (isset($_FILES['profile_img']) &&  $_FILES['profile_img']['name'] != '') {
+			// 	$temp = $_FILES['profile_img']['tmp_name'];
+			
+			// 	$image_filename = $user_id . '.png';
+			// 	$path = './uploads/app_users/' . $image_filename;
+			
+			// 	if (isset($result[0]['image'])) {
+			// 		$old_image_path = './uploads/app_users/' . $result[0]['image'];
+			// 		if (file_exists($old_image_path) && is_file($old_image_path)) {
+			// 			unlink($old_image_path);
+			// 		}
+			// 	}
+			// 	move_uploaded_file($temp, $path);
+			// 	$update['image'] = $image_filename;
+			// }
 			if (!empty($update)) {
 				$this->common_model->update_array(array('id' => $user_id), 'users', $update);
 			}
 	
 			$response = [
 				'status' => 200,
-				'image_url' => base_url() . 'uploads/app_users/' . $image_filename,
 				'message' => 'Profile updated successfully'
 			];
+			// if (isset($image_filename)) {
+			// 	$response['image_url'] = base_url() . 'uploads/app_users/' . $image_filename;
+			// }
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}else{
 			$response = [
