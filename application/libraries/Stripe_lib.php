@@ -26,9 +26,25 @@ class Stripe_lib{
         // Set API key 
 		$result_array = $this->CI->common_model->select_all("*", 'payment_settings')->row_array();
         
-        \Stripe\Stripe::setApiKey($result_array['live_secret_key']); 
+        \Stripe\Stripe::setApiKey($result_array['test_secret_key']); 
     } 
- 
+
+    function createToken($card_number, $exp_month, $exp_year, $cvc){
+        try { 
+            $token = \Stripe\Token::create(array( 
+                "card" => array( 
+                    "number" => $card_number, 
+                    "exp_month" => $exp_month, 
+                    "exp_year" => $exp_year, 
+                    "cvc" => $cvc 
+                ), 
+            )); 
+            return $token; 
+        }catch(Exception $e) { 
+            return $e->getMessage(); 
+        }
+    }
+
     function addCustomer($name, $email, $token){ 
         try { 
             $customer = \Stripe\Customer::create(array( 
@@ -109,4 +125,17 @@ class Stripe_lib{
             return array(); 
         }
     }
+
+    function chargeSage($customer_id){ 
+        try { 
+            $customer = \Stripe\Charge::create(array(
+                'amount' => '2000',
+                'currency' => 'usd', 
+                'customer' => $customer_id,
+            )); 
+            return $customer; 
+        }catch(Exception $e) { 
+            return  $e->getMessage(); 
+        } 
+    } 
 }
