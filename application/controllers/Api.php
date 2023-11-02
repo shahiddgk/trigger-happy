@@ -12,6 +12,7 @@ class Api extends REST_Controller {
 		date_default_timezone_set('America/New_York');
         // date_default_timezone_set('Asia/Karachi');
 		$this->load->library('stripe_lib');
+		$this->load->library('firestore');
 		// Enable CORS if configured to do so
 		if ($this->config->item('enable_cors')) {
             require(APPPATH . 'config/cors.php');
@@ -522,6 +523,7 @@ class Api extends REST_Controller {
 						$response = [
 							'status' => 200,
 							'response_id' => $response_id,
+							'response_id' => $response_id,
 							'message' => 'Mail sent successfully'
 						];
 						$this->set_response($response, REST_Controller::HTTP_OK);
@@ -537,6 +539,7 @@ class Api extends REST_Controller {
 					$response = [
 						'status' => 200,
 						'response_id' => $response_id,
+						'response_id' => $response_id,
 						'message' => 'Data inserted'
 					];
 					$this->set_response($response, REST_Controller::HTTP_OK);
@@ -544,6 +547,7 @@ class Api extends REST_Controller {
 			} else {
 				$response = [
 					'status' => 200,
+                    'response_id' => $response_id,
                     'response_id' => $response_id,
 					'message' => 'Data inserted, mail not allowed'
 				];
@@ -3348,7 +3352,8 @@ class Api extends REST_Controller {
 			];
 	
 			$this->common_model->insert_array('connection', $notification_data);
-	
+			$this->firestore->addData($receiver['id']);
+
 			$data_array = [
 				'receiver_name' => $receiver_name,
 				'receiver_role' => $receiver_role,
@@ -3397,8 +3402,36 @@ class Api extends REST_Controller {
 					'email' => $receiver['email'],
 					'image' => base_url('uploads/app_user/') . $receiver['image'],
 				];
+				$connection_data = [
+					'id' => $receiver['id'],
+					'sender_id' => $sender_id,
+					'accept' => 'no',
+					'receiver_id' => $receiver['id'],
+					'role' => $receiver_role,
+					'message' => $sender['name'] . ' has sent you the invitation for ' . $receiver_role,
+					'sender_name' => $sender['name'],
+					'receiver_name' => $receiver['name'],
+
+				];
+				$first_user_detail = [
+					'id' => $sender['id'],
+					'name' => $sender['name'],
+					'email' => $sender['email'],
+					'image' => base_url('uploads/app_user/') . $sender['image'],
+				];
+				$second_user_detail = [
+					'id' => $receiver['id'],
+					'name' => $receiver['name'],
+					'email' => $receiver['email'],
+					'image' => base_url('uploads/app_user/') . $receiver['image'],
+				];
 				$response = [
 					'status' => 200,
+					'data' => [
+						'connection_info' => $connection_data,
+						'first_user_detail' => $first_user_detail,
+						'second_user_detail' => $second_user_detail,
+					],
 					'data' => [
 						'connection_info' => $connection_data,
 						'first_user_detail' => $first_user_detail,
@@ -3413,6 +3446,7 @@ class Api extends REST_Controller {
 			}
 		} else {
 			$response = [
+				'status' => 400,
 				'status' => 400,
 				'message' => 'you have already sent an invitation',
 			];
@@ -3446,6 +3480,8 @@ class Api extends REST_Controller {
 	public function reject_invite_get() {
 		$sender_id = $_GET['sender_id'];
 		$receiver_id = $_GET['receiver_id'];
+
+		$this->db->where(['sender_id' => $sender_id, 'receiver_id' => $receiver_id])->delete('connection');
 
 		$this->db->where(['sender_id' => $sender_id, 'receiver_id' => $receiver_id])->delete('connection');
 		$sender = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
