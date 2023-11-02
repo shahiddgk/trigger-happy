@@ -10,8 +10,8 @@ class Firestore {
     function __construct() {
         // Initialize FirestoreClient here, but don't use parent::__construct()
         $this->firestore = new Google\Cloud\Firestore\FirestoreClient([
-            'keyFilePath' => FCPATH.'uploads/burgeon-1311c-firebase-adminsdk-bpuzc-e1ce07f533.json',
-            'projectId' => 'burgeon-1311c',
+            'keyFilePath' => FCPATH.'uploads/triggerhappy-a7406.json',
+            'projectId' => 'triggerhappy-a7406',
         ]);
 
         $this->collectionRef = $this->firestore->collection('connections');
@@ -28,26 +28,26 @@ class Firestore {
         return $data;
     }
 
-    public function addData($user_id) {
+    public function addData($user_id, $field) {
         $existingDocument = $this->getDocument($user_id);
-
+        
         if ($existingDocument->exists()) {
-            $pending = $existingDocument->data()['pending'] + 1;
-            $this->updateDocument($user_id, ['pending' => $pending]);
+            $documentData = $existingDocument->data();
+            $exist_field = $documentData[$field] + 1;
+            $dataToUpdate = [$field => $exist_field];
+            $this->updateDocument($user_id, $dataToUpdate);
         } else {
-            $this->createDocument($user_id, ['user_id' => (int) $user_id, 'pending' => 1]);
+            $this->createDocument($user_id, ['user_id' => (int) $user_id, 'con_request' => 1, 'shared_response'=> 0]);
         }
-        return true;
-    }
+    }     
 
-    public function resetCount($user_id) {
+    public function resetCount($user_id , $field) {
         $existingDocument = $this->getDocument($user_id);
     
         if ($existingDocument->exists()) {
-            $this->updateDocument($user_id, ['pending' => 0]);
-        } else {
-            // Handle the case where the document doesn't exist as needed.
-        }
+            $this->updateDocument($user_id, [$field => 0]);
+        } 
+        return;
     }
 
     private function getDocument($user_id) {
@@ -55,12 +55,10 @@ class Firestore {
     }
 
     private function createDocument($user_id, $data) {
-        $this->collectionRef->document((string) $user_id)->set($data);
-        return true;
+       return $this->collectionRef->document((string) $user_id)->set($data);
     }
 
     private function updateDocument($user_id, $data) {
-        $this->collectionRef->document((string) $user_id)->set($data, ['merge' => true]);
-        return true;
+       return $this->collectionRef->document((string) $user_id)->set($data, ['merge' => true]);
     }
 }
