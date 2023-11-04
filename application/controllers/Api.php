@@ -3352,7 +3352,7 @@ class Api extends REST_Controller {
 			];
 	
 			$this->common_model->insert_array('connection', $notification_data);
-			$this->firestore->addData($receiver['id']);
+			$this->firestore->addData($receiver['id'] , 'con_request');
 
 			$data_array = [
 				'receiver_name' => $receiver_name,
@@ -3551,7 +3551,8 @@ class Api extends REST_Controller {
 
 	public function pending_connection_post() {
 		$user_id = $_POST['user_id'];
-	
+		$this->firestore->resetCount($user_id , 'con_request');
+
 		$condition = [
 			'receiver_id' => $user_id,
 			'accept' => 'no',
@@ -3903,7 +3904,8 @@ class Api extends REST_Controller {
 			];
 	
 			$insert_result = $this->common_model->insert_array('chat_room', $data);
-	
+			$this->firestore->addData($receiver_id , 'shared_response');
+			
 			if ($insert_result) {
 				$inserted_entries[] = $data;
 			}
@@ -4246,6 +4248,7 @@ class Api extends REST_Controller {
 
 				$row['sender_name'] = $sender_data['name'];
 			}
+			$this->firestore->resetCount($user_id , 'shared_response');
 
 			$response = [
 				'status' => 200,
@@ -4338,7 +4341,7 @@ class Api extends REST_Controller {
 							];
 
 							$this->common_model->insert_array('connection', $notification_data);
-
+							$this->firestore->addData($receiver_id , 'con_request');
 							$newConnection = $this->common_model->select_where('id', 'connection', ['sender_id' => $user_id, 'receiver_id' => $receiver_id])->row_array();
 
 							$chatRoomData = [
@@ -4354,6 +4357,7 @@ class Api extends REST_Controller {
 						$insertResult = $this->common_model->insert_array('chat_room', $chatRoomData);
 
 						if ($insertResult) {
+							$this->firestore->addData($receiver_id , 'shared_response');
 							$response = [
 								'status' => 200,
 								'message' => 'Payment successful',
