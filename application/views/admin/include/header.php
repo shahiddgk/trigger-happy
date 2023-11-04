@@ -124,9 +124,9 @@ else{
 			</li>
 
 			<li class="nav-item">
-				<a class="nav-link" href="<?php echo site_url('admin/chat_room'); ?>">
+				<a class="nav-link" href="<?php echo site_url('admin/sage_list'); ?>">
 				<i class="link-icon" data-feather="message-square"></i>
-				<span class="link-title">Chat</span>
+				<span class="link-title">Feddback</span>
 				</a>
 			</li>
 

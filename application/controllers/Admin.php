@@ -472,69 +472,71 @@ class Admin extends CI_Controller {
 		fclose($output);
 	}	
 
-	public function chat_room(){	
-		$chat_rooms = $this->common_model->getChatRoomData();
-		$data['chat_room'] = [];
+	// public function chat_room(){	
+	// 	$chat_rooms = $this->common_model->getChatRoomData();
+	// 	$data['chat_room'] = [];
 		
-		foreach ($chat_rooms as $chat_room) {
-			$unread_count = $this->common_model->unread_messages_count($chat_room->chat_id);
-			$chat_entry = [
-				'chat_id' => $chat_room->chat_id,
-				'receiver_id' => $chat_room->receiver_id,
-				'name' => $chat_room->name,
-				'image' => $chat_room->image,
-				'entry_text' => $chat_room->entry_text,
-				'sender_id' => $chat_room->sender_id,
-				'unread_count' => isset($unread_count[0]->count) ? $unread_count[0]->count : 0,
-			];
+	// 	foreach ($chat_rooms as $chat_room) {
+	// 		$unread_count = $this->common_model->unread_messages_count($chat_room->chat_id);
+	// 		$chat_entry = [
+	// 			'chat_id' => $chat_room->chat_id,
+	// 			'receiver_id' => $chat_room->receiver_id,
+	// 			'name' => $chat_room->name,
+	// 			'image' => $chat_room->image,
+	// 			'entry_text' => $chat_room->entry_text,
+	// 			'sender_id' => $chat_room->sender_id,
+	// 			'unread_count' => isset($unread_count[0]->count) ? $unread_count[0]->count : 0,
+	// 		];
 		
-			$data['chat_room'][] = $chat_entry;
-		}
-		$this->load->view('admin/include/header');
-		$this->load->view('admin/chat_room', $data);
-		$this->load->view('admin/include/footer');
+	// 		$data['chat_room'][] = $chat_entry;
+	// 	}
+	// 	$this->load->view('admin/include/header');
+	// 	$this->load->view('admin/chat_room', $data);
+	// 	$this->load->view('admin/include/footer');
 		
 
-	}
+	// }
 	
-	public function chat_messages($chat_id) {
-		$chats = $this->common_model->chat_messages($chat_id);
-		$logged_id = $this->session->userdata('userid');
-		$messages = [
-			'messages' => $chats,
-			'logged_id' => $logged_id
-		];
+	// public function chat_messages($entity_id) {
+	// 	$chats = $this->common_model->getChatMessages($entity_id); // Assuming your model method is named getChatMessages
 	
-		echo json_encode($messages);
-	}
+	// 	$messages = [
+	// 		'messages' => $chats,
+	// 	];
+	
+	// 	echo json_encode($messages);
+	// }
+	
 
 	public function insert_feedback() {
-		$sender_id = $this->session->userdata('userid');
-		$chat_id = $this->input->post('chat_id');
-		$entry_text = $this->input->post('entry_text');
-
+		// from chat_room table fetch id using this entity_id
+		$shared_id = $this->input->post('shared_id');
+		$message = $this->input->post('message');
+		$chat_room = $this->common_model->select_where('id', 'chat_room', array('entity_id' => $shared_id))->row();
+	
 		$data = array(
-			'chat_id' => $chat_id,
-			'sender_id' => $sender_id,
-			'entry_text' => $entry_text,
+			'shared_id' => $chat_room->id,
+			'message' => $message,
 		);
-		$result = $this->common_model->insert_array('chat_room', $data);
-
+	
+		$result = $this->common_model->insert_array('sage_feedback', $data);
+	
 		if ($result) {
 			echo 'success';
 		} else {
 			echo 'error';
 		}
 	}
+	
 
-	public function read_chat_messages($chat_id) {
-		if ($chat_id) {
-			$data = [
-				'read_at' => date('Y-m-d H:i:s'),
-			];
-			$this->common_model->update_array(array('chat_id'=> $chat_id), 'chat_room', $data);
-		}
-	}
+	// public function read_chat_messages($chat_id) {
+	// 	if ($chat_id) {
+	// 		$data = [
+	// 			'read_at' => date('Y-m-d H:i:s'),
+	// 		];
+	// 		$this->common_model->update_array(array('chat_id'=> $chat_id), 'chat_room', $data);
+	// 	}
+	// }
 
 	// pire positive questions
 
@@ -614,5 +616,110 @@ class Admin extends CI_Controller {
 
 		redirect('admin/pire_positive'); 
 	}
+
+	public function share_response($type = NULL, $sender_id = NULL) {
+		if (!$sender_id) {
+			redirect('admin/share_response');
+		}
+	
+		$receiver_id = $this->session->userdata('userid');
+	
+		$where = array('receiver_id' => $receiver_id, 'sender_id' => $sender_id);
+	
+		if ($type) {
+			$where['type'] = $type;
+		}
+	
+		$chat_rooms = $this->common_model->select_where('*', 'chat_room', $where)->result_array();
+	
+		foreach ($chat_rooms as $key => $chat_room) {
+			$sender_id = $chat_room['sender_id'];
+			$sender_name = $this->common_model->select_where('name', 'users', array('id' => $sender_id))->row()->name;
+			$chat_rooms[$key]['sender_name'] = $sender_name;
+		}
+	
+		$data['chat_room'] = $chat_rooms;
+	
+		$this->load->view('admin/include/header');
+		$this->load->view('share_response', $data);
+		$this->load->view('admin/include/footer');
+	}
+	
+	public function response_detail() {
+		$type = $this->input->get('type');
+		$entity_id = $this->input->get('entity_id');
+		
+		if ($type == 'naq' || $type == 'pire') {
+			$this->db->select('answers.options, answers.text, questions.title, answers.type');
+			$this->db->from('answers');
+			$this->db->join('questions', 'answers.question_id = questions.id', 'left');
+			$this->db->where('answers.response_id', $entity_id);
+			$query = $this->db->get();
+			$data['response_data'] = $query->result_array();
+		} elseif ($type == 'ladder') {
+			$data['response_data'] = $this->common_model->select_where('*', 'ladder', array('response_id' => $entity_id))->result_array();
+		}
+	
+		$this->db->select('sage_feedback.message');
+		$this->db->from('chat_room');
+		$this->db->join('sage_feedback', 'chat_room.id = sage_feedback.shared_id', 'left');
+		$this->db->where('chat_room.entity_id', $entity_id);
+
+		$chat_message_query = $this->db->get();
+
+		if ($chat_message_query->num_rows() > 0) {
+			$data['chat_message'] = $chat_message_query->result();
+		} else {
+			$data['chat_message'] = array();
+		}
+	
+		$data['param_type'] = $type;
+		$data['entity_id'] = $entity_id;
+	
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/response_detail', $data);
+		$this->load->view('admin/include/footer');
+	}
+	
+	public function sage_list() {
+		$chat_rooms = $this->common_model->select_where('*', 'chat_room', array('receiver_id' => $this->session->userdata('userid')))->result_array();
+	
+		$sage_list = [];
+	
+		foreach ($chat_rooms as $chat_room) {
+			$sender_id = $chat_room['sender_id'];
+			$sender_info = $this->common_model->select_where('name, email', 'users', array('id' => $sender_id))->row();
+	
+			if ($sender_info) {
+				$sender_name = $sender_info->name;
+				$sender_email = $sender_info->email;
+	
+				if (!isset($sage_list[$sender_id])) {
+					$sage_list[$sender_id] = [
+						'sender_name' => $sender_name,
+						'sender_email' => $sender_email,
+						'pire' => false,
+						'naq' => false,
+						'ladder' => false,
+					];
+				}
+	
+				if ($chat_room['type'] == 'pire') {
+					$sage_list[$sender_id]['pire'] = true;
+				} elseif ($chat_room['type'] == 'naq') {
+					$sage_list[$sender_id]['naq'] = true;
+				} elseif ($chat_room['type'] == 'ladder') {
+					$sage_list[$sender_id]['ladder'] = true;
+				}
+			}
+		}
+	
+		$data['sage_list'] = $sage_list;
+	
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/sage_list', $data);
+		$this->load->view('admin/include/footer');
+	}
+	
 } 
 ?>
