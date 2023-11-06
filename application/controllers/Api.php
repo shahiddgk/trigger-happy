@@ -3314,7 +3314,7 @@ class Api extends REST_Controller {
 		$sender_id = $this->input->post('sender_id');
 		$receiver_email = $this->input->post('email');
 		$receiver_name = $this->input->post('name');
-		$receiver_role = $this->input->post('role');	
+		$receiver_role = $this->input->post('role'); 
 		$sender = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
 	
 		if (empty($sender)) {
@@ -3329,11 +3329,35 @@ class Api extends REST_Controller {
 		$receiver = $this->common_model->select_where('*', 'users', ['email' => $receiver_email])->row_array();
 	
 		if (empty($receiver)) {
-			$response = [
-				'status' => 404,
-				'message' => 'Receiver not found in the database',
-			];
-			$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
+			$url = base_url();
+	
+			$message = "<p>Hi " . $receiver_email . ",</p>";
+			$message .= "<p>" . $sender['name'] . " has sent you the invitation for " . $receiver_role . "</p>";
+			$message .= "<p>If you are interested, please click on the link below</p>";
+			$message .= "<p><a href='" . $url . "'>Invitation Link</a></p>";
+	
+			$this->email->set_newline("\r\n");
+			$this->email->set_mailtype('html');
+			$this->email->from($this->smtp_user, 'Burgeon');
+			$this->email->to($receiver_email);
+			$this->email->subject('Burgeon Invitation');
+			$this->email->message($message);
+	
+			if ($this->email->send()) {
+				$response = [
+					'status' => 200,
+					'message' => 'Invitation email sent successfully',
+					'data' => [],
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			} else {
+				$response = [
+					'status' => 500,
+					'message' => 'Failed to send invitation email',
+					'data' => [],
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
 			return;
 		}
 	
@@ -3447,8 +3471,8 @@ class Api extends REST_Controller {
 		} else {
 			$response = [
 				'status' => 400,
-				'status' => 400,
-				'message' => 'you have already sent an invitation',
+				'message' => 'You have already sent an invitation',
+
 			];
 		}
 	
@@ -3983,26 +4007,6 @@ class Api extends REST_Controller {
 		}
 	}
 
-	public function chat_room_read_post() {
-		$chat_id = $_POST['chat_id'];
-
-		$data = $this->common_model->select_where('*', 'chat_room', ['chat_id' => $chat_id])->result_array();
-
-		if (!empty($data)) {
-			$response = [
-				'status' => 200,
-				'response' => $data,
-			];
-			$this->set_response($response, REST_Controller::HTTP_OK);
-		} else {
-			$response = [
-				'status' => 200,
-				'data' => [],
-			];
-			$this->set_response($response, REST_Controller::HTTP_OK);
-		}
-	}
-
 	public function accept_invite_app_get() {
 		$receiver_id = $this->input->get('receiver_id');
 		$sender_id = $this->input->get('sender_id');
@@ -4400,4 +4404,70 @@ class Api extends REST_Controller {
 		}
 	}
 
+	public function sage_feedback_post() {
+		$sender_id = $_POST['sender_id'];
+		$receiver_id = $_POST['receiver_id'];
+		$message = $_POST['message'];
+		$shared_id = $_POST['shared_id'];
+	
+		if (!empty($message)) {
+			$data = array(
+				'receiver_id' => $receiver_id,
+				'sender_id' => $sender_id,
+				'message' => $message,
+				'shared_id' => $shared_id
+			);
+	
+			try {
+				$this->common_model->insert_array('sage_feedback', $data);
+	
+				$response = [
+					'status' => 200,
+					'message' => 'Feedback submitted successfully',
+					'data' => $data
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			} catch (Exception $e) {
+				$response = [
+					'status' => 500,
+					'message' => 'Internal Server Error: ' . $e->getMessage()
+				];
+				$this->set_response($response, REST_Controller::HTTP_INTERNAL_SERVER_ERROR);
+			}
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'Feedback not submitted. Message is empty.'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+	
+	public function read_sage_feedback_post() {
+		$shared_id = $_POST['shared_id'];
+	
+		if (!empty($shared_id)) {
+			$data = $this->common_model->select_where('*', 'sage_feedback', array('shared_id' => $shared_id))->result_array();
+			if (!empty($data)) {
+				$response = [
+					'status' => 200,
+					'data' => $data
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			} else {
+				$response = [
+					'status' => 400,
+					'message' => 'Feedback not found for the provided shared_id.'
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'Invalid or missing shared_id parameter.'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+	
 }
