@@ -476,22 +476,22 @@ class Admin extends CI_Controller {
 		$chat_rooms = $this->common_model->getChatRoomData();
 		$data['chat_room'] = [];
 		
-		foreach ($chat_rooms as $chat_room) {
-			$unread_count = $this->common_model->unread_messages_count($chat_room->chat_id);
-			$chat_entry = [
-				'chat_id' => $chat_room->chat_id,
-				'receiver_id' => $chat_room->receiver_id,
-				'name' => $chat_room->name,
-				'image' => $chat_room->image,
-				'entry_text' => $chat_room->entry_text,
-				'sender_id' => $chat_room->sender_id,
-				'unread_count' => isset($unread_count[0]->count) ? $unread_count[0]->count : 0,
-			];
+		// foreach ($chat_rooms as $chat_room) {
+		// 	$unread_count = $this->common_model->unread_messages_count($chat_room->chat_id);
+		// 	$chat_entry = [
+		// 		'chat_id' => $chat_room->chat_id,
+		// 		'receiver_id' => $chat_room->receiver_id,
+		// 		'name' => $chat_room->name,
+		// 		'image' => $chat_room->image,
+		// 		'entry_text' => $chat_room->entry_text,
+		// 		'sender_id' => $chat_room->sender_id,
+		// 		'unread_count' => isset($unread_count[0]->count) ? $unread_count[0]->count : 0,
+		// 	];
 		
-			$data['chat_room'][] = $chat_entry;
-		}
+		// 	$data['chat_room'][] = $chat_entry;
+		// }
 		$this->load->view('admin/include/header');
-		$this->load->view('admin/chat_room', $data);
+		$this->load->view('admin/chat_demo', $data);
 		$this->load->view('admin/include/footer');
 		
 

@@ -12,6 +12,7 @@
     },
     "require": {
         "php": ">=5.3.7",
+        "cboden/ratchet": "*",
         "grpc/grpc": "^1.38",
         "google/apiclient": "^2.12.1",
         "google/cloud-core": "^1.47",
