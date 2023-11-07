@@ -44,7 +44,7 @@
     padding: 20px;
     text-align: left;
     position: relative;
-    height: 30%;
+    /* height: 30%; */
     top: 0;
 }
 
