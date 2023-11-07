@@ -20,21 +20,28 @@
                                 <th>Email</th>
                                 <th>Pire</th>
                                 <th>Naq</th>
-                                <th>Ladeer</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php
-                                foreach($sage_list as $key => $data){ ?>
+                            $count = 1;
+                            foreach($sage_list as $key => $data){ ?>
                                 <tr>
-                                    <td><?= $key+1; ?></td>
+                                <td><?= $count; ?></td>
                                     <td><?= $data['sender_name'] ?></td>
                                     <td><?= $data['sender_email'] ?></td>
-                                    <td><?= $data['pire'] ? '<a href="' . base_url('admin/share_response/pire/' . $key) . '">Pire</a>' : '' ?></td>
-                                    <td><?= $data['naq'] ? '<a href="' . base_url('admin/share_response/naq/' . $key) . '">Naq</a>' : '' ?></td>
-                                    <td><a href="<?= base_url('admin/share_response/').$data['type'] . '/'. $data['sender_id'] ?>"><?= $data['type'] == 'ladder' ? $data['type'] : '' ?></a></td>
+                                    <td>
+                                        <?php if ($data['pire_count'] > 0): ?>
+                                            <a href="<?= base_url('admin/share_response/pire/' . $key) ?>">Pire (<?= $data['pire_count'] ?>)</a>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if ($data['naq_count'] > 0): ?>
+                                            <a href="<?= base_url('admin/share_response/naq/' . $key) ?>">Naq (<?= $data['naq_count'] ?>)</a>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
-                            <?php }  ?>
+                            <?php $count++; }  ?>
                         </tbody>
                     </table>
                     </div>

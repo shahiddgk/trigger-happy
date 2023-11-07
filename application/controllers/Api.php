@@ -4421,6 +4421,12 @@ class Api extends REST_Controller {
 			try {
 				$this->common_model->insert_array('sage_feedback', $data);
 	
+				$insertedId = $this->db->insert_id();
+				$created_at = date('Y-m-d H:i:s');
+
+				$data['id'] = $insertedId;
+				$data['created_at'] = $created_at;
+
 				$response = [
 					'status' => 200,
 					'message' => 'Feedback submitted successfully',
@@ -4456,8 +4462,8 @@ class Api extends REST_Controller {
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			} else {
 				$response = [
-					'status' => 400,
-					'message' => 'Feedback not found for the provided shared_id.'
+					'status' => 200,
+					'data' => [],
 				];
 				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 			}

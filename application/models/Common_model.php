@@ -596,53 +596,6 @@ class Common_model extends  CI_Model {
 		
 	}
 
-	// public function getChatRoomData() {
-	// 	$this->db->select('chat_room.read_at, chat_room.chat_id, chat_room.receiver_id, users.name, users.image, chat_room.entry_text, chat_room.sender_id');
-	// 	$this->db->from('chat_room');
-	// 	$this->db->join('users', 'chat_room.sender_id = users.id');
-	// 	$this->db->where('chat_room.receiver_id', $this->session->userdata('userid'));
-	// 	$this->db->group_by('chat_room.chat_id');
-
-	// 	$query = $this->db->get();
-	
-	// 	if ($query->num_rows() > 0) {
-	// 		return $query->result();
-	// 	} else {
-	// 		return array();
-	// 	}
-	// }
-	
-
-    // public function getChatMessages($entity_id) {
-    //     $this->db->select('chat_room.chat_id, chat_room.sender_id, sage_feedback.message, DATE_FORMAT(chat_room.created_at, "%h:%i %p") as created_at');
-    //     $this->db->from('chat_room');
-    //     $this->db->join('sage_feedback', 'sage_feedback.shared_id = chat_room.entity_id');
-    //     $this->db->where('chat_room.chat_id', $entity_id);
-
-    //     $query = $this->db->get();
-
-    //     if ($query->num_rows() > 0) {
-    //         return $query->result();
-    //     } else {
-    //         return array();
-    //     }
-    // }
-	
-
-	// public function unread_messages_count($chat_id) {
-	// 	$this->db->select('COUNT(*) as count');
-	// 	$this->db->from('chat_room');
-	// 	$this->db->where('chat_room.chat_id', $chat_id);
-	// 	$this->db->where('chat_room.read_at', NULL);
-	// 	$query = $this->db->get();
-
-	// 	if ($query->num_rows() > 0) {
-	// 		return $query->result();
-	// 	} else {
-	// 		return array();
-	// 	}
-	// }
- 
     public function due_reminders($user_id, $current_time) {
         $currentdate = $current_time->format('Y-m-d');
         $currentdatetime = $current_time->format('Y-m-d H:i:00');
