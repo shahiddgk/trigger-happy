@@ -8,7 +8,7 @@ class Admin extends CI_Controller {
 	{
 		parent::__construct();
 		$CI =& get_instance();
-
+		$this->load->library('session');
 		$this->load->library('stripe_lib');
 	}
 
@@ -147,19 +147,20 @@ class Admin extends CI_Controller {
     public function login(){
 		$email	=	$this->input->post('email');
 		$password	=	$this->input->post('password');
-		$data = $this->common_model->select_where("*","users", array('email'=>$email, 'password'=>sha1($password), 'type'=>'admin'))->row_array();
-		if(!empty($data)){
-			if($data['status']=='inactive'){
-				echo "inactive"; exit;
-			} 
+
+		$sql = "SELECT * FROM users WHERE type IN ('admin', 'coach') AND email = ? AND password = ? AND status = 'active'";
+		$query = $this->db->query($sql, array($email, sha1($password)));
+
+		if ($query->num_rows() > 0) {
+			$user = $query->row_array();
 
 			$data = array(
 				'user_logged_in'  =>  TRUE,
-				'userid' => $data['id'],
-				'usertype' => $data['type'],
-				'username' => $data['name'],
-				'useremail' => $data['email'],
-				'userimage' => $data['image']
+				'userid' => $user['id'],
+				'usertype' => $user['type'],
+				'username' => $user['name'],
+				'useremail' => $user['email'],
+				'userimage' => $user['image']
 			);
 			
 			$this->session->set_userdata($data);	

@@ -1,7 +1,7 @@
 
 <?php 
 if($this->session->userdata('user_logged_in')){
-    if($this->session->userdata('usertype')!='admin'){
+    if($this->session->userdata('usertype') == 'user'){
        redirect(site_url()); 
     }
 }
