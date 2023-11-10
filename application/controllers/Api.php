@@ -55,20 +55,32 @@ class Api extends REST_Controller {
 		else{
 				$data['name'] = $name;
 				$data['email'] = $email;
-				
+    
 				if(isset($_POST['time_zone'])){
 					$data['time_zone'] = $_POST['time_zone'];
 				}
 				if(isset($_POST['device_token'])){
 					$data['device_token'] = $_POST['device_token'];
 				}
- 				
+	    
 				$data['password'] = sha1($password);
 				$data['type'] = 'user';
 				$data['status'] = 'active';
 				$result = $this->common_model->insert_array('users', $data);
+				$insert_id = $this->db->insert_id();
 			if($result){
 				
+				$invitations = $this->common_model->select_where("*", "sage_invitations", array('receiver_email' => $email))->result_array();
+				if (!empty($invitations)) {
+					foreach ($invitations as $invitation) {
+						$connectionData = [
+							'sender_id' => $invitation['sender_id'],
+							'receiver_id' => $insert_id,
+							'role' => $invitation['receiver_role'],
+						];
+						$this->common_model->insert_array('connection', $connectionData);
+					}
+				}
 				$response = [
 					'status' => 200,
 					'message' => 'success',
@@ -3262,10 +3274,10 @@ class Api extends REST_Controller {
 
 		
 		if (empty($name)) {
-			$condition = "type = 'user' OR type = 'coach'";
+			$condition = "type = 'user' OR type = 'admin'";
 			$results = $this->common_model->select_where("id, name, email, time_zone, image", 'users', $condition)->result_array();
 		} else {
-			$where_condition = "name LIKE '%" . $name . "%' AND (type = 'user' OR type = 'coach')";
+			$where_condition = "name LIKE '%" . $name . "%' AND (type = 'user' OR type = 'admin')";
 			$results = $this->common_model->select_where("id, name, email, time_zone, image", 'users', $where_condition)->result_array();
 		}
 			
@@ -3311,10 +3323,10 @@ class Api extends REST_Controller {
 	}
 	
 	public function mail_confirmation_post() {
-		$sender_id = $this->input->post('sender_id');
-		$receiver_email = $this->input->post('email');
-		$receiver_name = $this->input->post('name');
-		$receiver_role = $this->input->post('role'); 
+		$sender_id = $_POST['sender_id'];
+		$receiver_email = $_POST['email'];
+		$receiver_name = $_POST['name'];
+		$receiver_role = $_POST['role']; 
 		$sender = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
 	
 		if (empty($sender)) {
@@ -3344,6 +3356,15 @@ class Api extends REST_Controller {
 			$this->email->message($message);
 	
 			if ($this->email->send()) {
+                  
+				$data_array = [
+					'sender_id' => $sender_id,
+					'receiver_email' => $receiver_email,
+					'receiver_role' => $receiver_role,
+				];
+				 
+				$this->common_model->insert_array('sage_invitations', $data_array);
+
 				$response = [
 					'status' => 200,
 					'message' => 'Invitation email sent successfully',
@@ -4411,34 +4432,44 @@ class Api extends REST_Controller {
 		$shared_id = $_POST['shared_id'];
 	
 		if (!empty($message)) {
-			$data = array(
-				'receiver_id' => $receiver_id,
-				'sender_id' => $sender_id,
-				'message' => $message,
-				'shared_id' => $shared_id
-			);
+			$row_count = $this->common_model->select_where("*", "sage_feedback", array('shared_id' => $shared_id))->num_rows();
 	
-			try {
-				$this->common_model->insert_array('sage_feedback', $data);
+			if ($row_count < 5) {
+				$data = array(
+					'receiver_id' => $receiver_id,
+					'sender_id' => $sender_id,
+					'message' => $message,
+					'shared_id' => $shared_id
+				);
 	
-				$insertedId = $this->db->insert_id();
-				$created_at = date('Y-m-d H:i:s');
-
-				$data['id'] = $insertedId;
-				$data['created_at'] = $created_at;
-
+				try {
+					$this->common_model->insert_array('sage_feedback', $data);
+	
+					$insertedId = $this->db->insert_id();
+					$created_at = date('Y-m-d H:i:s');
+	
+					$data['id'] = $insertedId;
+					$data['created_at'] = $created_at;
+	
+					$response = [
+						'status' => 200,
+						'message' => 'Feedback submitted successfully',
+						'data' => $data
+					];
+					$this->set_response($response, REST_Controller::HTTP_OK);
+				} catch (Exception $e) {
+					$response = [
+						'status' => 500,
+						'message' => 'Internal Server Error: ' . $e->getMessage()
+					];
+					$this->set_response($response, REST_Controller::HTTP_INTERNAL_SERVER_ERROR);
+				}
+			} else {
 				$response = [
-					'status' => 200,
-					'message' => 'Feedback submitted successfully',
-					'data' => $data
+					'status' => 400,
+					'message' => 'Feedback not submitted. Maximum feedback limit reached for this shared_id.'
 				];
-				$this->set_response($response, REST_Controller::HTTP_OK);
-			} catch (Exception $e) {
-				$response = [
-					'status' => 500,
-					'message' => 'Internal Server Error: ' . $e->getMessage()
-				];
-				$this->set_response($response, REST_Controller::HTTP_INTERNAL_SERVER_ERROR);
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 			}
 		} else {
 			$response = [
@@ -4448,6 +4479,7 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
+	
 	
 	public function read_sage_feedback_post() {
 		$shared_id = $_POST['shared_id'];

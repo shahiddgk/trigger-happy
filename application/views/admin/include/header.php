@@ -129,6 +129,13 @@ else{
 				<span class="link-title">Feddback</span>
 				</a>
 			</li>
+			
+			<li class="nav-item">
+				<a class="nav-link" href="<?php echo site_url('admin/chat_demo'); ?>">
+				<i class="link-icon" data-feather="message-square"></i>
+				<span class="link-title">Chat</span>
+				</a>
+			</li>
 
 			<li class="nav-item nav-category">Reports</li>
 			<li class="nav-item">

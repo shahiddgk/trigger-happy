@@ -1,5 +1,5 @@
 <?php
-// require FCPATH . 'vendor/autoload.php';
+require FCPATH . 'vendor/autoload.php';
 
 use Ratchet\MessageComponentInterface;
 use Ratchet\ConnectionInterface;
