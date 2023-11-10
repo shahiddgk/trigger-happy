@@ -143,17 +143,11 @@ class Notification extends CI_Controller {
                 }
     
                 $reminderTime = new DateTimeImmutable($reminder['date_time'], $timeZone);
-    
-                // echo "Current Time: ".$currentTime->format('H:i') . "<br>";
-                // echo "Reminder Time: ".$reminderTime->format('H:i') ; exit;
+                
                 if ($currentTime->format('H:i') === $reminderTime->format('H:i')) {
                     $notificationData = $this->prepareNotificationData($reminder['name'], $reminder['text'], $reminder['id'], $reminder['device_token'], $reminderTime->format('Y-m-d H:i:s'));
                     $this->push_notification($notificationData);
                 }
-
-                // echo "Snooze: ".$reminder['snooze'] . "<br>";
-                // echo "Current Time: ".$currentTime->format('Y-m-d H:i'). "<br>";
-                // echo "Reminder Time: ".$reminderTime->format('Y-m-d H:i') ; exit;
 
                 if ($reminder['snooze'] === 'yes' && $currentTime->format('Y-m-d H:i') > $reminderTime->format('Y-m-d H:i')) {
                     $notificationData = $this->prepareNotificationData($reminder['name'], $reminder['text'], $reminder['id'], $reminder['device_token'], $reminderTime->format('Y-m-d H:i:s'));
@@ -225,6 +219,24 @@ class Notification extends CI_Controller {
     public function growth_tree() {
         $yesterday = date('Y-m-d', strtotime("-1 days"));
     
+        //**********Make unpaid users inactive***********
+        $excluded_user_ids = [96, 124, 125, 166, 239, 354, 221];
+
+        $this->db->select('*');
+        $this->db->from('user_subscriptions');
+        $this->db->where("DATE(plan_period_end) <=", $yesterday);
+        $this->db->where_not_in('user_id', $excluded_user_ids);
+        $this->db->group_by('user_id, stripe_subscription_id');
+        
+        $inactive_users = $this->db->get()->result_array();
+
+        // echo "<pre>"; print_r($inactive_users); exit();
+        foreach ($inactive_users as $key => $value) {
+            $this->common_model->update_array(['id' => $value['user_id']], 'users', ['is_premium' => 'no']);
+        }
+        //**********Make unpaid users inactive***********
+
+        
         $pire_array = $this->common_model->select_where_groupby('user_id, type, response_id, DATE(created_at) as response_date, level, seed', 'answers', array('type' => 'pire', 'DATE(created_at) <=' => $yesterday), 'user_id')->result_array();
         
         $naq_array = $this->common_model->select_where_groupby('user_id, type, response_id, DATE(created_at) as response_date, level, seed', 'answers', array('type' => 'naq', 'DATE(created_at) <=' => $yesterday), 'user_id')->result_array();
