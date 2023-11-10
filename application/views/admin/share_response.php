@@ -38,10 +38,14 @@
 
 .sender-name {
     font-size: 14px;
+    color: #555;
+}
+.date {
+    color : #555;
 }
 
 .group-2 {
-    border-left: 20px solid  #33aeb3;
+    border-left: 20px solid #33aeb3;
     border-bottom-left-radius: 10px;
     border-top-left-radius: 10px;
     padding: 13px;
@@ -52,34 +56,33 @@
 
 .link-icon {
     margin-right: 5px;
+    color : #33aeb3;
 }
 
 .arrow-icon {
     display: flex;
     align-items: center;
 }
-
-
-
 </style>
 
 <div class="page-content">
     <?php foreach ($chat_room as $room): ?>
-        <div class="group">
-            <div class="group-2">
-            <a href="<?= base_url('admin/response_detail?type=' . $room['type'] . '&entity_id=' . $room['entity_id']) ?>" class="text-wrapper-3 type-class"><?= strtoupper($room['type']) ?></a>
-                <p class="shared-by">
-                    <span class="shared-by-text">Shared by:</span>
-                    <span class="sender-name"><?= $room['sender_name'] ?></span>
-                </p>
-                <p class="date">
-                    <i class="link-icon" data-feather="calendar"></i>
-                    <?= date('M d Y', strtotime($room['created_at'])) ?>
-                </p>
-            </div>
-            <a href="<?= base_url('admin/response_detail?type=' . $room['type'] . '&entity_id=' . $room['entity_id']) ?>" class="arrow-icon">
-                <i class="link-icon" data-feather="arrow-right-circle"></i>
-            </a>
+    <a href="<?= base_url('admin/response_detail?type=' . $room['type'] . '&entity_id=' . $room['entity_id']) ?>"
+        class="group">
+        <div class="group-2">
+            <div class="text-wrapper-3 type-class"><?= strtoupper($room['type']) ?></div>
+            <p class="shared-by">
+                <span class="shared-by-text">Shared by:</span>
+                <span class="sender-name"><?= $room['sender_name'] ?></span>
+            </p>
+            <p class="date">
+                <i class="link-icon" data-feather="calendar"></i>
+                <?= date('M d Y', strtotime($room['created_at'])) ?>
+            </p>
         </div>
+        <div class="arrow-icon">
+            <i class="link-icon" data-feather="arrow-right-circle"></i>
+        </div>
+    </a>
     <?php endforeach; ?>
 </div>

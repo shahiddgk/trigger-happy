@@ -598,6 +598,9 @@ class Admin extends CI_Controller {
 		}
 	
 		$chat_rooms = $this->common_model->select_where('*', 'chat_room', $where)->result_array();
+		usort($chat_rooms, function ($a, $b) {
+			return strtotime($b['created_at']) - strtotime($a['created_at']);
+		});
 	
 		foreach ($chat_rooms as $key => $chat_room) {
 			$sender_id = $chat_room['sender_id'];
