@@ -36,12 +36,6 @@ class Admin extends CI_Controller {
         $this->load->view('admin/include/footer');
     }
 
-	public function chat_demo(){
-		$this->load->view('admin/include/header');
-        $this->load->view('admin/chat_demo');
-        $this->load->view('admin/include/footer');
-	}
-
 	public function questions(){
 		$data['page_title'] = 'Questions List';
 		$questions = $this->common_model->select_all_order_by('*', 'questions', 'id', 'ASC')->result_array();
@@ -639,9 +633,9 @@ class Admin extends CI_Controller {
 			$data['response_data'] = $this->common_model->select_where('*', 'ladder', array('response_id' => $entity_id))->result_array();
 		}
 	
-		$this->db->select('sage_feedback.message, sage_feedback.sender_id, chat_room.receiver_id, sage_feedback.created_at');
-		$this->db->from('sage_feedback');
-		$this->db->join('chat_room', 'chat_room.id = sage_feedback.shared_id', 'left');
+		$this->db->select('sage_feedback.message, sage_feedback.sender_id, sage_feedback.receiver_id, sage_feedback.created_at');
+		$this->db->from('chat_room');
+		$this->db->join('sage_feedback', 'chat_room.id = sage_feedback.shared_id', 'left');
 		$this->db->where('chat_room.entity_id', $entity_id);
 
 		$chat_message_query = $this->db->get();
@@ -686,6 +680,7 @@ class Admin extends CI_Controller {
 						'ladder' => false,
 					];
 				}
+				
 	
 				if ($chat_room['type'] == 'pire') {
 					$sage_list[$sender_id]['pire_count']++;
@@ -704,7 +699,7 @@ class Admin extends CI_Controller {
 		}
 	    $data['page_title'] = 'Sage List';
 		$data['sage_list'] = $sage_list;
-		$data['shared_id'] = $chat_rooms[0]['id'];
+		$data['shared_id'] = !empty($chat_rooms) ? $chat_rooms[0]['id'] : null; // Adding an empty check
 	
 		$this->load->view('admin/include/header');
 		$this->load->view('admin/sage_list', $data);
