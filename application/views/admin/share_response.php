@@ -63,12 +63,72 @@
     display: flex;
     align-items: center;
 }
+
+.feedback-waiting {
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: #33aeb3;
+    animation: blink 1s linear infinite;
+}
+
+@keyframes blink {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.filter-dropdown {
+    margin-bottom: 20px;
+    display: table;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Style the label */
+.filter-dropdown label {
+    margin-right: 10px;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+/* Style the select element */
+.filter-dropdown select {
+    padding: 5px;
+    border: 2px solid #33aeb3;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    color: #333;
+    font-size: 16px;
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+
 </style>
 
 <div class="page-content">
+    <div class="filter-dropdown">
+        <label for="filter-select">Filter by</label>
+        <select id="filter-select">
+            <option value="all">All List</option>
+            <option value="waiting">Waiting List</option>
+        </select>
+    </div>
+
     <?php foreach ($chat_room as $room): ?>
+    <?php
+    // Calculate feedback given status for each response item
+    $feedback_given = $this->common_model->select_where('id', 'sage_feedback', array('shared_id' => $room['id']))->num_rows();
+    $feedback_class = ($feedback_given) ? '' : 'waiting';
+    ?>
     <a href="<?= base_url('admin/response_detail?type=' . $room['type'] . '&entity_id=' . $room['entity_id']) ?>"
-        class="group">
+        class="group response-item <?= $feedback_class ?>">
         <div class="group-2">
             <div class="text-wrapper-3 type-class"><?= strtoupper($room['type']) ?></div>
             <p class="shared-by">
@@ -79,6 +139,11 @@
                 <i class="link-icon" data-feather="calendar"></i>
                 <?= date('M d Y', strtotime($room['created_at'])) ?>
             </p>
+            <?php
+            if (!$feedback_given) {
+                echo '<p class="feedback-waiting">Waiting for feedback</p>';
+            }
+            ?>
         </div>
         <div class="arrow-icon">
             <i class="link-icon" data-feather="arrow-right-circle"></i>
@@ -86,3 +151,24 @@
     </a>
     <?php endforeach; ?>
 </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    $("#filter-select").change(function() {
+        var selectedOption = $(this).val();
+
+        // Hide all responses
+        $(".response-item").hide();
+
+        if (selectedOption === "all") {
+            // Show all responses
+            $(".response-item").show();
+        } else if (selectedOption === "waiting") {
+            // Show only waiting responses
+            $(".response-item.waiting").show();
+        }
+    });
+});
+</script>
+

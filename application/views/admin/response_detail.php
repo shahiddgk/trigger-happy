@@ -4,7 +4,7 @@
     border: 2px solid #333;
     padding: 20px;
     border-radius: 10px;
-    margin-right: 20px;
+    margin-left: 50px;
 }
 
 .response-box h4 {
@@ -44,7 +44,9 @@
     padding: 20px;
     text-align: left;
     position: relative;
-    /* height: 30%; */
+    height: 70vh;
+    max-height: 70vh;
+    overflow-y: auto;
     top: 0;
 }
 
@@ -119,62 +121,123 @@
     background-color: #A8CACC !important;
     color: #000;
 }
+
+.message p {
+    word-wrap: break-word;
+    width: 100%;
+    max-width: 200px;
+}
+
+.chat-header {
+    margin-bottom: 10px;
+}
+
+.form-control {
+    height: 35px !important;
+    display: block;
+}
+
+.chat-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    height: 85vh;
+    max-height: 85vh;
+    width: 35%;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #ccc;
+    padding: 15px;
+}
 </style>
 
-<div class="page-content d-flex justify-content-center align-items-center" style="height: 50%;">
+<div class="page-content container-fluid">
     <div class="row">
-        <div class="col-md-7">
+        <div class="col-md-6">
             <div class="response-box">
-                <h4 class="card-title">Response</h4>
+                <h4 class="card-title"><?= strtoupper($response_data[0]['type']) ?> Response</h4>
                 <p class="card-description">
                     <?php foreach ($response_data as $key => $value): ?>
-                <div class="response-item">
-                    <span class="response-title"><?= strip_tags($value['title']) ?></span>
-                </div>
-                <div class="response-item">
-                    <span class="response-text">
-                        Answer:
-                        <?= ($value['options'] || $value['text'] ? strip_tags($value['options']) . ' ' . strip_tags($value['text']) : 'N/A') ?>
-                    </span>
-                </div>
-                <?php endforeach; ?>
+                        <div class="response-item">
+                            <span class="response-title"><?= strip_tags($value['title']) ?></span>
+                        </div>
+                        <div class="response-item">
+                            <span class="response-text">
+                                Answer: <?= ($value['options'] || $value['text'] ? strip_tags($value['options']) . ' ' . strip_tags($value['text']) : 'N/A') ?>
+                            </span>
+                        </div>
+                    <?php endforeach; ?>
                 </p>
             </div>
         </div>
-        <div class="col-md-5">
+        <div class="col-md-6">
+            <div class="chat-container fixed-right" style="margin-top: 20px;">
             <div class="chat-body" id="chatBody">
-                <ul class="messages">
-                    <?php foreach ($chat_message as $key => $chat) : ?>
-                    <?php
-                    $messageClass = ($this->session->userdata('userid') === $chat->sender_id) ? 'me' : 'friend';
-                    ?>
-                    <?php if (!empty($chat->message)) : ?>
-                    <li class="message-item <?= $messageClass ?>">
-                        <div class="content">
-                            <div class="message">
-                                <div class="bubble">
-                                    <p><?= $chat->message ?></p>
-                                </div>
+                <div class="chat-header border-bottom pb-2">
+                    <div class="d-flex justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i data-feather="corner-up-left" id="backToChatList" class="icon-lg mr-2 ml-n2 text-muted d-lg-none"></i>
+                            <figure class="mb-0 mr-2">
+                                <?php if (!empty($sender_detail['image']) && file_exists('uploads/app_users/' . $sender_detail['image'])) : ?>
+                                    <img src="<?= base_url('uploads/app_users/' . $sender_detail['image']) ?>" class="img-sm rounded-circle" alt="image">
+                                <?php else : ?>
+                                    <img src="<?= base_url('uploads/app_users/default.png') ?>" class="img-sm rounded-circle" alt="default image">
+                                <?php endif; ?>
+                            </figure>
+                            <div>
+                                <p>
+                                <?php
+                                    if (!empty($sender_detail['name'])) {
+                                        echo $sender_detail['name'];
+                                    } else {
+                                        echo 'Anonymous';
+                                    }
+                                ?>
+                                </p>
                             </div>
                         </div>
-                    </li>
-                    <?php endif; ?>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-            <div class="chat-footer d-flex">
-                <div class="search-form flex-grow mr-2">
-                    <div class="input-group">
-                        <input type="text" class="form-control rounded-pill" id="feedbackText"
-                            placeholder="Type a message">
+                        <div class="d-flex align-items-center mr-n1">
+                            <i data-feather="user-plus" class="icon-lg text-muted"></i>
+                        </div>
                     </div>
                 </div>
-                <div>
-                    <button type="button"
-                        onclick="sendFeedbackChat('<?php echo $param_type; ?>', '<?php echo $entity_id; ?>')"
-                        class="btn btn-primary btn-icon rounded-circle" id="sendFeedback">
-                        <i data-feather="send"></i>
-                    </button>
+                <ul class="messages">
+                    <?php
+                    $lastMessage = !empty($chat_message) ? end($chat_message) : null;
+                    $isMyLastMessage = $lastMessage ? ($this->session->userdata('userid') === $lastMessage->sender_id) : false;
+                    if (!empty($chat_message)) {
+                        foreach ($chat_message as $key => $chat) {
+                            $messageClass = ($this->session->userdata('userid') === $chat->sender_id) ? 'me' : 'friend';
+                            if (!empty($chat->message)) {
+                    ?>
+                            <li class="message-item <?= $messageClass ?>">
+                                <div class="content">
+                                    <div class="message">
+                                        <div class="bubble">
+                                            <p><?= $chat->message ?></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                    <?php
+                            }
+                        }
+                    }
+                    ?>
+                    <input type="hidden" id="isMyLastMessage" value="<?= $isMyLastMessage ?>">
+                </ul>
+            </div>
+                <div class="chat-footer d-flex">
+                    <div class="search-form flex-grow mr-2">
+                        <div class="input-group">
+                            <textarea class="form-control rounded-pill" id="feedbackText" placeholder="Type a message"></textarea>
+                        </div>
+                    </div>
+                    <div>
+                        <button type="button" onclick="sendFeedbackChat('<?= $param_type ?>', '<?= $entity_id ?>')" class="btn btn-primary btn-icon rounded-circle" id="sendFeedback">
+                            <i data-feather="send"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -182,29 +245,64 @@
 </div>
 
 
+
 <script>
-    function sendFeedbackChat(param, shared_id) {
-        var message = $('#feedbackText').val();
-        if (message !== '') {
-            $.ajax({
-                url: '<?php echo base_url(); ?>admin/insert_feedback',
-                type: 'POST',
-                data: {
-                    param: param,
-                    shared_id: shared_id,
-                    message: message,
-                },
-                success: function(response) {
+function sendFeedbackChat(param, shared_id) {
+    var message = $('#feedbackText').val();
+    if (message !== '') {
+        $.ajax({
+            url: '<?php echo base_url(); ?>admin/insert_feedback',
+            type: 'POST',
+            data: {
+                param: param,
+                shared_id: shared_id,
+                message: message,
+            },
+            success: function(response) {
+                var result = JSON.parse(response);
+                if (result.status === 'success') {
                     $('#feedbackText').val('');
-                    alert('Feedback sent successfully');
-                    window.location.reload();
-                },
-                error: function(xhr, status, error) {
-                    console.log('Error: ' + error);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Copied',
+                        text: 'Feedback sent successfully',
+                        timer: 2000, // time in milliseconds
+                        toast: true, // set to true to make it a toast
+                        position: 'top-right',
+                        showConfirmButton: false, // hide the OK button
+                        timerProgressBar: true, // show timer progress bar
+                    });
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else if (result.status === 'error') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Feedback not submitted. ' + result.message,
+                    });
                 }
-            });
-        } else {
-            alert('Please enter a message before sending feedback.');
-        }
+            },
+            error: function(xhr, status, error) {
+                console.log(xhr.responseText);
+            }
+        });
+    } else {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please enter a message before sending feedback.',
+        });
     }
+}
+window.onload = function() {
+    let isMyLastMessage = document.getElementById('isMyLastMessage').value;
+    if (isMyLastMessage) {
+        $('#feedbackText').prop('disabled', true);
+        $('#sendFeedback').prop('disabled', true);
+    } else {
+        $('#feedbackText').prop('disabled', false);
+        $('#sendFeedback').prop('disabled', false);
+    }
+}
 </script>

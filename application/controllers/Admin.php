@@ -483,19 +483,28 @@ class Admin extends CI_Controller {
 		];
 		$chat_room = $this->common_model->select_where('id, sender_id', 'chat_room', $condition)->row();
 	
-		$data = array(
-			'shared_id' => $chat_room->id,
-			'sender_id' => $this->session->userdata('userid'),
-			'receiver_id' => $chat_room->sender_id,
-			'message' => $message,
-		);
+		$feedbackCount = $this->common_model->select_where('*', 'sage_feedback', ['shared_id' => $chat_room->id])->num_rows();
+		if ($feedbackCount < 5) {
+			$data = array(
+				'shared_id' => $chat_room->id,
+				'sender_id' => $this->session->userdata('userid'),
+				'receiver_id' => $chat_room->sender_id,
+				'message' => $message,
+			);
 	
-		$result = $this->common_model->insert_array('sage_feedback', $data);
+			$result = $this->common_model->insert_array('sage_feedback', $data);
 	
-		if ($result) {
-			echo 'success';
+			if ($result) {
+				$update_data = array('status' => 'answered');
+				$update_condition = array('id' => $chat_room->id);
+				$update_result = $this->common_model->update_array($update_condition, 'chat_room', $update_data);
+	
+				echo json_encode(['status' => 'success']);
+			} else {
+				echo json_encode(['status' => 'error', 'message' => 'Error inserting feedback']);
+			}
 		} else {
-			echo 'error';
+			echo json_encode(['status' => 'error', 'message' => 'Limit reached']);
 		}
 	}
 	
@@ -624,9 +633,9 @@ class Admin extends CI_Controller {
 			$data['response_data'] = $this->common_model->select_where('*', 'ladder', array('response_id' => $entity_id))->result_array();
 		}
 	
-		$this->db->select('sage_feedback.message, sage_feedback.sender_id,');
-		$this->db->from('chat_room');
-		$this->db->join('sage_feedback', 'chat_room.id = sage_feedback.shared_id', 'left');
+		$this->db->select('sage_feedback.message, sage_feedback.sender_id, chat_room.receiver_id, sage_feedback.created_at');
+		$this->db->from('sage_feedback');
+		$this->db->join('chat_room', 'chat_room.id = sage_feedback.shared_id', 'left');
 		$this->db->where('chat_room.entity_id', $entity_id);
 
 		$chat_message_query = $this->db->get();
@@ -636,7 +645,9 @@ class Admin extends CI_Controller {
 		} else {
 			$data['chat_message'] = array();
 		}
-	
+
+		$data['sender_detail'] = $this->common_model->select_where('name, image', 'users', array('id' => $data['chat_message'][0]->receiver_id))->row_array();
+		
 		$data['param_type'] = $type;
 		$data['entity_id'] = $entity_id;
 	
@@ -663,15 +674,23 @@ class Admin extends CI_Controller {
 						'sender_name' => $sender_name,
 						'sender_email' => $sender_email,
 						'pire_count' => 0,
-						'naq_count' => 0, 
+						'naq_count' => 0,
+						'pire_not_answered' => false, // Initialize the keys
+						'naq_not_answered' => false, // Initialize the keys
 						'ladder' => false,
 					];
 				}
 	
 				if ($chat_room['type'] == 'pire') {
 					$sage_list[$sender_id]['pire_count']++;
+					if ($chat_room['status'] == 'not_answered') {
+						$sage_list[$sender_id]['pire_not_answered'] = true;
+					}
 				} elseif ($chat_room['type'] == 'naq') {
-					$sage_list[$sender_id]['naq_count']++; 
+					$sage_list[$sender_id]['naq_count']++;
+					if ($chat_room['status'] == 'not_answered') {
+						$sage_list[$sender_id]['naq_not_answered'] = true;
+					}
 				} elseif ($chat_room['type'] == 'ladder') {
 					$sage_list[$sender_id]['ladder'] = true;
 				}
@@ -679,6 +698,7 @@ class Admin extends CI_Controller {
 		}
 	    $data['page_title'] = 'Sage List';
 		$data['sage_list'] = $sage_list;
+		$data['shared_id'] = $chat_rooms[0]['id'];
 	
 		$this->load->view('admin/include/header');
 		$this->load->view('admin/sage_list', $data);

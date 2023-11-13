@@ -4327,6 +4327,7 @@ class Api extends REST_Controller {
 			$type = $_POST['type'];
 			$entity_id = $_POST['entity_id'];
 			$receiver_id = $_POST['receiver_id'];
+			$receiver_email = $_POST['receiver_email'];
 			$user = $this->common_model->select_where("*", "users", array('id' => $user_id))->row_array();
 	
 			if ($user) {
@@ -4383,12 +4384,32 @@ class Api extends REST_Controller {
 
 						if ($insertResult) {
 							$this->firestore->addData($receiver_id , 'shared_response');
-							$response = [
-								'status' => 200,
-								'message' => 'Payment successful',
-								'data' => $charge
-							];
-							$this->set_response($response, REST_Controller::HTTP_OK);
+							$url = base_url();
+	
+							$message = "<p>Hi " . $user['name'] . ",</p>";
+							$message .= "<p>You have received a payment of " . $charge->amount / 100 . " " . $charge->currency . " for the " . $type . "</p>";
+					
+							$this->email->set_newline("\r\n");
+							$this->email->set_mailtype('html');
+							$this->email->from($this->smtp_user, 'Burgeon');
+							$this->email->to($receiver_email);
+							$this->email->subject('Burgeon submission response required.');
+							$this->email->message($message);
+							if($this->email->send()) {
+								$response = [
+									'status' => 200,
+									'message' => 'Payment successful',
+									'data' => $charge
+								];
+								$this->set_response($response, REST_Controller::HTTP_OK);
+							} else {
+								$response = [
+									'status' => 400,
+									'message' => 'Payment successful, but email sending failed',
+									'data' => $charge
+								];
+								$this->set_response($response, REST_Controller::HTTP_OK);
+							}
 						} else {
 							$response = [
 								'status' => 400,
@@ -4432,34 +4453,44 @@ class Api extends REST_Controller {
 		$shared_id = $_POST['shared_id'];
 	
 		if (!empty($message)) {
-			$data = array(
-				'receiver_id' => $receiver_id,
-				'sender_id' => $sender_id,
-				'message' => $message,
-				'shared_id' => $shared_id
-			);
+			$row_count = $this->common_model->select_where("*", "sage_feedback", array('shared_id' => $shared_id))->num_rows();
 	
-			try {
-				$this->common_model->insert_array('sage_feedback', $data);
+			if ($row_count < 5) {
+				$data = array(
+					'receiver_id' => $receiver_id,
+					'sender_id' => $sender_id,
+					'message' => $message,
+					'shared_id' => $shared_id
+				);
 	
-				$insertedId = $this->db->insert_id();
-				$created_at = date('Y-m-d H:i:s');
-
-				$data['id'] = $insertedId;
-				$data['created_at'] = $created_at;
-
+				try {
+					$this->common_model->insert_array('sage_feedback', $data);
+	
+					$insertedId = $this->db->insert_id();
+					$created_at = date('Y-m-d H:i:s');
+	
+					$data['id'] = $insertedId;
+					$data['created_at'] = $created_at;
+	
+					$response = [
+						'status' => 200,
+						'message' => 'Feedback submitted successfully',
+						'data' => $data
+					];
+					$this->set_response($response, REST_Controller::HTTP_OK);
+				} catch (Exception $e) {
+					$response = [
+						'status' => 500,
+						'message' => 'Internal Server Error: ' . $e->getMessage()
+					];
+					$this->set_response($response, REST_Controller::HTTP_INTERNAL_SERVER_ERROR);
+				}
+			} else {
 				$response = [
-					'status' => 200,
-					'message' => 'Feedback submitted successfully',
-					'data' => $data
+					'status' => 400,
+					'message' => 'Feedback not submitted. Limit reached.'
 				];
-				$this->set_response($response, REST_Controller::HTTP_OK);
-			} catch (Exception $e) {
-				$response = [
-					'status' => 500,
-					'message' => 'Internal Server Error: ' . $e->getMessage()
-				];
-				$this->set_response($response, REST_Controller::HTTP_INTERNAL_SERVER_ERROR);
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 			}
 		} else {
 			$response = [

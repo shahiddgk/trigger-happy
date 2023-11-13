@@ -129,7 +129,7 @@ class Stripe_lib{
     function chargeSage($customer_id){ 
         try { 
             $customer = \Stripe\Charge::create(array(
-                'amount' => '2000',
+                'amount' => '2500',
                 'currency' => 'usd', 
                 'customer' => $customer_id,
             )); 
