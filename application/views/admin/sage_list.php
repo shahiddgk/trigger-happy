@@ -25,23 +25,34 @@
                         <tbody>
                             <?php
                             $count = 1;
-                            foreach($sage_list as $key => $data){ ?>
-                                <tr>
-                                <td><?= $count; ?></td>
-                                    <td><?= $data['sender_name'] ?></td>
-                                    <td><?= $data['sender_email'] ?></td>
-                                    <td>
-                                        <?php if ($data['pire_count'] > 0): ?>
-                                            <a href="<?= base_url('admin/share_response/pire/' . $key) ?>">Pire (<?= $data['pire_count'] ?>)</a>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <?php if ($data['naq_count'] > 0): ?>
-                                            <a href="<?= base_url('admin/share_response/naq/' . $key) ?>">Naq (<?= $data['naq_count'] ?>)</a>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            <?php $count++; }  ?>
+                            foreach ($sage_list as $key => $data) {
+                                if ($data['pire_count'] !== 0 || $data['naq_count'] !== 0) { ?>
+                                    <tr>
+                                        <td><?= $count; ?></td>
+                                        <td><?= $data['sender_name'] ?></td>
+                                        <td><?= $data['sender_email'] ?></td>
+                                        <td>
+                                            <?php if ($data['pire_count'] !== 0): ?>
+                                                <?php if ($data['pire_not_answered']): ?>
+                                                    <a href="<?= base_url('admin/share_response/pire/' . $key) ?>">Pire (<?= $data['pire_count'] ?>)*</a>
+                                                <?php else: ?>
+                                                    <a href="<?= base_url('admin/share_response/pire/' . $key) ?>">Pire (<?= $data['pire_count'] ?>)</a>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($data['naq_count'] !== 0): ?>
+                                                <?php if ($data['naq_not_answered']): ?>
+                                                    <a href="<?= base_url('admin/share_response/naq/' . $key) ?>">Naq (<?= $data['naq_count'] ?>)*</a>
+                                                <?php else: ?>
+                                                    <a href="<?= base_url('admin/share_response/naq/' . $key) ?>">Naq (<?= $data['naq_count'] ?>)</a>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                    <?php $count++;
+                                }
+                            } ?>
                         </tbody>
                     </table>
                     </div>

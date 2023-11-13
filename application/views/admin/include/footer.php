@@ -11,6 +11,7 @@
         <!-- core:js -->
             <script src="<?= base_url()?>assets/admin/vendors/core/core.js"></script>
             <script src="<?= base_url()?>assets/js/chat.js"></script>
+            <script src="<?= base_url()?>assets/js/sweetalert.js"></script>
             <script src="<?= base_url()?>assets/admin/vendors/chartjs/Chart.min.js"></script>
             <!-- <script src="<?= base_url()?>assets/admin/js/dashboard.js"></script>
             <script src="<?= base_url()?>assets/admin/vendors/apexcharts/apexcharts.min.js"></script>
