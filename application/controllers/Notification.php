@@ -160,6 +160,7 @@ class Notification extends CI_Controller {
     
     private function prepareNotificationData($name, $text, $id, $deviceToken, $date_time)
     {
+        $this->common_model->update_array(['id' => $id], 'reminders', ['reminder_stop' => 'skip', 'updated_at' => date('Y-m-d H:i:s')]);
         return [
             'title' => 'Hi ' . $name. ' Did you....',
             'type' => 'reminder',

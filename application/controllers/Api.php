@@ -2922,17 +2922,22 @@ class Api extends REST_Controller {
 	
 		if (isset($_POST['entity_id']) && isset($_POST['reminder_stop']) && !empty($_POST['entity_id'] && $_POST['reminder_stop'])) {
 	
+			$date_time = $this->common_model->select_single_field('date_time', 'reminders', array('id' => $_POST['entity_id']));
+
 			$entity_id = $_POST['entity_id'];
 			$reminder_stop = $_POST['reminder_stop'];
 
 			$interactionData = array(
 				'entity_id' => $entity_id,
-				'reminder_stop' => $reminder_stop,
+				'reminder_stop' => $reminder_stop, 
+				'due_time' => $date_time, 
 				'created_at' => date('Y-m-d H:i:s')
 			);
 			$this->common_model->insert_array("reminder_history", $interactionData);
 
-			$this->common_model->update_array(array('id' => $entity_id), "reminders", array('reminder_stop' => 'skip', 'updated_at' => date('Y-m-d H:i:s')));
+			$this->common_model->update_array(['id' => $entity_id], 'reminders', ['reminder_stop' => $reminder_stop, 'updated_at' => date('Y-m-d H:i:s')]);
+
+			// $this->common_model->update_array(array('id' => $entity_id), "reminders", array('reminder_stop' => 'skip', 'updated_at' => date('Y-m-d H:i:s')));
 
 			if($this->db->affected_rows() > 0){
 				$response = [
