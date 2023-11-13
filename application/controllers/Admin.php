@@ -36,6 +36,12 @@ class Admin extends CI_Controller {
         $this->load->view('admin/include/footer');
     }
 
+	public function chat_demo(){
+		$this->load->view('admin/include/header');
+        $this->load->view('admin/chat_demo');
+        $this->load->view('admin/include/footer');
+	}
+
 	public function questions(){
 		$data['page_title'] = 'Questions List';
 		$questions = $this->common_model->select_all_order_by('*', 'questions', 'id', 'ASC')->result_array();

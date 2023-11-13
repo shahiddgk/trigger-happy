@@ -41,22 +41,32 @@
 
 <script>
     $(document).ready(function () {
-        var conn = new WebSocket('ws://localhost:8080');
 
-        conn.onopen = function (e) {
-            console.log("Connection established!");
+        const socket = new WebSocket('wss://173.201.253.251:443');
+        socket.onopen = () => {
+            console.log('WebSocket connection established.');
+        };
+        socket.onmessage = (event) => {
+            console.log('Received:', event.data);
         };
 
-        conn.onmessage = function (e) {
-            var message = JSON.parse(e.data); // Assuming the message is JSON
-            console.log(message);
-            // Handle the incoming message here
-        };
+
+        // var conn = new WebSocket('ws://localhost:8080');
+
+        // conn.onopen = function (e) {
+        //     console.log("Connection established!");
+        // };
+
+        // conn.onmessage = function (e) {
+        //     var message = JSON.parse(e.data); // Assuming the message is JSON
+        //     console.log(message);
+        //     // Handle the incoming message here
+        // };
 
         $('#send').on('click', function () {
             var message = $('#message-input').val();
             // Send the message to the WebSocket server
-            conn.send(message);
+            socket.send(message);
         });
     });
 </script>

@@ -12,11 +12,11 @@
     },
     "require": {
         "php": ">=5.3.7",
-        "cboden/ratchet": "*",
         "grpc/grpc": "^1.38",
         "google/apiclient": "^2.12.1",
         "google/cloud-core": "^1.47",
-		"google/cloud": "*"
+		"google/cloud": "*",
+        "cboden/ratchet": "^0.4.4"
     },
     "suggest": {
         "paragonie/random_compat": "Provides better randomness in PHP 5.x"
