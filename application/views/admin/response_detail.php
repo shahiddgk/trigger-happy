@@ -132,10 +132,10 @@
     margin-bottom: 10px;
 }
 
-.form-control {
+/* .form-control {
     height: 35px !important;
     display: block;
-}
+} */
 
 .chat-container {
     position: fixed;
@@ -230,7 +230,7 @@
                 <div class="chat-footer d-flex">
                     <div class="search-form flex-grow mr-2">
                         <div class="input-group">
-                            <textarea class="form-control rounded-pill" id="feedbackText" placeholder="Type a message"></textarea>
+                            <textarea rows="1" class="form-control rounded-pill" id="feedbackText" cols="55" oninput="autoExpand(this)"></textarea>
                         </div>
                     </div>
                     <div>
@@ -247,6 +247,12 @@
 
 
 <script>
+
+function autoExpand(textarea) {
+    textarea.style.height = '35px';
+    textarea.style.height = textarea.scrollHeight + 'px';
+}
+
 function sendFeedbackChat(param, shared_id) {
     var message = $('#feedbackText').val();
     if (message !== '') {
