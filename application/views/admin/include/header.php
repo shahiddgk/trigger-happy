@@ -87,9 +87,9 @@ else{
 					<li class="nav-item">
 						<a href="<?= base_url('admin/questions'); ?>" class="nav-link">Questions List</a>
 					</li>
-					<li class="nav-item">
+					<!-- <li class="nav-item">
 						<a href="<?= base_url('admin/pire_positive'); ?>" class="nav-link">Pire Positive</a>
-					</li>
+					</li> -->
 				</ul>
 				</div>
 			</li>
@@ -130,12 +130,12 @@ else{
 				</a>
 			</li>
 			
-			<li class="nav-item">
+			<!-- <li class="nav-item">
 				<a class="nav-link" href="<?php echo site_url('admin/chat_demo'); ?>">
 				<i class="link-icon" data-feather="message-square"></i>
 				<span class="link-title">Chat</span>
 				</a>
-			</li>
+			</li> -->
 
 			<li class="nav-item nav-category">Reports</li>
 			<li class="nav-item">

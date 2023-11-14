@@ -230,8 +230,8 @@
                 <div class="chat-footer d-flex">
                     <div class="search-form flex-grow mr-2">
                         <div class="input-group">
-                            <textarea rows="1" class="form-control rounded-pill" id="feedbackText" cols="55" oninput="autoExpand(this)"></textarea>
-                        </div>
+                        <textarea id="feedbackText" name="w3review" rows="7" cols="55"></textarea>                        
+                    </div>
                     </div>
                     <div>
                         <button type="button" onclick="sendFeedbackChat('<?= $param_type ?>', '<?= $entity_id ?>')" class="btn btn-primary btn-icon rounded-circle" id="sendFeedback">
@@ -247,12 +247,6 @@
 
 
 <script>
-
-function autoExpand(textarea) {
-    textarea.style.height = '35px';
-    textarea.style.height = textarea.scrollHeight + 'px';
-}
-
 function sendFeedbackChat(param, shared_id) {
     var message = $('#feedbackText').val();
     if (message !== '') {

@@ -637,16 +637,23 @@ class Admin extends CI_Controller {
 		$this->db->from('chat_room');
 		$this->db->join('sage_feedback', 'chat_room.id = sage_feedback.shared_id', 'left');
 		$this->db->where('chat_room.entity_id', $entity_id);
-
+		
 		$chat_message_query = $this->db->get();
-
+		
 		if ($chat_message_query->num_rows() > 0) {
 			$data['chat_message'] = $chat_message_query->result();
+			
+			if (!empty($data['chat_message'])) {
+				$data['sender_detail'] = $this->common_model->select_where('name, image', 'users', array('id' => $data['chat_message'][0]->receiver_id))->row_array();
+			} else {
+				// Handle the case where $data['chat_message'] is empty
+				$data['sender_detail'] = array(); // Set sender details to an empty array or handle it accordingly
+			}
 		} else {
 			$data['chat_message'] = array();
+			$data['sender_detail'] = array(); // Handle the case where there are no chat messages
 		}
-
-		$data['sender_detail'] = $this->common_model->select_where('name, image', 'users', array('id' => $data['chat_message'][0]->receiver_id))->row_array();
+		
 		
 		$data['param_type'] = $type;
 		$data['entity_id'] = $entity_id;
