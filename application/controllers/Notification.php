@@ -114,14 +114,14 @@ class Notification extends CI_Controller {
         $sql = "SELECT reminders.*, users.name, users.device_token, users.time_zone
         FROM reminders
         JOIN users ON users.id = reminders.user_id
-        WHERE reminders.status = 'active'
+        WHERE reminders.status = 'active' 
             AND DATE(reminders.date_time) <= CURDATE()
             AND users.device_token NOT IN ('')
             AND users.time_zone NOT IN ('')
             AND NOT EXISTS (
                 SELECT 1
                 FROM reminder_history
-                WHERE reminders.date_time = reminder_history.due_time
+                WHERE DATE(reminder_history.created_at) = CURDATE() AND reminder_history.due_time = TIME(reminders.date_time)
             )";
         
         $activeReminders = $this->db->query($sql)->result_array();
@@ -142,6 +142,14 @@ class Notification extends CI_Controller {
                 $currentTime = new DateTimeImmutable('now', new DateTimeZone('UTC'));
                 $timeZone = new DateTimeZone($validTimeZone);
                 $currentTime = $currentTime->setTimezone($timeZone);
+
+                // if ($reminder['reminder_type'] === 'once') {
+                    
+                //     $rows =$this->common_model->select_where_table_rows('*', 'reminder_history', ['entity_id' => $reminder['id'], 'due_time' => $reminder['date_time']]);
+                //     if($rows == 1){
+                //         continue;
+                //     }
+                // }
     
                 if ($reminder['reminder_type'] === 'repeat') {
                     $daysArray = json_decode($reminder['day_list'], true);

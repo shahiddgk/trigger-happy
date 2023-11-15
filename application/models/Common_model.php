@@ -596,10 +596,11 @@ class Common_model extends  CI_Model {
 		
 	}
 
-	public function due_reminders($user_id, $current_time) {
+	public function due_reminders($user_id, $date_time) {
 
-        $currentdate = $current_time->format('Y-m-d');
-        $currentdatetime = $current_time->format('Y-m-d H:i:00');
+        $userdate = $date_time->format('Y-m-d');
+        $usertime = $date_time->format('H:i:00');
+        $userdatetime = $date_time->format('Y-m-d H:i:00');
 
 		// $sql = "SELECT *
         // FROM reminders r
@@ -618,24 +619,36 @@ class Common_model extends  CI_Model {
         //     (r.reminder_type = 'repeat' AND r.end_date IS NULL AND r.date_time < '$currentdatetime')
         // )";
 
-		$sql = "SELECT reminders.*
-        FROM reminders
-        WHERE reminders.status = 'active'
-			AND reminders.user_id = $user_id
-            AND DATE(reminders.date_time) <= CURDATE()
-            AND reminders.snooze = 'no'
-            AND reminders.reminder_stop = 'skip'
-            AND NOT EXISTS (
-                SELECT 1
-                FROM reminder_history
-                WHERE reminders.date_time = reminder_history.due_time
-            )";
-
+			$sql = "SELECT reminders.*
+					FROM reminders
+					WHERE reminders.status = 'active'
+						AND reminders.user_id = $user_id
+						AND reminders.date_time <= '$userdatetime'
+						AND reminders.snooze = 'no'
+						AND reminders.reminder_stop = 'skip'
+						AND NOT EXISTS (
+							SELECT 1
+							FROM reminder_history
+							WHERE DATE(reminder_history.created_at) = '$userdate' 
+								AND reminder_history.due_time = '$usertime'
+						)";
+		
 		$query = $this->db->query($sql);
 
-
         if ($query->num_rows() > 0) {
-            return $query->result_array();
+            $reminders = $query->result_array();
+			foreach ($reminders as $key => $value) {
+				if($value['reminder_type'] == 'repeat'){
+					$daysArray = json_decode($value['day_list'], true);
+					$daysList = array_map('ucfirst', $daysArray);
+					$currentDay = $date_time->format('D');
+					if (!in_array($currentDay, $daysList)) {
+						unset($reminders[$key]);
+					}
+				}
+			}
+			return $reminders;
+
         } else {
             return array();
         }

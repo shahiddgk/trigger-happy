@@ -2957,9 +2957,7 @@ class Api extends REST_Controller {
 			);
 			$this->common_model->insert_array("reminder_history", $interactionData);
 
-			$this->common_model->update_array(['id' => $entity_id], 'reminders', ['reminder_stop' => $reminder_stop, 'updated_at' => date('Y-m-d H:i:s')]);
-
-			// $this->common_model->update_array(array('id' => $entity_id), "reminders", array('reminder_stop' => 'skip', 'updated_at' => date('Y-m-d H:i:s')));
+			$this->common_model->update_array(['id' => $entity_id], 'reminders', ['reminder_stop' => $reminder_stop, 'snooze' => 'no', 'updated_at' => date('Y-m-d H:i:s')]);
 
 			if($this->db->affected_rows() > 0){
 				$response = [
