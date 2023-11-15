@@ -98,25 +98,42 @@ class Notification extends CI_Controller {
     
     public function reminder_notification()
     {
-        $activeReminders = $this->db
-            ->select('reminders.*, users.name, users.device_token, users.time_zone')
-            ->from('reminders')
-            ->join('users', 'users.id = reminders.user_id')
-            ->where('reminders.status', 'active')
-            // ->where_in('users.id', array(221))
-            ->where('DATE(reminders.date_time) <=', date('Y-m-d'))
-            ->where_not_in('users.device_token', '')
-            ->where_not_in('users.time_zone', '')
-            ->get()
-            ->result_array();
-    
-        // echo "Active Reminders:<pre> "; print_r($activeReminders); exit;
+        // $activeReminders = $this->db
+        //     ->select('reminders.*, users.name, users.device_token, users.time_zone')
+        //     ->from('reminders')
+        //     ->join('users', 'users.id = reminders.user_id')
+        //     ->join('reminder_history', 'reminders.date_time = reminder_history.due_time', 'left')
+        //     ->where('reminders.status', 'active')
+        //     ->where_in('users.id', [166])
+        //     ->where('DATE(reminders.date_time) <=', date('Y-m-d'))
+        //     ->where_not_in('users.device_token', '')
+        //     ->where_not_in('users.time_zone', '')
+        //     ->get()
+        //     ->result_array();
+
+        $sql = "SELECT reminders.*, users.name, users.device_token, users.time_zone
+        FROM reminders
+        JOIN users ON users.id = reminders.user_id
+        WHERE reminders.status = 'active' 
+            AND DATE(reminders.date_time) <= CURDATE()
+            AND users.device_token NOT IN ('')
+            AND users.time_zone NOT IN ('')
+            AND NOT EXISTS (
+                SELECT 1
+                FROM reminder_history
+                WHERE DATE(reminder_history.created_at) = CURDATE() AND reminder_history.due_time = TIME(reminders.date_time)
+            )";
+        
+        $activeReminders = $this->db->query($sql)->result_array();
+        
+        // echo "<pre>"; print_r($activeReminders); exit;
+
         $timeZoneMap = $this->timezone_list();
     
         if (!empty($activeReminders)) {
             foreach ($activeReminders as $reminder) {
                 $userTimeZone = $reminder['time_zone'];
-
+    
                 if (!isset($timeZoneMap[$userTimeZone])) {
                     continue;
                 }
@@ -125,6 +142,14 @@ class Notification extends CI_Controller {
                 $currentTime = new DateTimeImmutable('now', new DateTimeZone('UTC'));
                 $timeZone = new DateTimeZone($validTimeZone);
                 $currentTime = $currentTime->setTimezone($timeZone);
+
+                // if ($reminder['reminder_type'] === 'once') {
+                    
+                //     $rows =$this->common_model->select_where_table_rows('*', 'reminder_history', ['entity_id' => $reminder['id'], 'due_time' => $reminder['date_time']]);
+                //     if($rows == 1){
+                //         continue;
+                //     }
+                // }
     
                 if ($reminder['reminder_type'] === 'repeat') {
                     $daysArray = json_decode($reminder['day_list'], true);
@@ -134,21 +159,19 @@ class Notification extends CI_Controller {
                     if (!in_array($currentDay, $daysList)) {
                         continue;
                     }
-
-                    if(!empty($reminder['end_date'])){
-                        if($currentTime->format('Y-m-d') > $reminder['end_date']){
-                            continue;
-                        }
+    
+                    if (!empty($reminder['end_date']) && $currentTime->format('Y-m-d') > $reminder['end_date']) {
+                        continue;
                     }
                 }
     
                 $reminderTime = new DateTimeImmutable($reminder['date_time'], $timeZone);
-                
+    
                 if ($currentTime->format('H:i') === $reminderTime->format('H:i')) {
                     $notificationData = $this->prepareNotificationData($reminder['name'], $reminder['text'], $reminder['id'], $reminder['device_token'], $reminderTime->format('Y-m-d H:i:s'));
                     $this->push_notification($notificationData);
                 }
-
+    
                 if ($reminder['snooze'] === 'yes' && $currentTime->format('Y-m-d H:i') > $reminderTime->format('Y-m-d H:i')) {
                     $notificationData = $this->prepareNotificationData($reminder['name'], $reminder['text'], $reminder['id'], $reminder['device_token'], $reminderTime->format('Y-m-d H:i:s'));
                     $this->push_notification($notificationData);

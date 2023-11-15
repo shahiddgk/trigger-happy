@@ -112,7 +112,7 @@ class Api extends REST_Controller {
 				$update['time_zone'] = $_POST['time_zone'];
 			}if(!empty($_POST['device_token'])){
 				$update['device_token'] = $_POST['device_token'];
-			}if ($_FILES['profile_img']['name'] != '') {
+			}if (isset($_FILES['profile_img']) && !empty($_FILES['profile_img'])) {
 				$temp = $_FILES['profile_img']['tmp_name'];
 			
 				$image_filename = $user_id . '.png';
@@ -126,11 +126,10 @@ class Api extends REST_Controller {
 				}
 				move_uploaded_file($temp, $path);
 				$update['image'] = $image_filename;
+				$img_url = base_url(). 'uploads/app_users/' . $image_filename;
 			}else{
-				$default_image_path = './uploads/app_users/default.png';
-				if (file_exists($default_image_path) && is_file($default_image_path)) {
-					$update['image'] = 'default.png';
-				}
+				$update['image'] = 'default.png';
+				$img_url = base_url(). 'uploads/app_users/default.png';
 			}
 			if (!empty($update)) {
 				$this->common_model->update_array(array('id' => $user_id), 'users', $update);
@@ -138,7 +137,7 @@ class Api extends REST_Controller {
 	
 			$response = [
 				'status' => 200,
-				'image_url' => base_url() . 'uploads/app_users/' . $image_filename,
+				'image_url' => $img_url,
 				'message' => 'Profile updated successfully'
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
@@ -2958,9 +2957,7 @@ class Api extends REST_Controller {
 			);
 			$this->common_model->insert_array("reminder_history", $interactionData);
 
-			$this->common_model->update_array(['id' => $entity_id], 'reminders', ['reminder_stop' => $reminder_stop, 'updated_at' => date('Y-m-d H:i:s')]);
-
-			// $this->common_model->update_array(array('id' => $entity_id), "reminders", array('reminder_stop' => 'skip', 'updated_at' => date('Y-m-d H:i:s')));
+			$this->common_model->update_array(['id' => $entity_id], 'reminders', ['reminder_stop' => $reminder_stop, 'snooze' => 'no', 'updated_at' => date('Y-m-d H:i:s')]);
 
 			if($this->db->affected_rows() > 0){
 				$response = [
