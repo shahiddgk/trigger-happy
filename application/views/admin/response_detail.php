@@ -154,22 +154,50 @@
 <div class="page-content container-fluid">
     <div class="row">
         <div class="col-md-6">
-            <div class="response-box">
-                <h4 class="card-title"><?= strtoupper($response_data[0]['type']) ?> Response</h4>
-                <p class="card-description">
-                    <?php foreach ($response_data as $key => $value): ?>
-                        <div class="response-item">
-                            <span class="response-title"><?= strip_tags($value['title']) ?></span>
-                        </div>
-                        <div class="response-item">
-                            <span class="response-text">
-                                Answer: <?= ($value['options'] || $value['text'] ? strip_tags($value['options']) . ' ' . strip_tags($value['text']) : 'N/A') ?>
-                            </span>
-                        </div>
-                    <?php endforeach; ?>
-                </p>
-            </div>
+                <?php if ($param_type == 'naq' || $param_type == 'pire'): ?>
+                <div class="response-box">
+                    <h4 class="card-title"><?= strtoupper($param_type) ?> Response</h4>
+                    <p class="card-description">
+                        <?php foreach ($response_data as $key => $value): ?>
+                            <div class="response-item">
+                                <span class="response-title"><?= strip_tags($value['title']) ?></span>
+                            </div>
+                            <div class="response-item">
+                                <span class="response-text">
+                                    Answer: <?= ($value['options'] || $value['text'] ? strip_tags($value['options']) . ' ' . strip_tags($value['text']) : 'N/A') ?>
+                                </span>
+                            </div>
+                        <?php endforeach; ?>
+                    </p>
+                </div>
+                <?php elseif ($param_type == 'column'): ?>
+                <div class="response-box">
+                    <h4 class="card-title">Column Response</h4>
+                    <p class="card-description">
+                        <?php foreach ($response_data as $key => $value): ?>
+                            <div class="response-item">
+                                <span class="response-title"><?= strip_tags($value['title']) ?></span>
+                            </div>
+                            <div class="response-item">
+                                <span class="response-text">
+                                    Tittle : <?= strip_tags($value['entry_title']) ?>
+                                    <br>
+                                    Description : <?= strip_tags($value['entry_decs']) ?>
+                                    <br>
+                                    Date : <?= strip_tags($value['entry_date']) ?>
+                                    <br>
+                                    TakeAway : <?= strip_tags($value['entry_takeaway']) ?>
+                                    <br>
+                                    Type : <?= strip_tags($value['entry_type']) ?>
+                                    <br>
+                                </span>
+                            </div>
+                        <?php endforeach; ?>
+                    </p>
+                </div>
+            <?php endif; ?>
         </div>
+
         <div class="col-md-6">
             <div class="chat-container fixed-right" style="margin-top: 20px;">
             <div class="chat-body" id="chatBody">

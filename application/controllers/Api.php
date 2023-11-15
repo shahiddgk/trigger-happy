@@ -3980,8 +3980,8 @@ class Api extends REST_Controller {
 		$type = $_POST['type'];
 		$entity_id = $_POST['entity_id'];
 		
-		if ($type === 'ladder') {
-			$data = $this->common_model->select_where('*', 'ladder', ['id' => $entity_id])->row_array();
+		if ($type === 'column') {
+			$data = $this->common_model->select_where('*', 'session_entry', ['id' => $entity_id])->row_array();
 		} elseif ($type === 'trellis') {
 			$data = $this->common_model->select_where('*', 'trellis', ['id' => $entity_id])->row_array();
 		} elseif ($type === 'naq' || $type === 'pire') {

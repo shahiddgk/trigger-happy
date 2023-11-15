@@ -629,8 +629,8 @@ class Admin extends CI_Controller {
 			$this->db->where('answers.response_id', $entity_id);
 			$query = $this->db->get();
 			$data['response_data'] = $query->result_array();
-		} elseif ($type == 'ladder') {
-			$data['response_data'] = $this->common_model->select_where('*', 'ladder', array('response_id' => $entity_id))->result_array();
+		} elseif ($type == 'column') {
+			$data['response_data'] = $this->common_model->select_where('*', 'session_entry', array('id' => $entity_id))->result_array();
 		}
 	
 		$this->db->select('sage_feedback.message, sage_feedback.sender_id, sage_feedback.receiver_id, sage_feedback.created_at');
@@ -646,12 +646,11 @@ class Admin extends CI_Controller {
 			if (!empty($data['chat_message'])) {
 				$data['sender_detail'] = $this->common_model->select_where('name, image', 'users', array('id' => $data['chat_message'][0]->receiver_id))->row_array();
 			} else {
-				// Handle the case where $data['chat_message'] is empty
-				$data['sender_detail'] = array(); // Set sender details to an empty array or handle it accordingly
+				$data['sender_detail'] = array();
 			}
 		} else {
 			$data['chat_message'] = array();
-			$data['sender_detail'] = array(); // Handle the case where there are no chat messages
+			$data['sender_detail'] = array();
 		}
 		
 		
@@ -682,12 +681,12 @@ class Admin extends CI_Controller {
 						'sender_email' => $sender_email,
 						'pire_count' => 0,
 						'naq_count' => 0,
-						'pire_not_answered' => false, // Initialize the keys
-						'naq_not_answered' => false, // Initialize the keys
-						'ladder' => false,
+						'column_count' => 0, // Add new counter for the 'column'
+						'pire_not_answered' => false,
+						'naq_not_answered' => false,
+						'column_not_answered' => false, // Add new indicator for 'column'
 					];
 				}
-				
 	
 				if ($chat_room['type'] == 'pire') {
 					$sage_list[$sender_id]['pire_count']++;
@@ -699,14 +698,18 @@ class Admin extends CI_Controller {
 					if ($chat_room['status'] == 'not_answered') {
 						$sage_list[$sender_id]['naq_not_answered'] = true;
 					}
-				} elseif ($chat_room['type'] == 'ladder') {
-					$sage_list[$sender_id]['ladder'] = true;
+				} elseif ($chat_room['type'] == 'column') {
+					$sage_list[$sender_id]['column_count']++; // Increment 'column' count
+					if ($chat_room['status'] == 'not_answered') {
+						$sage_list[$sender_id]['column_not_answered'] = true; // Set 'column' not answered indicator
+					}
 				}
 			}
 		}
-	    $data['page_title'] = 'Sage List';
+	
+		$data['page_title'] = 'Sage List';
 		$data['sage_list'] = $sage_list;
-		$data['shared_id'] = !empty($chat_rooms) ? $chat_rooms[0]['id'] : null; // Adding an empty check
+		$data['shared_id'] = !empty($chat_rooms) ? $chat_rooms[0]['id'] : null;
 	
 		$this->load->view('admin/include/header');
 		$this->load->view('admin/sage_list', $data);
