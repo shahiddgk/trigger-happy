@@ -112,28 +112,31 @@ class Notification extends CI_Controller {
         //     ->result_array();
 
         $sql = "SELECT reminders.*, users.name, users.device_token, users.time_zone
-        FROM reminders
-        JOIN users ON users.id = reminders.user_id
-        WHERE reminders.status = 'active' 
-            AND DATE(reminders.date_time) <= CURDATE()
-            AND users.device_token NOT IN ('')
-            AND users.time_zone NOT IN ('')
-            AND NOT EXISTS (
-                SELECT 1
-                FROM reminder_history
-                WHERE DATE(reminder_history.created_at) = CURDATE() AND reminder_history.due_time = TIME(reminders.date_time)
-            )";
+                FROM reminders
+                JOIN users ON users.id = reminders.user_id
+                WHERE 
+                    reminders.status = 'active' 
+                    AND reminders.date_time <= CURRENT_TIMESTAMP()
+                    AND users.device_token <> ''
+                    AND users.time_zone <> ''
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM reminder_history
+                        WHERE 
+                            DATE(reminder_history.created_at) = CURDATE() 
+                            AND reminder_history.due_time = TIME(reminders.date_time)
+                    )";
+    
         
         $activeReminders = $this->db->query($sql)->result_array();
         
         // echo "<pre>"; print_r($activeReminders); exit;
-
         $timeZoneMap = $this->timezone_list();
-    
+        
         if (!empty($activeReminders)) {
-            foreach ($activeReminders as $reminder) {
+            foreach ($activeReminders as $key => $reminder) {
                 $userTimeZone = $reminder['time_zone'];
-    
+                
                 if (!isset($timeZoneMap[$userTimeZone])) {
                     continue;
                 }
@@ -166,14 +169,14 @@ class Notification extends CI_Controller {
                 }
     
                 $reminderTime = new DateTimeImmutable($reminder['date_time'], $timeZone);
-    
+
                 if ($currentTime->format('H:i') === $reminderTime->format('H:i')) {
-                    $notificationData = $this->prepareNotificationData($reminder['name'], $reminder['text'], $reminder['id'], $reminder['device_token'], $reminderTime->format('Y-m-d H:i:s'));
+                    $notificationData = $this->prepareNotificationData($reminder['name'], $reminder['user_id'], $reminder['text'], $reminder['id'], $reminder['device_token'], $reminderTime->format('Y-m-d H:i:s'));
                     $this->push_notification($notificationData);
                 }
-    
+
                 if ($reminder['snooze'] === 'yes' && $currentTime->format('Y-m-d H:i') > $reminderTime->format('Y-m-d H:i')) {
-                    $notificationData = $this->prepareNotificationData($reminder['name'], $reminder['text'], $reminder['id'], $reminder['device_token'], $reminderTime->format('Y-m-d H:i:s'));
+                    $notificationData = $this->prepareNotificationData($reminder['name'], $reminder['user_id'], $reminder['text'], $reminder['id'], $reminder['device_token'], $reminderTime->format('Y-m-d H:i:s'));
                     $this->push_notification($notificationData);
                     $this->common_model->update_array(['id' => $reminder['id']], 'reminders', ['snooze' => 'no']);
                 }
@@ -181,9 +184,13 @@ class Notification extends CI_Controller {
         }
     }
     
-    private function prepareNotificationData($name, $text, $id, $deviceToken, $date_time)
+    private function prepareNotificationData($name, $user_id, $text, $id, $deviceToken, $date_time)
     {
+        log_message('info', 'reminder_notification'. ' - ' . $id. ' - ' . $text);
+
         $this->common_model->update_array(['id' => $id], 'reminders', ['reminder_stop' => 'skip', 'updated_at' => date('Y-m-d H:i:s')]);
+        $this->common_model->insert_array('reminder_history', ['entity_id' => $id, 'user_id' => $user_id, 'reminder_stop' => 'skip', 'due_time' => $date_time , 'created_at' => date('Y-m-d H:i:s')]);
+       
         return [
             'title' => 'Hi ' . $name. ' Did you....',
             'type' => 'reminder',

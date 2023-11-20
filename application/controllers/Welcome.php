@@ -27,6 +27,15 @@ class Welcome extends CI_Controller {
 		$this->load->view('privacy_policy');
 	}
 
+	public function reminders_history_users(){
+		$entities = $this->common_model->select_groupby('*', 'reminder_history' , 'entity_id')->result_array();
+		// echo "<pre>"; print_r($entities); exit;
+		foreach ($entities as $key => $value) {
+			$user_id = $this->common_model->select_single_field('user_id', 'reminders' , array("id" => $value['entity_id']));
+			$this->common_model->update_array(['entity_id' => $value['entity_id']], 'reminder_history', ['user_id' => $user_id]);
+		}
+	}
+
 	// public function refill_naqe_scores(){
 	// 	$sql = "SELECT *
 	// 	FROM answers
