@@ -2944,20 +2944,20 @@ class Api extends REST_Controller {
 	
 		if (isset($_POST['entity_id']) && isset($_POST['reminder_stop']) && !empty($_POST['entity_id'] && $_POST['reminder_stop'])) {
 	
-			$date_time = $this->common_model->select_single_field('date_time', 'reminders', array('id' => $_POST['entity_id']));
+			// $date_time = $this->common_model->select_single_field('date_time', 'reminders', array('id' => $_POST['entity_id']));
 
 			$entity_id = $_POST['entity_id'];
 			$reminder_stop = $_POST['reminder_stop'];
 
-			$interactionData = array(
-				'entity_id' => $entity_id,
-				'reminder_stop' => $reminder_stop, 
-				'due_time' => $date_time, 
-				'created_at' => date('Y-m-d H:i:s')
-			);
-			$this->common_model->insert_array("reminder_history", $interactionData);
+			// $interactionData = array(
+			// 	'entity_id' => $entity_id,
+			// 	'reminder_stop' => $reminder_stop, 
+			// 	'due_time' => $date_time, 
+			// 	'created_at' => date('Y-m-d H:i:s')
+			// );
+			// $this->common_model->insert_array("reminder_history", $interactionData);
 
-			$this->common_model->update_array(['id' => $entity_id], 'reminders', ['reminder_stop' => $reminder_stop, 'snooze' => 'no', 'updated_at' => date('Y-m-d H:i:s')]);
+			$this->common_model->update_array(['id' => $entity_id], 'reminder_history', ['reminder_stop' => $reminder_stop]);
 
 			if($this->db->affected_rows() > 0){
 				$response = [
@@ -2984,41 +2984,25 @@ class Api extends REST_Controller {
 	public function skip_reminders_post() {
 		if (isset($_POST['user_id']) && !empty($_POST['user_id'])) {
 			$user_id = $_POST['user_id'];
-	
-			// Get user's time zone from the database
-			$userTimeZone = $this->common_model->select_single_field("time_zone", "users", array('id' => $user_id));
-			if (isset(valid_timezone()[$userTimeZone])) {
-				$validTimeZone = valid_timezone()[$userTimeZone];
-		
-				// Get current time in UTC and user's local time
-				$currentTimeUTC = new DateTimeImmutable('now', new DateTimeZone('UTC'));
-				$userTime = new DateTimeZone($validTimeZone);
-				$currentTime = new DateTimeImmutable('now', $userTime);
-		
-				$skipped_reminders = $this->common_model->due_reminders($user_id, $currentTime);
-		
-				if (!empty($skipped_reminders)) {
-					$response = [
-						'status' => 200,
-						'message' => 'Due reminders found',
-						'result' => $skipped_reminders
-					];
-					$this->set_response($response, REST_Controller::HTTP_OK);
-				} else {
-					$response = [
-						'status' => 200,
-						'message' => 'No Due reminders found',
-						'result' => $skipped_reminders
-					];
-					$this->set_response($response, REST_Controller::HTTP_OK);
-				}
+
+			$skipped_reminders = $this->common_model->select_where('*', 'reminder_history', array('user_id' => $user_id, 'reminder_stop' => 'skip'))->result_array();
+
+			if (!empty($skipped_reminders)) {
+				$response = [
+					'status' => 200,
+					'message' => 'Due reminders found',
+					'result' => $skipped_reminders
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
 			} else {
 				$response = [
-					'status' => 400,
-					'message' => 'Invalid or undefined time zone'
+					'status' => 200,
+					'message' => 'No Due reminders found',
+					'result' => $skipped_reminders
 				];
-				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+				$this->set_response($response, REST_Controller::HTTP_OK);
 			}
+
 		} else {
 			$response = [
 				'status' => 400,
