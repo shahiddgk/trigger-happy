@@ -2617,7 +2617,7 @@ class Api extends REST_Controller {
 	public function insert_reminder_post() {
 		$user_id = $_POST['user_id'];
 	
-		$data['login'] = $this->common_model->select_where("*", "users", array('id' => $user_id, 'type' => 'user'));
+		$data['login'] = $this->common_model->select_where("*", "users", array('id' => $user_id, 'type' => array('user', 'coach')));
 	
 		if ($data['login']->num_rows() > 0) {
 			$user_data = $data['login']->row_array();
@@ -2711,7 +2711,7 @@ class Api extends REST_Controller {
 	   	} else {
 			$response = [
 				'status' => 400,
-				'message' => 'user not created'
+				'message' => 'User not found'
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
@@ -3324,11 +3324,15 @@ class Api extends REST_Controller {
 		}
 	}
 	
-	public function mail_confirmation_post() {
+	public function connection_request_post() {
 		$sender_id = $_POST['sender_id'];
-		$receiver_email = $_POST['email'];
-		$receiver_name = $_POST['name'];
+		$receiver_email = $_POST['receiver_email'];
 		$receiver_role = $_POST['role']; 
+        if(isset($_POST['module'])){
+			$module = $_POST['module'];
+		}else{
+			$module = '';
+		}
 		$sender = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
 	
 		if (empty($sender)) {
@@ -3402,7 +3406,7 @@ class Api extends REST_Controller {
 			$this->firestore->addData($receiver['id'] , 'con_request');
 
 			$data_array = [
-				'receiver_name' => $receiver_name,
+				'receiver_name' => $receiver['name'],
 				'receiver_role' => $receiver_role,
 				'sender_name' => $sender['name'],
 				'receiver_id' => $receiver['id'],
@@ -3413,7 +3417,7 @@ class Api extends REST_Controller {
 			$data_encoded = urlencode($data_json);
 			$url = base_url() . "welcome/invitation_email?data=" . $data_encoded;
 	
-			$message = "<p>Hi " . $receiver_name . ",</p>";
+			$message = "<p>Hi " . $receiver['name'] . ",</p>";
 			$message .= "<p>" . $sender['name'] . " has sent you the invitation for " . $receiver_role . "</p>";
 			$message .= "<p>Click the link below to accept or reject the invitation</p>";
 			$message .= "<p><a href='" . $url . "'>Invitation Link</a></p>";
@@ -3916,7 +3920,7 @@ class Api extends REST_Controller {
 
 	}
 
-	public function chat_room_insert_post() {
+	public function share_response_post() {
 		$sender_id = $_POST['sender_id'];
 		$type = $_POST['type'];
 		$entity_id = $_POST['entity_id'];
@@ -3950,7 +3954,7 @@ class Api extends REST_Controller {
 				'paid' => 'false',
 			];
 	
-			$insert_result = $this->common_model->insert_array('chat_room', $data);
+			$insert_result = $this->common_model->insert_array('share_response', $data);
 			$this->firestore->addData($receiver_id , 'shared_response');
 			
 			if ($insert_result) {
@@ -4201,39 +4205,10 @@ class Api extends REST_Controller {
 		}
 	}
 
-	public function share_response_post() {
-		$type = $_POST['type'];
-		$chat_ids = $_POST['chat_ids'];
-		$entity_id = $_POST['entity_id'];
-
-		$data = [
-			'type' => $type,
-			'chat_ids' => $chat_ids,
-			'entity_id' => $entity_id
-		];
-
-		$insert_result = $this->common_model->insert_array('share_response', $data);
-
-		if ($insert_result) {
-			$response = [
-				'status' => 200,
-				'message' => 'success',
-				'data' => $data
-			];
-			$this->set_response($response, REST_Controller::HTTP_OK);
-		} else {
-			$response = [
-				'status' => 400,
-				'message' => 'Data insertion failed',
-			];
-			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-		}
-
-	}
 
 	public function share_with_other_post() {
 		$user_id = $_POST['user_id'];
-		$data = $this->common_model->select_where('*', 'chat_room', ['sender_id' => $user_id])->result_array();
+		$data = $this->common_model->select_where('*', 'share_response', ['sender_id' => $user_id])->result_array();
 
 		if (empty($data)) {
 			$response = [
@@ -4260,7 +4235,7 @@ class Api extends REST_Controller {
 
 	public function share_with_me_post() {
 		$user_id = $_POST['user_id'];
-		$data = $this->common_model->select_where('*', 'chat_room', ['receiver_id' => $user_id])->result_array();
+		$data = $this->common_model->select_where('*', 'share_response', ['receiver_id' => $user_id])->result_array();
 
 		if (empty($data)) {
 			$response = [
@@ -4382,7 +4357,7 @@ class Api extends REST_Controller {
 							];
 						}
 
-						$insertResult = $this->common_model->insert_array('chat_room', $chatRoomData);
+						$insertResult = $this->common_model->insert_array('share_response', $chatRoomData);
 
 						if ($insertResult) {
 							$this->firestore->addData($receiver_id , 'shared_response');

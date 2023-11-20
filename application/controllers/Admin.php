@@ -481,14 +481,14 @@ class Admin extends CI_Controller {
 			'entity_id' => $shared_id,
 			'type' => $param,
 		];
-		$chat_room = $this->common_model->select_where('id, sender_id', 'chat_room', $condition)->row();
+		$share_response = $this->common_model->select_where('id, sender_id', 'share_response', $condition)->row();
 	
-		$feedbackCount = $this->common_model->select_where('*', 'sage_feedback', ['shared_id' => $chat_room->id])->num_rows();
+		$feedbackCount = $this->common_model->select_where('*', 'sage_feedback', ['shared_id' => $share_response->id])->num_rows();
 		if ($feedbackCount < 5) {
 			$data = array(
-				'shared_id' => $chat_room->id,
+				'shared_id' => $share_response->id,
 				'sender_id' => $this->session->userdata('userid'),
-				'receiver_id' => $chat_room->sender_id,
+				'receiver_id' => $share_response->sender_id,
 				'message' => $message,
 			);
 	
@@ -496,8 +496,8 @@ class Admin extends CI_Controller {
 	
 			if ($result) {
 				$update_data = array('status' => 'answered');
-				$update_condition = array('id' => $chat_room->id);
-				$update_result = $this->common_model->update_array($update_condition, 'chat_room', $update_data);
+				$update_condition = array('id' => $share_response->id);
+				$update_result = $this->common_model->update_array($update_condition, 'share_response', $update_data);
 	
 				echo json_encode(['status' => 'success']);
 			} else {
@@ -588,35 +588,36 @@ class Admin extends CI_Controller {
 	}
 
 	public function share_response($type = NULL, $sender_id = NULL) {
-		if (!$sender_id) {
-			redirect('admin/share_response');
-		}
-	
-		$receiver_id = $this->session->userdata('userid');
-	
-		$where = array('receiver_id' => $receiver_id, 'sender_id' => $sender_id);
-	
-		if ($type) {
-			$where['type'] = $type;
-		}
-	
-		$chat_rooms = $this->common_model->select_where('*', 'chat_room', $where)->result_array();
-		usort($chat_rooms, function ($a, $b) {
-			return strtotime($b['created_at']) - strtotime($a['created_at']);
-		});
-	
-		foreach ($chat_rooms as $key => $chat_room) {
-			$sender_id = $chat_room['sender_id'];
-			$sender_name = $this->common_model->select_where('name', 'users', array('id' => $sender_id))->row()->name;
-			$chat_rooms[$key]['sender_name'] = $sender_name;
-		}
-	
-		$data['chat_room'] = $chat_rooms;
-	
-		$this->load->view('admin/include/header');
-		$this->load->view('admin/share_response', $data);
-		$this->load->view('admin/include/footer');
-	}
+    	if (!$sender_id) {
+        	redirect('admin/share_response');
+    	}
+
+   		 $receiver_id = $this->session->userdata('userid');
+
+    	$where = array('receiver_id' => $receiver_id, 'sender_id' => $sender_id);
+
+   		if (!empty($type)) {
+        $where['type'] = $type;
+    	}
+
+    	$share_response = $this->common_model->select_where('*', 'share_response', $where)->result_array();
+   	 	usort($share_response, function ($a, $b) {
+        	return strtotime($b['created_at']) - strtotime($a['created_at']);
+    	});
+
+    	foreach ($share_response as $key => 		$response_item) {
+       		$sender_id = $response_item['sender_id'];
+        	$sender_name = $this->common_model->select_where('name', 'users', array('id' => $sender_id))->row()->name;
+        	$share_response[$key]['sender_name'] = $sender_name;
+   	 	}
+
+    $data['share_response'] = $share_response;
+
+    $this->load->view('admin/include/header');
+    $this->load->view('admin/share_response', $data);
+    $this->load->view('admin/include/footer');
+}
+
 	
 	public function response_detail() {
 		$type = $this->input->get('type');
@@ -634,9 +635,9 @@ class Admin extends CI_Controller {
 		}
 	
 		$this->db->select('sage_feedback.message, sage_feedback.sender_id, sage_feedback.receiver_id, sage_feedback.created_at');
-		$this->db->from('chat_room');
-		$this->db->join('sage_feedback', 'chat_room.id = sage_feedback.shared_id', 'left');
-		$this->db->where('chat_room.entity_id', $entity_id);
+		$this->db->from('share_response');
+		$this->db->join('sage_feedback', 'share_response.id = sage_feedback.shared_id', 'left');
+		$this->db->where('share_response.entity_id', $entity_id);
 		
 		$chat_message_query = $this->db->get();
 		
@@ -663,12 +664,12 @@ class Admin extends CI_Controller {
 	}
 	
 	public function sage_list() {
-		$chat_rooms = $this->common_model->select_where('*', 'chat_room', array('receiver_id' => $this->session->userdata('userid')))->result_array();
+		$share_response = $this->common_model->select_where('*', 'share_response', array('receiver_id' => $this->session->userdata('userid')))->result_array();
 	
 		$sage_list = [];
 	
-		foreach ($chat_rooms as $chat_room) {
-			$sender_id = $chat_room['sender_id'];
+		foreach ($share_response as $share_response) {
+			$sender_id = $share_response['sender_id'];
 			$sender_info = $this->common_model->select_where('name, email', 'users', array('id' => $sender_id))->row();
 	
 			if ($sender_info) {
@@ -688,19 +689,19 @@ class Admin extends CI_Controller {
 					];
 				}
 	
-				if ($chat_room['type'] == 'pire') {
+				if ($share_response['type'] == 'pire') {
 					$sage_list[$sender_id]['pire_count']++;
-					if ($chat_room['status'] == 'not_answered') {
+					if ($share_response['status'] == 'not_answered') {
 						$sage_list[$sender_id]['pire_not_answered'] = true;
 					}
-				} elseif ($chat_room['type'] == 'naq') {
+				} elseif ($share_response['type'] == 'naq') {
 					$sage_list[$sender_id]['naq_count']++;
-					if ($chat_room['status'] == 'not_answered') {
+					if ($share_response['status'] == 'not_answered') {
 						$sage_list[$sender_id]['naq_not_answered'] = true;
 					}
-				} elseif ($chat_room['type'] == 'column') {
+				} elseif ($share_response['type'] == 'column') {
 					$sage_list[$sender_id]['column_count']++; // Increment 'column' count
-					if ($chat_room['status'] == 'not_answered') {
+					if ($share_response['status'] == 'not_answered') {
 						$sage_list[$sender_id]['column_not_answered'] = true; // Set 'column' not answered indicator
 					}
 				}
@@ -709,7 +710,7 @@ class Admin extends CI_Controller {
 	
 		$data['page_title'] = 'Sage List';
 		$data['sage_list'] = $sage_list;
-		$data['shared_id'] = !empty($chat_rooms) ? $chat_rooms[0]['id'] : null;
+		$data['shared_id'] = !empty($share_response) ? $share_response[0]['id'] : null;
 	
 		$this->load->view('admin/include/header');
 		$this->load->view('admin/sage_list', $data);

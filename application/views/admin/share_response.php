@@ -121,7 +121,7 @@
         </select>
     </div>
 
-    <?php foreach ($chat_room as $room): ?>
+    <?php foreach ($share_response as $room): ?>
     <?php
     // Calculate feedback given status for each response item
     $feedback_given = $this->common_model->select_where('id', 'sage_feedback', array('shared_id' => $room['id']))->num_rows();
@@ -133,7 +133,7 @@
             <div class="text-wrapper-3 type-class"><?= strtoupper($room['type']) ?></div>
             <p class="shared-by">
                 <span class="shared-by-text">Shared by:</span>
-                <span class="sender-name"><?= $room['sender_name'] ?></span>
+                <span class="sender-name"><?= isset($room['sender_name']) ? $room['sender_name'] : 'N/A' ?></span>
             </p>
             <p class="date">
                 <i class="link-icon" data-feather="calendar"></i>
