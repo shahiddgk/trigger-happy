@@ -20,6 +20,7 @@
                                 <th>Email</th>
                                 <th>Pire</th>
                                 <th>Naq</th>
+                                <th>Column</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -46,6 +47,15 @@
                                                     <a href="<?= base_url('admin/share_response/naq/' . $key) ?>">Naq (<?= $data['naq_count'] ?>)*</a>
                                                 <?php else: ?>
                                                     <a href="<?= base_url('admin/share_response/naq/' . $key) ?>">Naq (<?= $data['naq_count'] ?>)</a>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($data['column_count'] !== 0): ?>
+                                                <?php if ($data['column_not_answered']): ?>
+                                                    <a href="<?= base_url('admin/share_response/column/' . $key) ?>">Column (<?= $data['column_count'] ?>)*</a>
+                                                <?php else: ?>
+                                                    <a href="<?= base_url('admin/share_response/column/' . $key) ?>">Column (<?= $data['column_count'] ?>)</a>
                                                 <?php endif; ?>
                                             <?php endif; ?>
                                         </td>
