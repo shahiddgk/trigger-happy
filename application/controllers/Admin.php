@@ -716,6 +716,88 @@ class Admin extends CI_Controller {
 		$this->load->view('admin/sage_list', $data);
 		$this->load->view('admin/include/footer');
 	}
+
+    // Admin Update And Add users coloumn from dashoboard code start.
+
+	public function column_users(){
+		$data['page_title'] = 'Users List';
+		
+		$where_condition = array(
+			'type' => 'user',
+			'admin_access' => 'yes'
+		);
+		
+		$data['users'] = $this->common_model->select_where_ASC_DESC('*', 'users', $where_condition, 'id', 'ASC')->result_array();
+		
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/column_users', $data);
+		$this->load->view('admin/include/footer');
+	}
+
+	// get column dtail base on id from match with column table user_id
+	public function column_list($id){
+		$data['page_title'] = 'Column List';
+		$data['column_list'] = $this->common_model->select_where('*', 'session_entry', array('user_id' => $id))->result_array();
+		
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/column_list', $data);
+		$this->load->view('admin/include/footer');
+	}
 	
+	// get value for edit from column table
+	public function edit_column($id) {
+		$data['page_title'] = 'Edit Column';
+		$data['edit_column'] = $this->common_model->select_where('*', 'session_entry', array('id' => $id))->row();
+	
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/column_edit', $data);
+		$this->load->view('admin/include/footer');
+	}
+
+	// update column
+	public function update_column($id) {
+		$user = $this->common_model->select_where('user_id', 'session_entry', array('id' => $id))->row();
+		
+		$user_id = $user->user_id;
+
+		$data['defined_by'] = 'admin';
+		$data['entry_title'] = $this->input->post('entry_title');
+		$data['entry_takeaway'] = $this->input->post('entry_takeaway');
+		$data['entry_decs'] = $this->input->post('entry_decs');
+		$data['entry_type'] = $this->input->post('entry_type');
+		$data['entry_date'] = $this->input->post('entry_date');
+	
+		$update_data = $this->common_model->update_array(array('id' => $id), 'session_entry', $data);
+		redirect('admin/column_list/' . $user_id);
+	}
+	
+	// add column for those user id 
+	public function add_column_action($user_id) {
+		$response_id = random_string('numeric', 8);
+
+		$data['defined_by'] = 'admin';
+		$data['response_id'] = $response_id;
+		$data['user_id'] = $user_id;
+		$data['entry_title'] = $this->input->post('entry_title');
+		$data['entry_takeaway'] = $this->input->post('entry_takeaway');
+		$data['entry_decs'] = $this->input->post('entry_decs');
+		$data['entry_type'] = $this->input->post('entry_type');
+		$data['entry_date'] = $this->input->post('entry_date');
+
+		$this->common_model->insert_array('session_entry', $data);
+		redirect('admin/column_list/'.$data['user_id']);
+	}
+
+	// load add column page
+	public function add_column($user_id) {
+		$data['page_title'] = 'Add Column';
+		
+		$data['add_column'] = $this->common_model->select_where('*', 'session_entry', array('user_id' => $user_id))->row();
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/column_add', $data);
+		$this->load->view('admin/include/footer');
+	}
+	
+	// Admin Update And Add users coloumn from dashoboard code end.
 } 
 ?>

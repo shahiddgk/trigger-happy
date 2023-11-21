@@ -4488,5 +4488,44 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
+
+	public function admin_access_post(){
+		$user_id = $_POST['user_id'];
+
+		if(!empty($user_id)){
+			
+			if(isset($_POST['admin_access']) && !empty($_POST['admin_access'])){
+
+				$status = $_POST['admin_access'];
+			}
+			else{
+				$status = 'user';
+			}
+			$this->common_model->update_array(array('id'=>$user_id), "users", array('admin_access'=>$status));
+		
+			$updated_record = $this->common_model->select_where("*", "users", array('id' => $user_id))->row_array();
+
+			if (!empty($updated_record)) {
+				$response = [
+					'status' => 200,
+					'message' => 'success',
+					'data' => $updated_record
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			} else {
+				$response = [
+					'status' => 404,
+					'message' => 'Record not found'
+				];
+				$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
+			}
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
 	
 }
