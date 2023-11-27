@@ -2617,7 +2617,7 @@ class Api extends REST_Controller {
 	public function insert_reminder_post() {
 		$user_id = $_POST['user_id'];
 	
-		$data['login'] = $this->common_model->select_where("*", "users", array('id' => $user_id, 'type' => array('user', 'coach')));
+		$data['login'] = $this->common_model->select_where("*", "users", array('id' => $user_id));
 	
 		if ($data['login']->num_rows() > 0) {
 			$user_data = $data['login']->row_array();
@@ -2984,36 +2984,43 @@ class Api extends REST_Controller {
 	public function skip_reminders_post() {
 		if (isset($_POST['user_id']) && !empty($_POST['user_id'])) {
 			$user_id = $_POST['user_id'];
+	
+			$skipped_reminders = $this->db
+				->select('reminder_history.*, reminders.text, DATE(reminder_history.created_at) as created_date')
+				->join('reminders', 'reminder_history.entity_id = reminders.id') 
+				->where(['reminder_history.user_id' => $user_id, 'reminder_history.reminder_stop' => 'skip'])
+				->get('reminder_history')
+				->result_array();
 
-			$skipped_reminders = $this->common_model->select_where('*', 'reminder_history', array('user_id' => $user_id, 'reminder_stop' => 'skip'))->result_array();
-
-			if (!empty($skipped_reminders)) {
-				$response = [
-					'status' => 200,
-					'message' => 'Due reminders found',
-					'result' => $skipped_reminders
-				];
-				$this->set_response($response, REST_Controller::HTTP_OK);
-			} else {
-				$response = [
-					'status' => 200,
-					'message' => 'No Due reminders found',
-					'result' => $skipped_reminders
-				];
-				$this->set_response($response, REST_Controller::HTTP_OK);
+			foreach ($skipped_reminders as &$reminder) {
+				$due_time = $reminder['due_time'];
+				$created_date = $reminder['created_date'];
+				$reminder['date_time'] = $created_date . ' ' . $due_time;
 			}
 
+			$response = [
+				'status' => REST_Controller::HTTP_OK,
+				'result' => $skipped_reminders
+			];
+
+		
+
+	
+			if (!empty($skipped_reminders)) {
+				$response['message'] = 'Due reminders found';
+			} else {
+				$response['message'] = 'No due reminders found';
+			}
+	
+			$this->set_response($response, REST_Controller::HTTP_OK);
 		} else {
 			$response = [
-				'status' => 400,
+				'status' => REST_Controller::HTTP_BAD_REQUEST,
 				'message' => 'Empty parameters'
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
- 
-
-
 	// Garden Upgraded with new schema
 	public function garden_levels_get(){
 	
@@ -3312,11 +3319,7 @@ class Api extends REST_Controller {
 		$sender_id = $_POST['sender_id'];
 		$receiver_email = $_POST['receiver_email'];
 		$receiver_role = $_POST['role']; 
-        if(isset($_POST['module'])){
-			$module = $_POST['module'];
-		}else{
-			$module = '';
-		}
+
 		$sender = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
 	
 		if (empty($sender)) {
@@ -3387,6 +3390,7 @@ class Api extends REST_Controller {
 			];
 	
 			$this->common_model->insert_array('connection', $notification_data);
+			$last_insert_id = $this->db->insert_id(); 
 			$this->firestore->addData($receiver['id'] , 'con_request');
 
 			$data_array = [
@@ -3414,29 +3418,20 @@ class Api extends REST_Controller {
 			$this->email->message($message);
 	
 			if ($this->email->send()) {
-				$connection_data = [
-					'id' => $receiver['id'],
-					'sender_id' => $sender_id,
-					'accept' => 'no',
-					'receiver_id' => $receiver['id'],
-					'role' => $receiver_role,
-					'message' => $sender['name'] . ' has sent you the invitation for ' . $receiver_role,
-					'sender_name' => $sender['name'],
-					'receiver_name' => $receiver['name'],
+               
+				if (isset($_POST['module'])) {
+					$modules = explode(',', $_POST['module']);
+		
+					foreach ($modules as $module) {
+						$shared_module = [
+							'connection_id' => $last_insert_id,
+							'module' => trim($module),
+						];
+		
+						$this->common_model->insert_array('shared_module', $shared_module);
+					}
+				}
 
-				];
-				$first_user_detail = [
-					'id' => $sender['id'],
-					'name' => $sender['name'],
-					'email' => $sender['email'],
-					'image' => base_url('uploads/app_user/') . $sender['image'],
-				];
-				$second_user_detail = [
-					'id' => $receiver['id'],
-					'name' => $receiver['name'],
-					'email' => $receiver['email'],
-					'image' => base_url('uploads/app_user/') . $receiver['image'],
-				];
 				$connection_data = [
 					'id' => $receiver['id'],
 					'sender_id' => $sender_id,
@@ -3462,11 +3457,6 @@ class Api extends REST_Controller {
 				];
 				$response = [
 					'status' => 200,
-					'data' => [
-						'connection_info' => $connection_data,
-						'first_user_detail' => $first_user_detail,
-						'second_user_detail' => $second_user_detail,
-					],
 					'data' => [
 						'connection_info' => $connection_data,
 						'first_user_detail' => $first_user_detail,
@@ -3908,15 +3898,15 @@ class Api extends REST_Controller {
 		$sender_id = $_POST['sender_id'];
 		$type = $_POST['type'];
 		$entity_id = $_POST['entity_id'];
-		$chat_ids = $_POST['chat_ids']; 
+		$connection_ids = $_POST['connection_ids']; 
 		$receivers = $_POST['receivers'];
 	
-		$chat_ids = explode(',', $chat_ids);
+		$connection_ids = explode(',', $connection_ids);
 		$receiver_ids = explode(',', $receivers);
 	
 		$inserted_entries = array();
 	
-		if (count($chat_ids) != count($receiver_ids)) {
+		if (count($connection_ids) != count($receiver_ids)) {
 			$error_response = [
 				'status' => 400, 
 				'message' => 'Invalid input data: Chat ID and Receiver ID counts do not match.',
@@ -3925,14 +3915,14 @@ class Api extends REST_Controller {
 			return;
 		}
 	
-		for ($i = 0; $i < count($chat_ids); $i++) {
-			$chat_id = $chat_ids[$i];
+		for ($i = 0; $i < count($connection_ids); $i++) {
+			$connection_id = $connection_ids[$i];
 			$receiver_id = $receiver_ids[$i];
 	
 			$data = [
 				'receiver_id' => $receiver_id,
 				'sender_id' => $sender_id,
-				'chat_id' => $chat_id,
+				'connection_id' => $connection_id,
 				'type' => $type,
 				'entity_id' => $entity_id,
 				'paid' => 'false',
@@ -4189,7 +4179,6 @@ class Api extends REST_Controller {
 		}
 	}
 
-
 	public function share_with_other_post() {
 		$user_id = $_POST['user_id'];
 		$data = $this->common_model->select_where('*', 'share_response', ['sender_id' => $user_id])->result_array();
@@ -4215,34 +4204,6 @@ class Api extends REST_Controller {
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
-	}
-
-	public function share_with_me_post() {
-		$user_id = $_POST['user_id'];
-		$data = $this->common_model->select_where('*', 'share_response', ['receiver_id' => $user_id])->result_array();
-
-		if (empty($data)) {
-			$response = [
-				'status' => 200,
-				'responses' => [],
-			];
-		} else {
-			foreach ($data as &$row) {
-				$sender_id = $row['sender_id'];
-
-				$sender_data = $this->common_model->select_where('name', 'users', ['id' => $sender_id])->row_array();
-
-				$row['sender_name'] = $sender_data['name'];
-			}
-			$this->firestore->resetCount($user_id , 'shared_response');
-
-			$response = [
-				'status' => 200,
-				'responses' => $data,
-			];
-		}
-
-		$this->set_response($response, REST_Controller::HTTP_OK);
 	}
 
 	public function pro_users_post() {
@@ -4316,7 +4277,7 @@ class Api extends REST_Controller {
 								'entity_id' => $entity_id,
 								'receiver_id' => $receiver_id,
 								'paid' => 'true',
-								'chat_id' => $existingConnection['id']
+								'connection_id' => $existingConnection['id']
 							];
 						} else {
 							$notification_data = [
@@ -4337,7 +4298,7 @@ class Api extends REST_Controller {
 								'entity_id' => $entity_id,
 								'receiver_id' => $receiver_id,
 								'paid' => 'true',
-								'chat_id' => $newConnection['id']
+								'connection_id' => $newConnection['id']
 							];
 						}
 
@@ -4526,6 +4487,150 @@ class Api extends REST_Controller {
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
+	}
+
+	public function module_details_post() {
+		$type = $_POST['type'];
+		$user_id = $_POST['user_id'];
+		
+		if ($type === 'column') {
+			$data = $this->common_model->select_where('*', 'session_entry', ['user_id' => $user_id])->result_array();
+		} elseif ($type === 'trellis') {
+			$data = $this->common_model->select_where('*', 'trellis', ['user_id' => $user_id])->result_array();
+		} elseif ($type === 'naq' || $type === 'pire') {
+			$answers = $this->common_model->select_where('id, type, options, text, question_id', 'answers', ['user_id' => $user_id, 'type' => $type])->result_array();
+			
+			$questions_with_titles = array();
+	
+			foreach ($answers as $answer) {
+				$question_id = $answer['question_id'];
+				
+				$question = $this->common_model->select_where('title', 'questions', ['id' => $question_id])->row_array();
+				
+				$questions_with_titles[] = [
+					'question' => $question,
+					'answer' => $answer,
+				];
+			}
+	
+			$data = $questions_with_titles;
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'Unsupported type',
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			return;
+		}
+		
+		if (!empty($data)) {
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'data' => $data
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$response = [
+				'status' => 404,
+				'message' => 'Data not found',
+			];
+			$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
+		}
+	}
+
+	public function module_type_list_post() {
+		$connection_id = $this->input->post('connection_id');
+	
+		$connection_data = $this->common_model->select_where('*', 'shared_module', array('connection_id' => $connection_id))->result_array();
+	
+	
+		if (empty($connection_data)) {
+			$response = [
+				'status' => 200,
+				'data' => [],
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$response = [
+				'status' => 200,
+				'data' => $connection_data,
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}
+	}
+	
+	public function edit_module_post() {
+		$connection_id = $this->input->post('connection_id');
+		
+		if (!empty($connection_id)) {
+			if ($this->input->post('module') !== null) {
+				$new_modules = explode(',', $this->input->post('module'));
+				
+				$this->db->delete('shared_module', array('connection_id' => $connection_id));
+	
+				// Insert new modules
+				foreach ($new_modules as $module) {
+					$shared_module = [
+						'connection_id' => $connection_id,
+						'module' => trim($module),
+					];
+					$this->db->insert('shared_module', $shared_module);
+				}
+				
+				// Provide a response
+				$response = [
+					'status' => 200,
+					'message' => 'success',
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			} else {
+				// 'module' parameter is missing
+				$response = [
+					'status' => 400,
+					'message' => 'module parameter is missing',
+				];
+				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			}
+		} else {
+			// 'connection_id' parameter is missing
+			$response = [
+				'status' => 400,
+				'message' => 'connection_id parameter is missing',
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	public function single_type_list_post() {
+		$connection_id = $_POST['connection_id'];
+		$type = $_POST['module_type'];
+
+		$data = $this->common_model->select_where('*', 'share_response', array('connection_id' => $connection_id, 'type' => $type))->result_array();
+
+		if (empty($data)) {
+			$response = [
+				'status' => 200,
+				'responses' => [],
+			];
+		} else {
+			foreach ($data as &$row) {
+				$sender_id = $row['sender_id'];
+				$user_id = $row['receiver_id'];
+
+				$sender_data = $this->common_model->select_where('name', 'users', ['id' => $sender_id])->row_array();
+
+				$row['sender_name'] = $sender_data['name'];
+			}
+			$this->firestore->resetCount($user_id , 'shared_response');
+
+			$response = [
+				'status' => 200,
+				'responses' => $data,
+			];
+		}
+
+		$this->set_response($response, REST_Controller::HTTP_OK);
 	}
 	
 }
