@@ -3390,7 +3390,11 @@ class Api extends REST_Controller {
 			];
 	
 			$this->common_model->insert_array('connection', $notification_data);
-			$last_insert_id = $this->db->insert_id(); 
+			$get_id = $this->common_model->select_where('id', 'connection', [
+				'sender_id' => $sender_id,
+				'receiver_id' => $receiver['id'],
+				'role' => $receiver_role,
+			])->row_array(); 
 			$this->firestore->addData($receiver['id'] , 'con_request');
 
 			$data_array = [
@@ -3424,7 +3428,7 @@ class Api extends REST_Controller {
 		
 					foreach ($modules as $module) {
 						$shared_module = [
-							'connection_id' => $last_insert_id,
+							'connection_id' => $get_id['id'],
 							'module' => trim($module),
 						];
 		
@@ -3432,12 +3436,17 @@ class Api extends REST_Controller {
 					}
 				}
 
+				$module = $this->common_model->select_where('*', 'shared_module', ['connection_id' => $get_id['id']])->result_array();
+
+				$module_values = array_column($module, 'module');
+
 				$connection_data = [
 					'id' => $receiver['id'],
 					'sender_id' => $sender_id,
 					'accept' => 'no',
 					'receiver_id' => $receiver['id'],
 					'role' => $receiver_role,
+					'modules' => implode(',', $module_values),
 					'message' => $sender['name'] . ' has sent you the invitation for ' . $receiver_role,
 					'sender_name' => $sender['name'],
 					'receiver_name' => $receiver['name'],
@@ -3598,12 +3607,15 @@ class Api extends REST_Controller {
 	
 			foreach ($connection_data as $connection) {
 				$sender_id = $connection['sender_id'];
+				$connection_id = $connection['id'];
 	
 				$user_data = $this->common_model->select_where('*', 'users', ['id' => $user_id])->row_array();
 				$sender_data = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
+				$module = $this->common_model->select_where('*', 'shared_module', ['connection_id' => $connection_id])->result_array();
 
 				$role = ($sender_id == $user_id) ? $connection['role'] : ($connection['role'] === 'mentor' ? 'mentee' : ($connection['role'] === 'mentee' ? 'mentor' : 'peer'));
 
+				$module_values = array_column($module, 'module');
 	
 				$connection_info = [
 					'id' => $connection['id'],
@@ -3611,6 +3623,7 @@ class Api extends REST_Controller {
 					'sender_id' => $sender_id,
 					'receiver_id' => $connection['receiver_id'],
 					'role' => $role,
+					'modules' => implode(',', $module_values),
 					'message' => $connection['message'],
 					'image' => base_url()."uploads/app_users/" . $user_data['image'],
 					'sender_name' => $sender_data['name'],
@@ -3689,13 +3702,16 @@ class Api extends REST_Controller {
         foreach ($connection_data as $connection) {
             $sender_id = $connection['sender_id'];
             $receiver_id = $connection['receiver_id'];
+			$connection_id = $connection['id'];
 
             $user_data = $this->common_model->select_where('*', 'users', ['id' => $user_id])->row_array();
             $sender_data = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
             $receiver_data = $this->common_model->select_where('*', 'users', ['id' => $receiver_id])->row_array();
+			$module = $this->common_model->select_where('*', 'shared_module', ['connection_id' => $connection_id])->result_array();
 
 			$role = ($sender_id == $user_id) ? $connection['role'] : ($connection['role'] === 'mentor' ? 'mentee' : ($connection['role'] === 'mentee' ? 'mentor' : 'peer'));
 
+			$module_values = array_column($module, 'module');
 
             $connection_info = [
                 'id' => $connection['id'],
@@ -3703,6 +3719,7 @@ class Api extends REST_Controller {
                 'sender_id' => $sender_id,
                 'receiver_id' => $receiver_id,
 				'role' => $role,
+				'modules' => implode(',', $module_values),
 				'message' => $connection['message'],
                 'image' => base_url()."uploads/app_users/" . $user_data['image'],
                 'sender_name' => $sender_data['name'],
@@ -3761,9 +3778,13 @@ class Api extends REST_Controller {
 	
 			foreach ($connection_data as $connection) {
 				$receiver_id = $connection['receiver_id'];
+				$connection_id = $connection['id'];
 	
 				$user_data = $this->common_model->select_where('*', 'users', ['id' => $user_id])->row_array();
 				$receiver_data = $this->common_model->select_where('*', 'users', ['id' => $receiver_id])->row_array();
+				$module = $this->common_model->select_where('*', 'shared_module', ['connection_id' => $connection_id])->result_array();
+
+				$module_values = array_column($module, 'module');
 	
 				$connection_info = [
 					'id' => $connection['id'],
@@ -3771,6 +3792,7 @@ class Api extends REST_Controller {
 					'sender_id' => $user_id,
 					'receiver_id' => $connection['receiver_id'],
 					'role' => $connection['role'],
+					'modules' => implode(',', $module_values),
 					'message' => $connection['message'],
 					'image' => base_url()."uploads/app_users/" . $user_data['image'],
 					'sender_name' => $user_data['name'],
@@ -4562,14 +4584,18 @@ class Api extends REST_Controller {
 	
 	public function edit_module_post() {
 		$connection_id = $this->input->post('connection_id');
+		$role = $this->input->post('role');
 		
 		if (!empty($connection_id)) {
 			if ($this->input->post('module') !== null) {
 				$new_modules = explode(',', $this->input->post('module'));
 				
+				if (!empty($role)) {
+					 $this->common_model->update_array(array('id'=>$connection_id), "connection", array('role'=>$role));
+				}
+				
 				$this->db->delete('shared_module', array('connection_id' => $connection_id));
 	
-				// Insert new modules
 				foreach ($new_modules as $module) {
 					$shared_module = [
 						'connection_id' => $connection_id,
@@ -4578,14 +4604,12 @@ class Api extends REST_Controller {
 					$this->db->insert('shared_module', $shared_module);
 				}
 				
-				// Provide a response
 				$response = [
 					'status' => 200,
 					'message' => 'success',
 				];
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			} else {
-				// 'module' parameter is missing
 				$response = [
 					'status' => 400,
 					'message' => 'module parameter is missing',
@@ -4593,7 +4617,6 @@ class Api extends REST_Controller {
 				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 			}
 		} else {
-			// 'connection_id' parameter is missing
 			$response = [
 				'status' => 400,
 				'message' => 'connection_id parameter is missing',
