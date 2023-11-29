@@ -4514,28 +4514,45 @@ class Api extends REST_Controller {
 	public function module_details_post() {
 		$type = $_POST['type'];
 		$user_id = $_POST['user_id'];
-		
+	
 		if ($type === 'column') {
 			$data = $this->common_model->select_where('*', 'session_entry', ['user_id' => $user_id])->result_array();
 		} elseif ($type === 'trellis') {
 			$data = $this->common_model->select_where('*', 'trellis', ['user_id' => $user_id])->result_array();
 		} elseif ($type === 'naq' || $type === 'pire') {
-			$answers = $this->common_model->select_where('id, type, options, text, question_id', 'answers', ['user_id' => $user_id, 'type' => $type])->result_array();
-			
-			$questions_with_titles = array();
+			$answers = $this->common_model->select_where('id, response_id, type, options, text, question_id', 'answers', ['user_id' => $user_id, 'type' => $type])->result_array();
+	
+			$data = array();
+			$current_response_id = null;
+			$grouped_data = array();
+			$group_number = 1;
 	
 			foreach ($answers as $answer) {
+				$response_id = $answer['response_id'];
+	
+				if ($response_id !== $current_response_id) {
+					if (!empty($grouped_data)) {
+						$data[] = ['group' => $group_number, 'response' => $grouped_data];
+						$group_number++;
+					}
+					$grouped_data = array();
+				}
+	
 				$question_id = $answer['question_id'];
-				
+	
 				$question = $this->common_model->select_where('title', 'questions', ['id' => $question_id])->row_array();
-				
-				$questions_with_titles[] = [
+	
+				$grouped_data[] = [
 					'question' => $question,
 					'answer' => $answer,
 				];
+	
+				$current_response_id = $response_id;
 			}
 	
-			$data = $questions_with_titles;
+			if (!empty($grouped_data)) {
+				$data[] = ['group' => $group_number, 'response' => $grouped_data];
+			}
 		} else {
 			$response = [
 				'status' => 400,
@@ -4544,7 +4561,7 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 			return;
 		}
-		
+	
 		if (!empty($data)) {
 			$response = [
 				'status' => 200,
@@ -4554,10 +4571,11 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		} else {
 			$response = [
-				'status' => 404,
-				'message' => 'Data not found',
+				'status' => 200,
+				'message' => 'data not found',
+				'data' => [],
 			];
-			$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
+			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
 	}
 
@@ -4603,10 +4621,13 @@ class Api extends REST_Controller {
 					];
 					$this->db->insert('shared_module', $shared_module);
 				}
+
+				$update_data = $this->common_model->select_where('connection_id, module', 'shared_module', ['connection_id' => $connection_id])->result_array();
 				
 				$response = [
 					'status' => 200,
 					'message' => 'success',
+					'data' => $update_data
 				];
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			} else {
@@ -4626,34 +4647,71 @@ class Api extends REST_Controller {
 	}
 
 	public function single_type_list_post() {
-		$connection_id = $_POST['connection_id'];
 		$type = $_POST['module_type'];
-
-		$data = $this->common_model->select_where('*', 'share_response', array('connection_id' => $connection_id, 'type' => $type))->result_array();
-
-		if (empty($data)) {
-			$response = [
-				'status' => 200,
-				'responses' => [],
-			];
-		} else {
-			foreach ($data as &$row) {
-				$sender_id = $row['sender_id'];
-				$user_id = $row['receiver_id'];
-
-				$sender_data = $this->common_model->select_where('name', 'users', ['id' => $sender_id])->row_array();
-
-				$row['sender_name'] = $sender_data['name'];
+		$connection_id = $_POST['connection_id'];
+	
+		$share_responses = $this->common_model->select_where('*', 'share_response', ['connection_id' => $connection_id, 'type' => $type])->result_array();
+	
+		$data = array();
+	
+		foreach ($share_responses as $share_response) {
+			$entity_id = $share_response['entity_id'];
+	
+			if ($type === 'column') {
+				$data[] = $this->common_model->select_where('*', 'session_entry', ['id' => $entity_id])->row_array();
+			} elseif ($type === 'trellis') {
+				$data[] = $this->common_model->select_where('*', 'trellis', ['id' => $entity_id])->row_array();
+			} elseif ($type === 'naq' || $type === 'pire') {
+				$answers = $this->common_model->select_where('id, response_id, type, options, text, question_id', 'answers', ['response_id' => $entity_id, 'type' => $type])->result_array();
+				
+				$grouped_data = array();
+				$current_response_id = null;
+				$group_number = 1;
+	
+				foreach ($answers as $answer) {
+					$response_id = $answer['response_id'];
+					
+					if ($response_id !== $current_response_id) {
+						if (!empty($grouped_data)) {
+							$data[] = ['group' => $group_number, 'response' => $grouped_data];
+							$group_number++;
+						}
+						$grouped_data = array();
+					}
+	
+					$question_id = $answer['question_id'];
+					
+					$question = $this->common_model->select_where('title', 'questions', ['id' => $question_id])->row_array();
+					
+					$grouped_data[] = [
+						'question' => $question,
+						'answer' => $answer,
+					];
+	
+					$current_response_id = $response_id;
+				}
+	
+				if (!empty($grouped_data)) {
+					$data[] = ['group' => $group_number, 'response' => $grouped_data];
+				}
 			}
-			$this->firestore->resetCount($user_id , 'shared_response');
-
+		}
+	
+		if (!empty($data)) {
 			$response = [
 				'status' => 200,
-				'responses' => $data,
+				'message' => 'success',
+				'data' => $data
 			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$response = [
+				'status' => 200,
+				'message' => 'Data not found',
+				'data' => []
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
-
-		$this->set_response($response, REST_Controller::HTTP_OK);
 	}
 	
 }
