@@ -22,7 +22,7 @@ class Admin extends CI_Controller {
 
 		$data['subscriptions'] = $this->stripe_lib->getSubscribersList();
 
-		// echo "<pre>"; print_r($data['subscriptions']); exit;
+		echo "<pre>"; print_r($data['subscriptions']); exit;
 
 		$this->load->view('admin/include/header');
         $this->load->view('admin/dashboard', $data);
@@ -736,14 +736,34 @@ class Admin extends CI_Controller {
 
 	// get column dtail base on id from match with column table user_id
 	public function column_list($id){
+
+		$status = $this->input->get('status');
+		if ($status && !empty($status)) {
+			$column_list = $this->common_model->select_where('*', 'session_entry', array('user_id' => $id, 'entry_type' => 'task', 'completed' => $status))->result_array();
+		} else {
+			$column_list = $this->common_model->select_where('*', 'session_entry', array('user_id' => $id, 'entry_type' => 'task'))->result_array();
+		}
+
+		$data['status'] = $status;
 		$data['page_title'] = 'Column List';
-		$data['column_list'] = $this->common_model->select_where('*', 'session_entry', array('user_id' => $id))->result_array();
+		$data['column_list'] = $column_list;
 		
 		$this->load->view('admin/include/header');
 		$this->load->view('admin/column_list', $data);
 		$this->load->view('admin/include/footer');
 	}
 	
+	// column_history
+	public function column_history($id){
+		$data['page_title'] = 'Column History';
+		$data['column_history'] = $this->common_model->select_where('*', 'session_entry_history', array('session_id' => $id, 'entry_type' => 'task'))->result_array();
+		
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/column_history', $data);
+		$this->load->view('admin/include/footer');
+	}
+
+
 	// get value for edit from column table
 	public function edit_column($id) {
 		$data['page_title'] = 'Edit Column';
@@ -756,19 +776,35 @@ class Admin extends CI_Controller {
 
 	// update column
 	public function update_column($id) {
-		$user = $this->common_model->select_where('user_id', 'session_entry', array('id' => $id))->row();
+		$response_id = random_string('numeric', 8);
+
+		$user = $this->common_model->select_where('*', 'session_entry', array('id' => $id))->row();
 		
 		$user_id = $user->user_id;
 
 		$data['defined_by'] = 'admin';
+		$data['response_id'] = $response_id;
 		$data['entry_title'] = $this->input->post('entry_title');
 		$data['entry_takeaway'] = $this->input->post('entry_takeaway');
 		$data['entry_decs'] = $this->input->post('entry_decs');
-		$data['entry_type'] = $this->input->post('entry_type');
 		$data['entry_date'] = $this->input->post('entry_date');
 	
-		$update_data = $this->common_model->update_array(array('id' => $id), 'session_entry', $data);
-		redirect('admin/column_list/' . $user_id);
+		$this->common_model->update_array(array('id' => $id), 'session_entry', $data);
+
+		// old data insert in history table
+		$history_data = [
+			'session_id' => $id,
+			'user_id' => $user_id,
+			'response_id' => $user->response_id,
+			'entry_title' => $user->entry_title,
+			'entry_takeaway' => $user->entry_takeaway,
+			'entry_decs' => $user->entry_decs,
+			'entry_date' => $user->entry_date,
+			'entry_type' => $user->entry_type,
+			'defined_by' => $user->defined_by
+		];
+		$this->common_model->insert_array('session_entry_history', $history_data);
+		redirect('admin/column_list/'.$user_id);
 	}
 	
 	// add column for those user id 
@@ -799,5 +835,36 @@ class Admin extends CI_Controller {
 	}
 	
 	// Admin Update And Add users coloumn from dashoboard code end.
+
+	public function post_report() {
+		$data['page_title'] = 'Post Report';
+	
+		$selectedName = $this->input->get('name');
+		$date = $this->input->get('date');
+	
+		$this->db->select('u.id, u.name');
+		$this->db->from('users u');
+		$this->db->join('reminders r', 'u.id = r.user_id');
+	
+		$query = $this->db->get();
+		$result = $query->result_array();
+	
+		$userList = [];
+		foreach ($result as $row) {
+			$userList[$row['id']] = $row['name'];
+		}
+	
+		$reminders = $this->common_model->select_where('*', 'reminders', array('user_id' => $selectedName, 'DATE(date_time)' => $date))->result_array();
+	
+		$data['userList'] = $userList;
+		$data['selectedName'] = $selectedName;
+		$data['date'] = $date;
+		$data['reminders'] = $reminders;
+	
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/post_report', $data);
+		$this->load->view('admin/include/footer');
+	}
+	
 } 
 ?>

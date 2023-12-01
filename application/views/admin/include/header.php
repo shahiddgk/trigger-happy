@@ -149,7 +149,13 @@ else{
 				<i class="link-icon" data-feather="file-minus"></i>
 				<span class="link-title">NAQ Report </span>
 				</a>
-			</li>			
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="<?php echo site_url('admin/post_report'); ?>">
+				<i class="link-icon" data-feather="file-text"></i>
+				<span class="link-title">Post Report </span>
+				</a>
+			</li>
 		</ul>
 		</div>
 	</nav>

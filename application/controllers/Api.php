@@ -1912,6 +1912,7 @@ class Api extends REST_Controller {
 		if ($session_entry) {
 			
 			$update['response_id'] = $response_id;
+			$update['defined_by'] = 'user';
 			if (isset($_POST['entry_date']) && !empty($_POST['entry_date'])) {
 				$dateObj = DateTime::createFromFormat('m-d-y', $_POST['entry_date']);
 				if ($dateObj !== false) {
@@ -1934,13 +1935,15 @@ class Api extends REST_Controller {
 			$this->common_model->update_array(array('id' => $id), 'session_entry', $update);
 			
 			$history_data = array(
+				'session_id' => $session_entry['id'],
 				'user_id' => $session_entry['user_id'],
 				'response_id' => $session_entry['response_id'],
 				'entry_date' => $session_entry['entry_date'],
 				'entry_type' => $session_entry['entry_type'],
 				'entry_title' => $session_entry['entry_title'],
 				'entry_decs' => $session_entry['entry_decs'],
-				'entry_takeaway' => $session_entry['entry_takeaway']
+				'entry_takeaway' => $session_entry['entry_takeaway'],
+				'defined_by' => $session_entry['defined_by']
 			);			
 			$this->common_model->insert_array('session_entry_history', $history_data);
 			
@@ -4711,6 +4714,45 @@ class Api extends REST_Controller {
 				'data' => []
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
+		}
+	}
+
+	public function completed_chk_post(){
+		$session_id = $_POST['session_id'];
+
+		if(!empty($session_id)){
+			
+			if(isset($_POST['completed']) && !empty($_POST['completed'])){
+
+				$status = $_POST['completed'];
+			}
+			else{
+				$status = 'no';
+			}
+			$this->common_model->update_array(array('id'=>$session_id), "session_entry", array('completed'=>$status));
+		
+			$updated_record = $this->common_model->select_where("*", "session_entry", array('id' => $session_id))->row_array();
+
+			if (!empty($updated_record)) {
+				$response = [
+					'status' => 200,
+					'message' => 'success',
+					'data' => $updated_record
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);
+			} else {
+				$response = [
+					'status' => 404,
+					'message' => 'Record not found'
+				];
+				$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
+			}
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
 	

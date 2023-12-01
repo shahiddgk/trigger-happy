@@ -14,15 +14,8 @@
                     <h4 class="card-title font-weight-bold">Add Column</h4>
                     <form class="flds" method="post" action="<?= base_url('admin/add_column_action/') . $add_column->user_id; ?>">
                         <fieldset>
-
-                            <div class="form-group">
-                                <label for="Type" class="font-weight-bold">Type</label>
-                                <select class="form-control" name="entry_type" id="entry_type">
-                                    <option value="entry">Entry</option>
-                                    <option value="session">Session</option>
-                                    <option value="meeting">Meeting</option>
-                                </select>
-                            </div>
+                            
+                            <input type="hidden" value="task" name="entry_type" id="entry_type">
 
                             <div class="form-group">
                                 <h4 class="card-title font-weight-bold">Entry Title</h4>

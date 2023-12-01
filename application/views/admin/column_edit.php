@@ -34,15 +34,7 @@
                                 <h4 class="card-title font-weight-bold">Entry Date</h4>
                                 <input type="date" class="form-control" name="entry_date" id="entry_date" value="<?= $edit_column->entry_date ?>" required>
                             </div>
-
-                            <div class="form-group">
-                                <label for="Type" class="font-weight-bold">Type</label>
-                                <select class="form-control" name="entry_type" id="entry_type">
-                                    <option value="entry" <?php echo ($edit_column->entry_type == 'entry') ? 'selected' : ''; ?>>Entry</option>
-                                    <option value="session" <?php echo ($edit_column->entry_type == 'session') ? 'selected' : ''; ?>>Session</option>
-                                    <option value="meeting" <?php echo ($edit_column->entry_type == 'meeting') ? 'selected' : ''; ?>>Meeting</option>
-                                </select>
-                            </div>
+                            
                             <input class="btn btn-primary" type="submit" value="Submit">
                         </fieldset>
                     </form>
