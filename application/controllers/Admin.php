@@ -22,7 +22,7 @@ class Admin extends CI_Controller {
 
 		$data['subscriptions'] = $this->stripe_lib->getSubscribersList();
 
-		echo "<pre>"; print_r($data['subscriptions']); exit;
+		// echo "<pre>"; print_r($data); exit;
 
 		$this->load->view('admin/include/header');
         $this->load->view('admin/dashboard', $data);
@@ -743,7 +743,8 @@ class Admin extends CI_Controller {
 		} else {
 			$column_list = $this->common_model->select_where('*', 'session_entry', array('user_id' => $id, 'entry_type' => 'task'))->result_array();
 		}
-
+        
+		$data['user_id'] = $id;
 		$data['status'] = $status;
 		$data['page_title'] = 'Column List';
 		$data['column_list'] = $column_list;

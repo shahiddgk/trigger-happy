@@ -26,7 +26,7 @@ class Stripe_lib{
         // Set API key 
 		$result_array = $this->CI->common_model->select_all("*", 'payment_settings')->row_array();
         
-        \Stripe\Stripe::setApiKey($result_array['test_secret_key']); 
+        \Stripe\Stripe::setApiKey($result_array['live_secret_key']); 
     } 
 
     function createToken($card_number, $exp_month, $exp_year, $cvc){

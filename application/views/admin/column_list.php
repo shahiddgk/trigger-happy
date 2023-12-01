@@ -11,7 +11,7 @@
         <div class="col-md-12 grid-margin stretch-card">
             <div class="card">
                 <div class="card-body">
-                <form action="<?= base_url('admin/column_list/').$column_list[0]['user_id']; ?>" method="get" class="form-inline">
+                <form action="<?= base_url('admin/column_list/').$user_id; ?>" method="get" class="form-inline">
                         <div class="form-group mx-sm-3 mb-2">
                             <label for="status" class="sr-only">Filter by status</label>
                             <select name="status" id="status" class="form-control">
@@ -21,12 +21,12 @@
                         </div>
                         <button type="submit" class="btn btn-primary">Filter</button>
                         <div class="form-group mx-sm-3">
-                            <a href="<?= base_url('admin/column_list/').$column_list[0]['user_id']; ?>" class="btn btn-danger">Clear Filter</a>
+                            <a href="<?= base_url('admin/column_list/').$user_id; ?>" class="btn btn-danger">Clear Filter</a>
                         </div>
                     </form>
                     <div class="d-flex justify-content-between align-items-baseline">
                         <h6 class="card-title"><?= $page_title ?></h6>
-                        <a href="<?= base_url('admin/add_column/').$column_list[0]['user_id']; ?>" class="btn btn-primary">Add Column <i data-feather="file-plus"></i></a>
+                        <a href="<?= base_url('admin/add_column/').$user_id; ?>" class="btn btn-primary">Add Column <i data-feather="file-plus"></i></a>
                     </div>
                     <div class="table-responsive">
                         <table id="dataTableExample" class="table">
