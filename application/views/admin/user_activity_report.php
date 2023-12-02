@@ -35,7 +35,11 @@
                             <tbody>
                                 <?php foreach ($users as $user): ?>
                                     <tr>
+                                        <?php if ($show_alias_name === 'no'): ?>
                                         <td><?= $user->name ?></td>
+                                        <?php else: ?>
+                                        <td>User <?= $i++ ?></td>
+                                        <?php endif; ?>
                                         <td><?= (new DateTime($user->created_at))->format('Y-m-d') ?></td>
                                         <td><?= ($user->naq_score->min_naq_response ? '(' . date('d-m-Y', strtotime($user->naq_score->min_naq_response)) . ' )' . $user->naq_score->min_naq_score : '') ?></td>
                                         <td><?= ($user->naq_score->max_naq_response ? '(' . date('d-m-Y', strtotime($user->naq_score->max_naq_response)) . ' )' . $user->naq_score->max_naq_score : '') ?></td>

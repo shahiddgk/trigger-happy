@@ -46,7 +46,7 @@
                             <thead>
                                 <tr>
                                     <th>Sr.</th>
-                                    <th>Text</th>
+                                    <!-- <th>Text</th> -->
                                     <th>Date and Time</th>
                                     <th>Answers</th>
                                 </tr>
@@ -55,8 +55,8 @@
                                 <?php foreach ($reminders as $key => $row): ?>
                                     <tr>
                                         <td><?= $key+1 ?></td>
-                                        <td><?= $row['text']; ?></td>
-                                        <td><?= $row['date_time']; ?></td>
+                                        <!-- <td><?= $row['text']; ?></td> -->
+                                        <td><?= $row['created_at']; ?></td>
                                         <td><?= $row['reminder_stop'] === 'skip' ? '....' : $row['reminder_stop']; ?></td>
                                     </tr>
                                 <?php endforeach; ?>

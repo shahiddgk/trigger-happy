@@ -2984,14 +2984,14 @@ class Api extends REST_Controller {
 		}
 	}
 	
-	public function skip_reminders_post() {
+	public function waitings_reminders_post() {
 		if (isset($_POST['user_id']) && !empty($_POST['user_id'])) {
 			$user_id = $_POST['user_id'];
 	
 			$skipped_reminders = $this->db
 				->select('reminder_history.*, reminders.text, DATE(reminder_history.created_at) as created_date')
 				->join('reminders', 'reminder_history.entity_id = reminders.id') 
-				->where(['reminder_history.user_id' => $user_id, 'reminder_history.reminder_stop' => 'skip'])
+				->where(['reminder_history.user_id' => $user_id, 'reminder_history.reminder_stop' => 'waiting'])
 				->get('reminder_history')
 				->result_array();
 

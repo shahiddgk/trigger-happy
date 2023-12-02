@@ -10,8 +10,18 @@
         <div class="col-md-6 grid-margin stretch-card">
             <div class="card">
                 <div class="card-body">
-                    <h6 class="card-title">Trellis Settings</h6>
                     <form class="forms-sample" action="<?=base_url('admin/trilles_settings');?>" method="post">
+
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <label>Show Alias Name</label>
+                            <div class="custom-control custom-switch">
+                                <input name="show_alias_name" type="checkbox" value="1" class="custom-control-input" id="show_alias_name"
+                                    <?php echo ( $trellis['show_alias_name'] == 'yes') ? 'checked' : ''; ?>>
+                                <label class="custom-control-label" for="show_alias_name"></label>
+                            </div>
+                        </div>
+                        
+                        <h6 class="card-title">Trellis Settings</h6>
                         <div class="form-group">
                             <label for="goal"><b>Ladder:</b> Goals / Challenges</label>
                             <input value="<?= isset($trellis['goal']) ? $trellis['goal'] : '' ?>" type="number"

@@ -316,6 +316,7 @@ class Admin extends CI_Controller {
 
 	public function trilles_settings() 
 	{
+		$result_array =  $this->common_model->select_all("*", "settings")->result_array();
 		if(isset($_POST['goal'])){
 			$data['goal']= $this->input->post('goal');	
 		}
@@ -355,8 +356,11 @@ class Admin extends CI_Controller {
 		if(isset($_POST['new_updates'])){
 			$data['new_updates']= $this->input->post('new_updates');	
 		}
-		
-		$result_array =  $this->common_model->select_all("*", "settings")->result_array();
+		if (isset($_POST['show_alias_name'])) {
+			$data['show_alias_name'] = 'yes';
+		} else {
+			$data['show_alias_name'] = 'no';
+		}
 
 		if(count($result_array)== 1) {
 			$result = $this->common_model->update_array(array('id'), 'settings', $data);
@@ -369,6 +373,10 @@ class Admin extends CI_Controller {
 
 	public function user_activity(){
 		$data['page_title'] = 'User Activity';
+	
+		$show_alias_name = $this->common_model->select_where("show_alias_name", "settings", array('id'=> 1))->row_array();
+		$data['show_alias_name'] = $show_alias_name['show_alias_name'];
+	
 		$data['users'] = $this->common_model->user_activity_report();
 		$this->load->view('admin/include/header');
 		$this->load->view('admin/user_activity_report', $data);
@@ -855,7 +863,7 @@ class Admin extends CI_Controller {
 			$userList[$row['id']] = $row['name'];
 		}
 	
-		$reminders = $this->common_model->select_where('*', 'reminders', array('user_id' => $selectedName, 'DATE(date_time)' => $date))->result_array();
+		$reminders = $this->common_model->select_where('*', 'reminder_history', array('user_id' => $selectedName, 'DATE(created_at)' => $date))->result_array();
 	
 		$data['userList'] = $userList;
 		$data['selectedName'] = $selectedName;

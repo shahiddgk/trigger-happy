@@ -189,7 +189,7 @@ class Notification extends CI_Controller {
         log_message('info', 'reminder_notification'. ' - ' . $id. ' - ' . $text);
 
         $this->common_model->update_array(['id' => $id], 'reminders', ['reminder_stop' => 'skip', 'updated_at' => date('Y-m-d H:i:s')]);
-        $this->common_model->insert_array('reminder_history', ['entity_id' => $id, 'user_id' => $user_id, 'reminder_stop' => 'skip', 'due_time' => $date_time , 'created_at' => date('Y-m-d H:i:s')]);
+        $this->common_model->insert_array('reminder_history', ['entity_id' => $id, 'user_id' => $user_id, 'reminder_stop' => 'waiting', 'due_time' => $date_time , 'created_at' => date('Y-m-d H:i:s')]);
        
         return [
             'title' => 'Hi ' . $name. ' Did you....',
