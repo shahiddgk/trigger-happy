@@ -836,6 +836,7 @@ class Admin extends CI_Controller {
 	// load add column page
 	public function add_column($user_id) {
 		$data['page_title'] = 'Add Column';
+		$data['user_id'] = $user_id;
 		
 		$data['add_column'] = $this->common_model->select_where('*', 'session_entry', array('user_id' => $user_id))->row();
 		$this->load->view('admin/include/header');

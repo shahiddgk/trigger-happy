@@ -2,7 +2,7 @@
 
 	<nav class="page-breadcrumb">
 		<ol class="breadcrumb">
-			<li class="breadcrumb-item"><a href="<?= base_url('admin/column_list/' . $add_column->user_id)?>">column list</a></li>
+			<li class="breadcrumb-item"><a href="<?= base_url('admin/column_list/' . $user_id)?>">column list</a></li>
 			<li class="breadcrumb-item active" aria-current="page"><?= $page_title; ?></li>
 		</ol>
 	</nav>
