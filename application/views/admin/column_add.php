@@ -12,7 +12,7 @@
 			<div class="card">
                 <div class="card-body">
                     <h4 class="card-title font-weight-bold">Add Column</h4>
-                    <form class="flds" method="post" action="<?= base_url('admin/add_column_action/') . $add_column->user_id; ?>">
+                    <form class="flds" method="post" action="<?= base_url('admin/add_column_action/') . $user_id; ?>">
                         <fieldset>
                             
                             <input type="hidden" value="task" name="entry_type" id="entry_type">
