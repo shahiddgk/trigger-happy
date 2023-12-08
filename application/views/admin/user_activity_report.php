@@ -33,6 +33,7 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                <?php $i = 1; ?>
                                 <?php foreach ($users as $user): ?>
                                     <tr>
                                         <?php if ($show_alias_name === 'no'): ?>

@@ -18,22 +18,22 @@
                             <input type="hidden" value="task" name="entry_type" id="entry_type">
 
                             <div class="form-group">
-                                <h4 class="card-title font-weight-bold">Entry Title</h4>
+                                <h4 class="card-title font-weight-bold">Task Title</h4>
                                 <textarea class="form-control" name="entry_title" id="entry_title" rows="5" required></textarea>
                             </div>
 
                             <div class="form-group">
-                                <h4 class="card-title font-weight-bold">Entry Description</h4>
+                                <h4 class="card-title font-weight-bold">Task Description</h4>
                                 <textarea class="form-control" name="entry_decs" id="entry_decs" rows="5" required></textarea>
                             </div>
 
                             <div class="form-group">
-                                <h4 class="card-title font-weight-bold">Entry Takeaway</h4>
+                                <h4 class="card-title font-weight-bold">Task Takeaway</h4>
                                 <textarea class="form-control" name="entry_takeaway" id="entry_takeaway" rows="5" required></textarea>
                             </div>
 
                             <div class="form-group">
-                                <h4 class="card-title font-weight-bold">Entry Date</h4>
+                                <h4 class="card-title font-weight-bold">Task Date</h4>
                                 <input type="date" class="form-control" name="entry_date" id="entry_date" required>
                             </div>
 
