@@ -2365,6 +2365,7 @@ class Api extends REST_Controller {
 				'useremail' => $row['email'],
 				'allowemail' => $row['mail_resp'],
 				'premium' => $row['is_premium'],
+				'admin_access' => $row['admin_access'],
 				'premium_type' => $row['premium_type'],
 				'subscription_id' => $subscription_id,
 				'customer_id' => $customer_id,

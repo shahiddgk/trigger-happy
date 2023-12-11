@@ -15,10 +15,10 @@
                         <thead>
                             <tr>
                                 <th>Sr.</th>
-                                <th>Entry Title</th>
-                                <th>Entry Description</th>
-                                <th>Entry Takeaway</th>
-                                <th>Entry Date</th>
+                                <th>Task Title</th>
+                                <th>Task Description</th>
+                                <th>Task Takeaway</th>
+                                <th>Task Date</th>
                                 <th>Updated By</th>
                             </tr>
                         </thead>
