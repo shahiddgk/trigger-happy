@@ -36,6 +36,7 @@
                                 <?php $i = 1; ?>
                                 <?php foreach ($users as $user): ?>
                                     <tr>
+                                        <?php $i = 1; ?>
                                         <?php if ($show_alias_name === 'no'): ?>
                                         <td><?= $user->name ?></td>
                                         <?php else: ?>
