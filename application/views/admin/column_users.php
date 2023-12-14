@@ -11,6 +11,21 @@
         <div class="col-md-12 grid-margin stretch-card">
             <div class="card">
                 <div class="card-body">
+                <form action="<?= base_url('admin/column_users/' . $status)?>" method="get" class="form-inline">
+                        <div class="form-group mx-sm-3 mb-2">
+                            <label for="status" class="sr-only">Filter by status</label>
+                            <select name="status" id="status" class="form-control">
+                                <option value="all">All</option>
+                                <option value="yes" <?php if(isset($status) && $status == 'yes') echo 'selected'; ?>>Completed</option>
+                                <option value="no" <?php if(isset($status) && $status == 'no') echo 'selected'; ?>>Incomplete</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Filter</button>
+                        <div class="form-group mx-sm-3">
+                            <a href="<?= base_url('admin/column_users/')?>" class="btn btn-danger">Clear Filter</a>
+                        </div>
+                    </form>
+                    <br>
                     <h6 class="card-title"><?= $page_title ?></h6>
                     <div class="table-responsive">
                     <table id="dataTableExample" class="table">
@@ -32,7 +47,7 @@
                                     <td><?= $data['name'] ?></td>
                                     <td><?= $data['email'] ?></td>
                                     <td class="d-flex">
-                                        <a href="<?= base_url('admin/column_list/').$data['id']; ?>" class="nav-link">
+                                        <a href="<?= base_url('admin/column_list/').$data['user_id']; ?>" class="nav-link">
                                             <i data-feather="eye"></i>
                                         </a>
                                     </td>

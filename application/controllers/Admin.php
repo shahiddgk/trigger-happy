@@ -728,20 +728,82 @@ class Admin extends CI_Controller {
     // Admin Update And Add users coloumn from dashoboard code start.
 
 	public function column_users(){
+		// setting page title
 		$data['page_title'] = 'Users List';
-		
+		// getting status from the url as a parameter can be yes or no
+		$userStatus = $this->input->get('status');
+		$data['status'] = $userStatus;
+	
 		$where_condition = array(
 			'type' => 'user',
 			'admin_access' => 'yes'
 		);
+		// in case of 'all' filter type 
+		$data['users'] = $this->common_model->select_where_ASC_DESC('name, email, id as user_id', 'users', $where_condition, 'user_id', 'ASC')->result_array();
 		
-		$data['users'] = $this->common_model->select_where_ASC_DESC('*', 'users', $where_condition, 'id', 'ASC')->result_array();
+		// in case of 'yes' filter type or 'no' filter type
+		if ($userStatus && !empty($userStatus) && $userStatus != 'all' && $userStatus != 'no') {
+			$this->db->select('*');
+			$this->db->from('users');
+			$this->db->join('session_entry', 'users.id = session_entry.user_id');
+			$this->db->where('session_entry.entry_type', 'task');
+			$query = $this->db->get();
 		
+			$users = $query->result_array();
+			$finalUsers = $this->filterUsersByStatus($users, $userStatus);
+			$data['users'] = $finalUsers;
+			
+		} else if ($userStatus && !empty($userStatus) && $userStatus == 'no') {
+			$this->db->select('*');
+			$this->db->from('users');
+			$this->db->join('session_entry', 'users.id = session_entry.user_id');
+			$this->db->where('session_entry.entry_type', 'task');
+			$this->db->where('session_entry.completed', 'no');
+			$query = $this->db->get();
+		
+			$users = $query->result_array();
+			$data['users'] = $users;
+		}
 		$this->load->view('admin/include/header');
 		$this->load->view('admin/column_users', $data);
 		$this->load->view('admin/include/footer');
 	}
-
+	
+	public function filterUsersByStatus($records, $status) {
+		$userRecords = [];
+		if ($status == 'yes') {
+		foreach ($records as $key => $record) {
+			$userId = $record['user_id'];
+	
+			
+			// Check if the user is already in the result array
+			if (!isset($userRecords[$userId])) {
+				$userRecords[$userId] = [
+					'user_id' => $userId,
+					'all_completed' => true,
+					'name' => $record['name'],
+					'email' => $record['email'],
+				];
+			}
+	
+			// Check if the completed status is not equal to the desired status
+			if ($record['completed'] !== $status) {
+				$userRecords[$userId]['all_completed'] = false;
+			}
+		}
+	
+		// Filter out users who don't have all records with the desired status
+		$filteredUsers = array_filter($userRecords, function ($user) {
+			return $user['all_completed'];
+		});
+	
+		// Reset array keys to make it consecutive
+		$filteredUsers = array_values($filteredUsers);
+	
+	}
+		return $filteredUsers;
+	
+	}
 	// get column dtail base on id from match with column table user_id
 	public function column_list($id){
 
