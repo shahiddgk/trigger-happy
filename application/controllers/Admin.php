@@ -865,15 +865,27 @@ class Admin extends CI_Controller {
 		}
 	
 		$reminders = $this->common_model->select_where('*', 'reminder_history', array('user_id' => $selectedName, 'DATE(created_at)' => $date))->result_array();
-	
+
+		$reminder_texts = array(); 
+		
+		foreach ($reminders as &$reminder) {
+			$entityId = $reminder['entity_id'];
+		
+			$reminder_text = $this->common_model->select_where('text', 'reminders', ['id' => $entityId])->result_array();
+		
+			$reminder_texts[] = $reminder_text[0]['text'];
+		}
+		
 		$data['userList'] = $userList;
 		$data['selectedName'] = $selectedName;
 		$data['date'] = $date;
 		$data['reminders'] = $reminders;
-	
+		$data['reminder_texts'] = $reminder_texts;
+		
 		$this->load->view('admin/include/header');
 		$this->load->view('admin/post_report', $data);
 		$this->load->view('admin/include/footer');
+		
 	}
 	
 } 

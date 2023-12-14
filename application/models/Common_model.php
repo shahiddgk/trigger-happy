@@ -214,14 +214,15 @@ class Common_model extends  CI_Model {
 			$user_id = $user_data->id;
 	
 			$additional_data = $this->executeQuery(
-				'reminders as rem',
+				'reminders as rem 
+				LEFT JOIN reminder_history as rh ON rem.id = rh.entity_id',
 				'DATE(rem.created_at) AS created_at,
 				 SUM(rem.status = \'active\') AS sum_active_reminders,
-				 SUM(rem.reminder_stop = \'yes\') AS sum_yes_reminders,
+				 SUM(rh.reminder_stop = \'yes\') AS sum_yes_reminders,
 				 COUNT(rem.user_id) as sum_reminders',
-				"user_id = $user_id AND DATE(rem.created_at) >= '$ninetyDaysAgo'"
+				"rem.user_id = $user_id AND DATE(rem.created_at) >= '$ninetyDaysAgo'"
 			);
-			$user_data->additional_data = $additional_data;
+			$user_data->additional_data = $additional_data;			
 	
 			$naq_score = $this->executeQuery(
 				'naq_scores as naq',

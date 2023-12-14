@@ -3986,6 +3986,8 @@ class Api extends REST_Controller {
 			$data = $this->common_model->select_where('*', 'session_entry', ['id' => $entity_id])->row_array();
 		} elseif ($type === 'trellis') {
 			$data = $this->common_model->select_where('*', 'trellis', ['id' => $entity_id])->row_array();
+		} elseif ($type === 'ladder') {
+			$data = $this->common_model->select_where('*', 'ladder', ['id' => $entity_id])->row_array();
 		} elseif ($type === 'naq' || $type === 'pire') {
 			// Check if it's 'naq' or 'pire', then look in the 'answers' table
 			$answers = $this->common_model->select_where('id, type, options, text, question_id', 'answers', ['response_id' => $entity_id])->result_array();
@@ -4231,6 +4233,35 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
 	}
+
+	public function share_with_me_post() {
+		$user_id = $_POST['user_id'];
+		$data = $this->common_model->select_where('*', 'share_response', ['sender_id' => $user_id])->result_array();
+
+		if (empty($data)) {
+			$response = [
+				'status' => 200,
+				'responses' => [],
+			];
+		} else {
+			foreach ($data as &$row) {
+				$sender_id = $row['sender_id'];
+
+				$sender_data = $this->common_model->select_where('name', 'users', ['id' => $sender_id])->row_array();
+
+				$row['sender_name'] = $sender_data['name'];
+			}
+			$this->firestore->resetCount($user_id , 'shared_response');
+
+			$response = [
+				'status' => 200,
+				'responses' => $data,
+			];
+		}
+
+		$this->set_response($response, REST_Controller::HTTP_OK);
+	}
+
 
 	public function pro_users_post() {
 		
@@ -4523,6 +4554,8 @@ class Api extends REST_Controller {
 			$data = $this->common_model->select_where('*', 'session_entry', ['user_id' => $user_id])->result_array();
 		} elseif ($type === 'trellis') {
 			$data = $this->common_model->select_where('*', 'trellis', ['user_id' => $user_id])->result_array();
+		} elseif ($type === 'ladder') {
+			$data = $this->common_model->select_where('*', 'ladder', ['user_id' => $user_id])->result_array();
 		} elseif ($type === 'naq' || $type === 'pire') {
 			$answers = $this->common_model->select_where('id, response_id, type, options, text, question_id', 'answers', ['user_id' => $user_id, 'type' => $type])->result_array();
 	

@@ -89,8 +89,9 @@ class Notification extends CI_Controller {
                     'entity_id' => '',
                     'device_token' => $user->device_token
                 );
-                
+                if (!empty($notification_data)) {
                 $this->push_notification($notification_data);
+                }
             }
         }
         exit;
@@ -116,7 +117,7 @@ class Notification extends CI_Controller {
                 JOIN users ON users.id = reminders.user_id
                 WHERE 
                     reminders.status = 'active' 
-                    AND reminders.date_time <= CURRENT_TIMESTAMP()
+                    AND reminders.date_time <= CONCAT(CURRENT_DATE(),' ', TIME(CAST(reminders.date_time AS CHAR)))
                     AND users.device_token <> ''
                     AND users.time_zone <> ''
                     AND NOT EXISTS (
@@ -146,13 +147,13 @@ class Notification extends CI_Controller {
                 $timeZone = new DateTimeZone($validTimeZone);
                 $currentTime = $currentTime->setTimezone($timeZone);
 
-                // if ($reminder['reminder_type'] === 'once') {
+                 if ($reminder['reminder_type'] === 'once') {
                     
-                //     $rows =$this->common_model->select_where_table_rows('*', 'reminder_history', ['entity_id' => $reminder['id'], 'due_time' => $reminder['date_time']]);
-                //     if($rows == 1){
-                //         continue;
-                //     }
-                // }
+                     $rows =$this->common_model->select_where_table_rows('*', 'reminder_history', ['entity_id' => $reminder['id'], 'due_time' => $reminder['date_time']]);
+                     if($rows == 1){
+                         continue;
+                     }
+                 }
     
                 if ($reminder['reminder_type'] === 'repeat') {
                     $daysArray = json_decode($reminder['day_list'], true);
@@ -190,7 +191,7 @@ class Notification extends CI_Controller {
 
         $this->common_model->update_array(['id' => $id], 'reminders', ['reminder_stop' => 'skip', 'updated_at' => date('Y-m-d H:i:s')]);
         $this->common_model->insert_array('reminder_history', ['entity_id' => $id, 'user_id' => $user_id, 'reminder_stop' => 'waiting', 'due_time' => $date_time , 'created_at' => date('Y-m-d H:i:s')]);
-       
+            
         return [
             'title' => 'Hi ' . $name. ' Did you....',
             'type' => 'reminder',

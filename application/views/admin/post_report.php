@@ -46,20 +46,21 @@
                             <thead>
                                 <tr>
                                     <th>Sr.</th>
-                                    <!-- <th>Text</th> -->
-                                    <th>Date and Time</th>
+                                    <th>Text</th>
+                                    <th>Date</th>
                                     <th>Answers</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <?php foreach ($reminders as $key => $row): ?>
-                                    <tr>
-                                        <td><?= $key+1 ?></td>
-                                        <!-- <td><?= $row['text']; ?></td> -->
-                                        <td><?= $row['created_at']; ?></td>
-                                        <td><?= $row['reminder_stop'] === 'skip' ? '....' : $row['reminder_stop']; ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
+                                <tbody>
+                                    <?php foreach ($reminders as $key => $row): ?>
+                                        <?php if (isset($reminder_texts[$key])): ?>
+                                            <tr>
+                                                <td><?= $key + 1 ?></td>
+                                                <td><?= $reminder_texts[$key]; ?></td>
+                                                <td><?= date('Y-m-d', strtotime($row['created_at'])); ?></td>                                                <td><?= $row['reminder_stop'] === 'waiting' ? '....' : $row['reminder_stop']; ?></td>
+                                            </tr>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
