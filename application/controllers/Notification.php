@@ -96,23 +96,9 @@ class Notification extends CI_Controller {
         }
         exit;
     }
-    
-    public function reminder_notification()
-    {
-        // $activeReminders = $this->db
-        //     ->select('reminders.*, users.name, users.device_token, users.time_zone')
-        //     ->from('reminders')
-        //     ->join('users', 'users.id = reminders.user_id')
-        //     ->join('reminder_history', 'reminders.date_time = reminder_history.due_time', 'left')
-        //     ->where('reminders.status', 'active')
-        //     ->where_in('users.id', [166])
-        //     ->where('DATE(reminders.date_time) <=', date('Y-m-d'))
-        //     ->where_not_in('users.device_token', '')
-        //     ->where_not_in('users.time_zone', '')
-        //     ->get()
-        //     ->result_array();
 
-        $sql = "SELECT reminders.*, users.name, users.device_token, users.time_zone
+    private function getActiveReminders() {
+        $sql = "SELECT reminders.id, reminders.reminder_type, reminders.text, reminders.user_id, reminders.text, users.device_token, reminders.date_time, reminders.day_list, reminders.end_date, reminders.snooze, users.name as user_name, users.time_zone
                 FROM reminders
                 JOIN users ON users.id = reminders.user_id
                 WHERE 
@@ -128,10 +114,18 @@ class Notification extends CI_Controller {
                             AND reminder_history.due_time = TIME(reminders.date_time)
                     )";
     
+        return $this->db->query($sql)->result_array();
+    }
+    
+    public function reminder_notification()
+    {
+
+        $activeReminders = $this->getActiveReminders();
+
+        if (empty($activeReminders)) {
+            return;
+        }
         
-        $activeReminders = $this->db->query($sql)->result_array();
-        
-        // echo "<pre>"; print_r($activeReminders); exit;
         $timeZoneMap = $this->timezone_list();
         
         if (!empty($activeReminders)) {
@@ -147,13 +141,15 @@ class Notification extends CI_Controller {
                 $timeZone = new DateTimeZone($validTimeZone);
                 $currentTime = $currentTime->setTimezone($timeZone);
 
-                 if ($reminder['reminder_type'] === 'once') {
-                    
-                     $rows =$this->common_model->select_where_table_rows('*', 'reminder_history', ['entity_id' => $reminder['id'], 'due_time' => $reminder['date_time']]);
-                     if($rows == 1){
-                         continue;
-                     }
-                 }
+                if ($reminder['reminder_type'] === 'once') {
+                    $rows = $this->common_model->select_where_table_rows('*', 'reminder_history', [
+                        'entity_id' => $reminder['id'],
+                        'due_time' => $reminder['date_time'],
+                    ]);
+                    if ($rows > 0) {
+                        continue;
+                    }
+                }
     
                 if ($reminder['reminder_type'] === 'repeat') {
                     $daysArray = json_decode($reminder['day_list'], true);
@@ -200,13 +196,9 @@ class Notification extends CI_Controller {
             'entity_id' => $id,
             'device_token' => $deviceToken
         ];
-    }
-    
+    } 
     
     public function push_notification($data){
-    //   echo "<pre>"; print_r($data);
-    //   return;
-
         $fields = [
             'to' => $data['device_token'],
             'data' => [
