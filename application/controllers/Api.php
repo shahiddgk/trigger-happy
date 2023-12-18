@@ -4771,5 +4771,90 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
+ 
+	// trellis share post function api
+	public function trellis_share_post() {
+		
+		$module_type = $_POST['module_type'];
+		$connection_id = $_POST['connection_id']; 
+
+		$data = [
+			'connection_id' => $connection_id,
+			'module' => $module_type,
+			];
+	
+			$insert_result = $this->common_model->insert_array('shared_module', $data);
+			
+			
+			if ($insert_result) {
+				$inserted_entries[] = $data;
+			}
+		
+	
+		if (!empty($inserted_entries)) {
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'responses' => $inserted_entries,
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$error_response = [
+				'status' => 400, 
+				'message' => 'Data insertion failed',
+			];
+			$this->set_response($error_response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	// trellis share read post api
+	public function share_trellis_read_post(){
+		$user_id = $_POST['user_id'];
+
+		if(!empty($user_id)){
+			$trellis['trellis'] = $this->common_model->select_where("id,name,name_desc,purpose", "trellis", array('user_id'=>$user_id))->result_array();
+			$trellis['tribe'] = $this->common_model->select_where("*", "tribe", array('user_id'=>$user_id))->result_array();
+			$trellis['ladder'] = $this->common_model->select_where("id, type, option1, option2, date, text, description", "ladder", array('user_id'=>$user_id))->result_array();
+			$trellis['identity'] = $this->common_model->select_where("*", "identity", array('user_id'=>$user_id))->result_array();
+			$trellis['principles'] = $this->common_model->select_where("*", "principles", array('user_id'=>$user_id))->result_array();
+
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'data' => $trellis
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	// user detail api
+	public function user_detail_post(){
+
+		$user_id = $_POST['user_id'];
+
+		if(!empty($user_id)){
+
+			$user_detail = $this->common_model->select_where("id, name, email, type","users",array('id'=>$user_id))->result_array();
+
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'data' => $user_detail
+			];
+			$this->set_response($response,REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'empty parameters'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
 	
 }
