@@ -4122,9 +4122,14 @@ class Api extends REST_Controller {
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
-		
-		$data = $this->common_model->select_where('options, text, response_id', 'answers', ['response_id' => $response_id, 'type' => 'naq'])->result_array();
-		
+
+		$data = $this->db
+				->select('answers.options,answers.text, answers.response_id, questions.title')
+				->join('questions', 'answers.question_id = questions.id') 
+				->where(['answers.response_id' => $response_id, 'answers.type' => 'naq'])
+				->get('answers')
+				->result_array();
+
 		if (empty($data)) {
 			$response = [
 				'status' => 400,
@@ -4151,7 +4156,13 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 		
-		$data = $this->common_model->select_where('options, text, response_id', 'answers', ['response_id' => $response_id, 'type' => 'pire'])->result_array();
+		
+		$data = $this->db
+				->select('answers.options,answers.text, answers.response_id, questions.title')
+				->join('questions', 'answers.question_id = questions.id') 
+				->where(['answers.response_id' => $response_id, 'answers.type' => 'pire'])
+				->get('answers')
+				->result_array();
 		
 		if (empty($data)) {
 			$response = [
@@ -4172,7 +4183,7 @@ class Api extends REST_Controller {
 		$user_id = $_POST['user_id'];
 		$type = $_POST['type'];
 
-		$data = $this->common_model->select_where_groupby('type, response_id', 'answers', ['user_id' => $user_id, 'type' => $type], 'response_id')->result_array();
+		$data = $this->common_model->select_where_groupby('type, response_id, created_at', 'answers', ['user_id' => $user_id, 'type' => $type], 'response_id')->result_array();
 
 		if (empty($data)) {
 			$response = [
@@ -4813,8 +4824,8 @@ class Api extends REST_Controller {
 
 		if(!empty($user_id)){
 			$trellis['trellis'] = $this->common_model->select_where("id,name,name_desc,purpose", "trellis", array('user_id'=>$user_id))->result_array();
-			$trellis['tribe'] = $this->common_model->select_where("*", "tribe", array('user_id'=>$user_id))->result_array();
-			$trellis['ladder'] = $this->common_model->select_where("id, type, option1, option2, date, text, description", "ladder", array('user_id'=>$user_id))->result_array();
+			$trellis['tribe'] = $this->common_model->select_where("*", "tribe_new", array('user_id'=>$user_id))->result_array();
+			$trellis['ladder'] = $this->common_model->select_where("id, type,favourite, option1, option2, date, text, description", "ladder", array('user_id'=>$user_id, 'favourite'=>'yes'))->result_array();
 			$trellis['identity'] = $this->common_model->select_where("*", "identity", array('user_id'=>$user_id))->result_array();
 			$trellis['principles'] = $this->common_model->select_where("*", "principles", array('user_id'=>$user_id))->result_array();
 
