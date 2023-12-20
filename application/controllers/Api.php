@@ -4825,7 +4825,7 @@ class Api extends REST_Controller {
 		if(!empty($user_id)){
 			$trellis['trellis'] = $this->common_model->select_where("id,name,name_desc,purpose", "trellis", array('user_id'=>$user_id))->result_array();
 			$trellis['tribe'] = $this->common_model->select_where("*", "tribe_new", array('user_id'=>$user_id))->result_array();
-			$trellis['ladder'] = $this->common_model->select_where("id, type,favourite, option1, option2, date, text, description", "ladder", array('user_id'=>$user_id, 'favourite'=>'yes'))->result_array();
+            $trellis['ladder'] = $this->common_model->select_where("id, type,favourite, option1, option2, date, text, description", "ladder", array('user_id' => $user_id, 'favourite' => 'yes'))->result_array();
 			$trellis['identity'] = $this->common_model->select_where("*", "identity", array('user_id'=>$user_id))->result_array();
 			$trellis['principles'] = $this->common_model->select_where("*", "principles", array('user_id'=>$user_id))->result_array();
 
