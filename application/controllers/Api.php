@@ -4784,7 +4784,7 @@ class Api extends REST_Controller {
 	}
  
 	// trellis share post function api
-	public function trellis_share_post() {
+	public function trellis_share_insert_post() {
 		
 		$module_type = $_POST['module_type'];
 		$connection_id = $_POST['connection_id']; 
@@ -4866,6 +4866,101 @@ class Api extends REST_Controller {
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
+	}
+	
+	// all module share api
+	public function app_share_insert_post() {
+		
+		$module_type = $_POST['module_type'];
+		$connection_id = $_POST['connection_id']; 
+
+
+		$data = [
+			'connection_id' => $connection_id,
+			'module' => $module_type,
+		];
+	
+			$insert_result = $this->common_model->insert_array('shared_module', $data);
+						
+			if ($insert_result) {
+				$inserted_entries[] = $data;
+			}
+		
+	
+		if (!empty($inserted_entries)) {
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'responses' => $inserted_entries,
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$error_response = [
+				'status' => 400, 
+				'message' => 'Data insertion failed',
+			];
+			$this->set_response($error_response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
+
+	// paid share response
+	public function paid_share_response_post() {
+
+   	 $sender_id = $_POST['sender_id'];
+
+   	 $share_response = $this->common_model->select_where('*', 'share_response', array('sender_id' => $sender_id, 'paid' => 'true' ))->result_array();
+
+   	 if (empty($share_response)) {
+        $response = [
+            'status' => 200,
+            'data' => [], 
+        ];
+    	} else {
+        $response = [
+            'status' => 200,
+            'data' => [],
+        ];
+
+        foreach ($share_response as $response_data) {
+            $sender_id = $response_data['sender_id'];
+            $receiver_id = $response_data['receiver_id'];
+
+            $sender_data = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
+            $receiver_data = $this->common_model->select_where('*', 'users', ['id' => $receiver_id])->row_array();
+
+
+            $response_info = [
+                'id' => $response['id'],
+				'sender_id' => $sender_id,
+				'receiver_id' => $receiver_id,
+				'type' => $response_data['type'] ,
+				'connection_id' => $response_data['connection_id'] ,
+            ];
+
+            $first_user_detail = [
+                'id' => $sender_data['id'],
+                'name' => $sender_data['name'],
+                'email' => $sender_data['email'],
+                'image' => base_url()."uploads/app_users/" . $sender_data['image'],
+            ];
+
+            $second_user_detail = [
+                'id' => $receiver_data['id'],
+                'name' => $receiver_data['name'],
+                'email' => $receiver_data['email'],
+                'image' => base_url()."uploads/app_users/" . $receiver_data['image'],
+            ];
+
+            $combined_data = [
+                'response_info' =>  $response_info,
+                'first_user_detail' => $first_user_detail,
+                'second_user_detail' => $second_user_detail,
+            ];
+            $response['data'][] = $combined_data;
+        }
+   	 }
+
+   	 	$this->set_response($response, REST_Controller::HTTP_OK);
 	}
 	
 }
