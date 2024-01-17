@@ -66,6 +66,23 @@ class Common_model extends  CI_Model {
 		$this->db->group_by($groupby);
 		return $this->db->get();
 	}
+
+	function select_where_groupby_join($select, $table, $where, $groupby, $join_table = null, $join_condition = null, $join_type = 'left')
+{   
+    $this->db->select($select);
+    $this->db->from($table);
+
+    // Join if join_table and join_condition are provided
+    if ($join_table && $join_condition) {
+        $this->db->join($join_table, $join_condition, $join_type);
+    }
+
+    $this->db->where($where);
+    $this->db->group_by($groupby);
+
+    return $this->db->get();
+}
+
 	
 	function select_single_field($select,$table,$where)
 	{

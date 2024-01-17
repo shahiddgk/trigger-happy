@@ -70,13 +70,13 @@ class Api extends REST_Controller {
 				$insert_id = $this->db->insert_id();
 			if($result){
 				
-				$invitations = $this->common_model->select_where("*", "sage_invitations", array('receiver_email' => $email))->result_array();
+				$invitations = $this->common_model->select_where("*", "sage_invitations", array('approver_email' => $email))->result_array();
 				if (!empty($invitations)) {
 					foreach ($invitations as $invitation) {
 						$connectionData = [
-							'sender_id' => $invitation['sender_id'],
-							'receiver_id' => $insert_id,
-							'role' => $invitation['receiver_role'],
+							'requester_id' => $invitation['requester_id'],
+							'approver_id' => $insert_id,
+							'role' => $invitation['approver_role'],
 						];
 						$this->common_model->insert_array('connection', $connectionData);
 					}
@@ -98,64 +98,79 @@ class Api extends REST_Controller {
 			}
 		}
 	}
-
-	public function update_profile_post(){
-		$user_id	=	$_POST['user_id'];
-		$result = $this->common_model->select_where("*", "users", array('id'=>$user_id , 'type'=>'user'))->result_array();
-		if($result){
+	public function update_profile_post() {
+		$user_id = $_POST['user_id'];
+		$result = $this->common_model->select_where("*", "users", array('id' => $user_id))->result_array();
+	
+		if ($result) {
 			$update = array();
-			if(!empty($_POST['name'])){
+	
+			if (!empty($_POST['name'])) {
 				$update['name'] = $_POST['name'];
-			}if(!empty($_POST['email'])){
+			}
+	
+			if (!empty($_POST['email'])) {
 				$update['email'] = $_POST['email'];
-			}if(!empty($_POST['time_zone'])){
+			}
+	
+			if (!empty($_POST['time_zone'])) {
 				$update['time_zone'] = $_POST['time_zone'];
-			}if(!empty($_POST['device_token'])){
+			}
+	
+			if (!empty($_POST['device_token'])) {
 				$update['device_token'] = $_POST['device_token'];
-			}if (isset($_FILES['profile_img']) && !empty($_FILES['profile_img'])) {
+			}
+	
+			if (isset($_FILES['profile_img']) && !empty($_FILES['profile_img'])) {
 				$temp = $_FILES['profile_img']['tmp_name'];
-			
 				$image_filename = $user_id . '.png';
 				$path = './uploads/app_users/' . $image_filename;
-			
+	
 				if (isset($result[0]['image'])) {
 					$old_image_path = './uploads/app_users/' . $result[0]['image'];
-					if (file_exists($old_image_path) && is_file($old_image_path)) {
+	
+					if ($result[0]['image'] != 'default.png' && file_exists($old_image_path) && is_file($old_image_path)) {
 						unlink($old_image_path);
 					}
 				}
+	
 				move_uploaded_file($temp, $path);
 				$update['image'] = $image_filename;
-				$img_url = base_url(). 'uploads/app_users/' . $image_filename;
-			}else{
-				$update['image'] = 'default.png';
-				$img_url = base_url(). 'uploads/app_users/default.png';
+				$img_url = base_url() . 'uploads/app_users/' . $image_filename;
 			}
+	
+			if (empty($update) || (count($update) === 1 && isset($update['image']))) {
+				$update['image'] = 'default.png';
+				$img_url = base_url() . 'uploads/app_users/default.png';
+			}
+	
 			if (!empty($update)) {
 				$this->common_model->update_array(array('id' => $user_id), 'users', $update);
 			}
 	
+			$img_url = isset($img_url) ? $img_url : base_url() . 'uploads/app_users/default.png';
+	
 			$response = [
 				'status' => 200,
 				'image_url' => $img_url,
-				'message' => 'Profile updated successfully'
+				'message' => 'Profile is updated successfully.'
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
-		}else{
+		} else {
 			$response = [
 				'status' => 200,
-				'message' => 'User not found'
+				'message' => 'User details are not found.'
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
 	}
-
+	
    	public function login_post(){
 
 		$email	=	$_POST['email'];
 		$password	=	$_POST['password'];
 			
-		$data['login'] = $this->common_model->select_where("*","users", array('email'=>$email,'password'=>sha1($password), 'type'=>'user'));
+		$data['login'] = $this->common_model->select_where("*","users", array('email'=>$email,'password'=>sha1($password), 'type'=>'user', 'status' => 'active'));
 		
 		if($data['login']->num_rows()>0){
 			$row = $data['login']->row_array();
@@ -286,15 +301,12 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		} 
 	}
-
 	public function social_login_post(){
-
 		$name	    =	$_POST['name'];
 		$email	    =	$_POST['email'];
 		$auth_id	=	$_POST['auth_id'];
 		$time_zone	=	$_POST['time_zone'];
 		$device_token	=	$_POST['device_token'];
-
 		if(!empty($auth_id)){
 			$result = $this->common_model->select_where("*", "users", array('email'=>$email, 'type'=>'user'));
 			if($result->num_rows()>0){
@@ -580,7 +592,7 @@ class Api extends REST_Controller {
 		$user_id = $_POST['user_id'];
 		$response_id = random_string('numeric', 8);
 	
-		$data['login'] = $this->common_model->select_where("*", "users", array('id' => $user_id, 'type' => 'user'));
+		$data['login'] = $this->common_model->select_where("*", "users", array('id' => $user_id));
 	
 		if ($data['login']->num_rows() > 0) {
 			$user_data = $data['login']->row_array();
@@ -938,67 +950,58 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
+public function delete_user_get(){
+    $user_id = $_GET['user_id'];
 
-	public function delete_user_get()
-	{
-		// "DELETE u, ul, gs, lh, s, sc, r
-		// FROM users AS u
-		// LEFT JOIN user_levels AS ul ON u.id = ul.user_id
-		// LEFT JOIN garden_seeds AS gs ON u.id = gs.user_id
-		// LEFT JOIN level_history AS lh ON u.id = lh.user_id
-		// LEFT JOIN seeds AS s ON u.id = s.user_id
-		// LEFT JOIN scores AS sc ON u.id = sc.user_id
-		// LEFT JOIN other_related_table AS r ON u.id = r.user_id
-		// WHERE u.id = <user_id>";
+    if (!empty($user_id)) {
+        // Update the status column to 'inactive'
+        $data = array('status' => 'inactive');
+        $this->db->where('id', $user_id);
+        $this->db->update('users', $data);
 
-		$user_id = $_GET['user_id'];
-		if(!empty($user_id)){
-			$this->db->delete('users', array('id'=>$user_id));
-			if($this->db->affected_rows()> 0){
-				$response = [
-					'status' => 200,
-					'message' => 'user deleted successfully'
-				];
-				$this->set_response($response, REST_Controller::HTTP_OK);
-			}else{
-				$response = [
-					'status' => 400,
-					'message' => 'user not found'
-				];
-				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-			}
-		}else{
-			$response = [
-				'status' => 400,
-				'message' => 'empty parameters'
-			];
-			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-		}
-    
-	}
+        if ($this->db->affected_rows() > 0) {
+            $response = [
+                'status' => 200,
+                'message' => 'Your account has been deleted successfully.'
+            ];
+            $this->set_response($response, REST_Controller::HTTP_OK);
+        } else {
+            $response = [
+                'status' => 400,
+                'message' => 'User details are not found.'
+            ];
+            $this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+        }
+    } else {
+        $response = [
+            'status' => 400,
+            'message' => 'Empty parameters.'
+        ];
+        $this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+    }
+}
 
-	public function delete_user_post()
-	{
+	public function delete_user_post(){
 		$user_id = $_POST['user_id'];
 		if(!empty($user_id)){
 			$this->db->delete('users', array('id'=>$user_id));
 			if($this->db->affected_rows()> 0){
 				$response = [
 					'status' => 200,
-					'message' => 'user deleted successfully'
+					'message' => 'User is deleted successfully.'
 				];
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			}else{
 				$response = [
 					'status' => 400,
-					'message' => 'user not found'
+					'message' => 'User details are not found.'
 				];
 				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 			}
 		}else{
 			$response = [
 				'status' => 400,
-				'message' => 'empty parameters'
+				'message' => 'Empty parameters.'
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
@@ -1284,7 +1287,6 @@ class Api extends REST_Controller {
  
   
 	}
-
 	// Trellis API's Start
 	public function ladder_post(){
 		$user_id = $_POST['user_id'];
@@ -1296,7 +1298,7 @@ class Api extends REST_Controller {
 		$level = $current_garden['level'];
 		$seed = $current_garden['seed'];
 
-		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id, 'type'=>'user'));
+		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id));
 		
 		if($data['login']->num_rows()>0) {
 			$user_data = $data['login']->row_array();
@@ -1372,14 +1374,15 @@ class Api extends REST_Controller {
 		else{
 			$response = [
 				'status' => 400,
-				'message' => 'no user found'
+				'message' => 'User details are not found.'
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		} 
 	}
 
+
 	public function ladder_update_post() {
-		$id = $_POST['id']; 
+		$id = $_POST['user_id']; 
 		$response_id = random_string('numeric', 8);
 
 		$ladder_entry = $this->common_model->select_where("*", "ladder", array('id' => $id))->row_array();
@@ -1499,7 +1502,7 @@ class Api extends REST_Controller {
 	public function tribe_post(){
 		$user_id = $_POST['user_id'];
 
-		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id, 'type'=>'user'));
+		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id));
 		
 		if($data['login']->num_rows()>0) {
 			$user_data = $data['login']->row_array();
@@ -1577,7 +1580,7 @@ class Api extends REST_Controller {
 	public function principles_post(){
 		$user_id = $_POST['user_id'];
 
-		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id, 'type'=>'user'));
+		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id));
 		
 		if($data['login']->num_rows()>0) {
 			$user_data = $data['login']->row_array();
@@ -1658,7 +1661,7 @@ class Api extends REST_Controller {
 	public function identity_post(){
 		$user_id = $_POST['user_id'];
 
-		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id, 'type'=>'user'));
+		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id));
 		
 		if($data['login']->num_rows()>0) {
 			$user_data = $data['login']->row_array();
@@ -2415,7 +2418,7 @@ class Api extends REST_Controller {
 	public function new_tribe_insert_post(){
 		$user_id = $_POST['user_id'];
 
-		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id, 'type'=>'user'));
+		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id));
 		
 		if($data['login']->num_rows()>0) {
 			$user_data = $data['login']->row_array();
@@ -2572,9 +2575,13 @@ class Api extends REST_Controller {
 		if(!empty($response_id)){
 			$result = $this->common_model->join_tab_where_left("q.id, a.user_id, a.type, q.title as question, a.options, a.text, a.created_at",'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id'=>$response_id), 'q.id', 'ASC')->result_array();
 
+			$score = $this->common_model->select_where('*', 'naq_scores', ['response_id' => $response_id])->row_array();
+			$score = $score['score'];
+
 			$response = [
 				'status' => 200,
 				'message' => 'success',
+				'score' => $score,
 				'data' => $result
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
@@ -2724,7 +2731,7 @@ class Api extends REST_Controller {
 
 	public function read_reminder_post(){
 		$user_id = $_POST['user_id'];
-		$result = $this->common_model->select_where("*", "reminders", array('user_id'=>$user_id))->result_array();
+		$result = $this->common_model->select_where("*", "reminders", array('user_id' => $user_id, 'orignal_id' => 0))->result_array();
 		if($result){
 			foreach ($result as $key => $value) {
 				$date_time = $value['date_time'];
@@ -2867,7 +2874,7 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
-	 
+
 	public function update_reminder_status_post() {
 		$entity_id = isset($_POST['entity_id']) ? $_POST['entity_id'] : null;
 	
@@ -2915,149 +2922,66 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
-
-	// public function snooze_reminder_post() {
-		
-	// 	if (isset($_POST['entity_id']) && !empty($_POST['entity_id'])) {
-	// 		$entity_id = $_POST['entity_id'];
 	
-	// 		$this->common_model->update_array(array('id' => $entity_id), "reminders", array('snooze' => 'yes', 'updated_at' => date('Y-m-d H:i:s')));
-	// 		$existing_data = $this->common_model->select_where('id, user_id, snooze, date_time, created_at', 'reminders', array('snooze' => 'yes', 'updated_at' => date('Y-m-d H:i:s')));
-	// 		if($existing_data){
-	// 			$data = array(
-	// 				'entity_id' => $existing_data['id'],
-	// 				'user_id' => $existing_data['user_id'], 
-	// 				'snooze' => $existing_data['snooze'], 
-	// 				'date_time' => $existing_data['date_time'], 
-	// 				'created_at' => $existing_data['created_at'],
-	// 			);
-	// 			$this->common_model->insert_array("snooze_reminder", $data);
-	// 		}
-
-			
-	// 		if($this->db->affected_rows() > 0){
-	// 			$response = [
-	// 				'status' => 200,
-	// 				'message' => 'Reminder updated successfully.'
-	// 			];
-	// 			$this->set_response($response, REST_Controller::HTTP_OK);
-	// 		}else{
-	// 			$response = [
-	// 				'status' => 400,
-	// 				'message' => 'Reminder is not updated.'
-	// 			];
-	// 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-	// 		}
-	// 	} else {
-	// 		$response = [
-	// 			'status' => 400,
-	// 			'message' => 'Empty parameters.'
-	// 		];
-	// 		$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-	// 	}
-	// }
-	// public function snooze_reminder_post() {
-	// 	if (isset($_POST['entity_id']) && !empty($_POST['entity_id'])) {
-	// 		$entity_id = $_POST['entity_id'];
-	
-	// 		// Update the reminders table
-	// 		$this->common_model->update_array(array('id' => $entity_id), "reminders", array('snooze' => 'yes', 'updated_at' => date('Y-m-d H:i:s')));
-	
-	// 		// Fetch the existing data from the reminders table
-	// 		$existing_data = $this->common_model->select_where('id, user_id, snooze, date_time, created_at', 'reminders', array('id' => $entity_id))->row_array();
-	
-	// 		if ($existing_data) {
-	// 			// Insert data into the snooze_reminder table
-	// 			$data = array(
-	// 				'entity_id' => $existing_data['id'],
-	// 				'user_id' => $existing_data['user_id'], 
-	// 				'snooze' => $existing_data['snooze'], 
-	// 				'date_time' => $existing_data['date_time'], 
-	// 				'created_at' => $existing_data['created_at'],
-	// 			);
-	
-	// 			$this->common_model->insert_array("snooze_reminder", $data);
-	
-	// 			if ($this->db->affected_rows() > 0) {
-	// 				$response = [
-	// 					'status' => 200,
-	// 					'message' => 'Reminder updated successfully, and snooze data inserted.'
-	// 				];
-	// 				$this->set_response($response, REST_Controller::HTTP_OK);
-	// 			} else {
-	// 				$response = [
-	// 					'status' => 400,
-	// 					'message' => 'Reminder is not updated.'
-	// 				];
-	// 				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-	// 			}
-	// 		} else {
-	// 			$response = [
-	// 				'status' => 404,
-	// 				'message' => 'Reminder not found.'
-	// 			];
-	// 			$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
-	// 		}
-	// 	} else {
-	// 		$response = [
-	// 			'status' => 400,
-	// 			'message' => 'Empty parameters.'
-	// 		];
-	// 		$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-	// 	}
-	// }
 	public function snooze_reminder_post() {
-		if (isset($_POST['entity_id']) && !empty($_POST['entity_id'])) {
-			$entity_id = $_POST['entity_id'];
-	
-			// Update the reminders table
-			$this->common_model->update_array(array('id' => $entity_id), "reminders", array('snooze' => 'yes', 'updated_at' => date('Y-m-d H:i:s')));
-	
-			// Fetch the existing data from the reminders table
-			$existing_data = $this->common_model->select_where('id, user_id, snooze, date_time, created_at', 'reminders', array('id' => $entity_id))->row_array();
-	
-			if ($existing_data) {
-				// Add 15 minutes to the 'date_time'
-				$new_date_time = date('Y-m-d H:i:s', strtotime($existing_data['date_time'] . ' +15 minutes'));
-				// Insert data into the snooze_reminder table
-				$data = array(
-					'entity_id' => $existing_data['id'],
-					'user_id' => $existing_data['user_id'], 
-					'snooze' => $existing_data['snooze'], 
-					'date_time' => date('Y-m-d H:i:s', strtotime($new_date_time)), // Extract time from new_date_time
-					'created_at' => $existing_data['created_at'],
-				);
-	
-				$this->common_model->insert_array("snooze_reminder", $data);
-	
-				if ($this->db->affected_rows() > 0) {
-					$response = [
-						'status' => 200,
-						'message' => 'Reminder updated successfully.'
-					];
-					$this->set_response($response, REST_Controller::HTTP_OK);
-				} else {
-					$response = [
-						'status' => 400,
-						'message' => 'Reminder is not updated.'
-					];
-					$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-				}
-			} else {
-				$response = [
-					'status' => 404,
-					'message' => 'Reminder not found.'
-				];
-				$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
-			}
-		} else {
+        $entity_id = $_POST['entity_id'];
+		$update_id = $_POST['update_id'];
+
+		$this->common_model->update_array(array('id' => $update_id), "reminder_history", array('reminder_stop' => 'no'));
+		
+        $reminder = $this->common_model->select_where("*", "reminders", array('id' => $entity_id))->row_array();
+		if (empty($reminder)) {
 			$response = [
-				'status' => 400,
-				'message' => 'Empty parameters.'
+				'status' => 404,
+				'message' => 'Reminder not found.'
 			];
-			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
+			return;
 		}
-	}
+		
+		$user_id = $reminder['user_id'];
+		$userTt = $this->common_model->select_where("time_zone", "users", array('id' => $user_id))->row_array();
+		$userTimeZone = $userTimeZone = $userTt['time_zone'];
+
+		$firstIndex = $userTimeZone;
+		$secondIndex = $this->getTimeZoneSecondIndex($firstIndex);
+		
+		date_default_timezone_set($secondIndex);
+		 
+		$currentTime = new DateTime('now');
+		$roundedTime = ceil($currentTime->format('i') / 15) * 15;
+		$currentTime->setTime($currentTime->format('H'), $roundedTime);
+		
+		$adjustedDueTimeFormatted = $currentTime->format('Y-m-d H:i:s');
+		
+
+		$snooze_reminder = [
+			'user_id' => $reminder['user_id'],
+			'text' => $reminder['text'],
+			'day_list' => $reminder['day_list'],
+			'status' => $reminder['status'],
+			'reminder_stop' => $reminder['reminder_stop'],
+			'reminder_type' => $reminder['reminder_type'],
+			'end_date' => $reminder['end_date'],
+			'orignal_id' => '1',
+			'date_time' => $adjustedDueTimeFormatted
+		];
+		$update = $this->db->insert('reminders', $snooze_reminder);
+	
+        if ($update) {
+            $response = [
+                'status' => 200,
+                'message' => 'Reminder snoozed successfully.'
+            ];
+            $this->set_response($response, REST_Controller::HTTP_OK);
+        } else {
+            $response = [
+                'status' => 400,
+                'message' => 'Reminder is not snoozed.'
+            ];
+            $this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+        }
+    }
 
 	public function reminder_stop_post() {
 	
@@ -3066,7 +2990,6 @@ class Api extends REST_Controller {
 
 		$this->db->where('id', $entity_id);
 		$updated =  $this->db->update('reminder_history', ['reminder_stop' => $reminder_stop]);
-
 		if($updated){
 			$response = [
 				'status' => 200,
@@ -3081,33 +3004,39 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
-	
 	public function waitings_reminders_post() {
-		if (isset($_POST['user_id']) && !empty($_POST['user_id'])) {
+		if (!empty($_POST['user_id'])) {
 			$user_id = $_POST['user_id'];
 	
 			$skipped_reminders = $this->db
 				->select('reminder_history.*, reminders.text, DATE(reminder_history.created_at) as created_date')
-				->join('reminders', 'reminder_history.entity_id = reminders.id') 
+				->join('reminders', 'reminder_history.entity_id = reminders.id')
 				->where(['reminder_history.user_id' => $user_id, 'reminder_history.reminder_stop' => 'waiting'])
 				->get('reminder_history')
 				->result_array();
-
-			foreach ($skipped_reminders as &$reminder) {
+	
+			$waiting_reminders = $this->db
+				->select('snooze_reminder.*, reminders.text, DATE(snooze_reminder.created_at) as created_date')
+				->join('reminders', 'snooze_reminder.entity_id = reminders.id')
+				->where(['snooze_reminder.user_id' => $user_id, 'snooze_reminder.snooze' => 'waiting'])
+				->get('snooze_reminder')
+				->result_array();
+	
+			// Merge the two arrays
+			$all_reminders = array_merge($skipped_reminders, $waiting_reminders);
+	
+			foreach ($all_reminders as &$reminder) {
 				$due_time = $reminder['due_time'];
 				$created_date = $reminder['created_date'];
 				$reminder['date_time'] = $created_date . ' ' . $due_time;
 			}
-
+	
 			$response = [
 				'status' => REST_Controller::HTTP_OK,
-				'result' => $skipped_reminders
+				'result' => $all_reminders
 			];
-
-		
-
 	
-			if (!empty($skipped_reminders)) {
+			if (!empty($all_reminders)) {
 				$response['message'] = 'Due reminders found';
 			} else {
 				$response['message'] = 'No due reminders found';
@@ -3122,7 +3051,7 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
-
+	
 	public function garden_levels_get(){
 	
 		$garden_levels = $this->common_model->select_where("*" , 'garden_levels', array('status' => 'active'))->result_array();
@@ -3175,8 +3104,7 @@ class Api extends REST_Controller {
 		}
 	}
 
-	public function level_switch_post()
-	{
+	public function level_switch_post(){
 		if (isset($_POST['user_id']) && isset($_POST['level']) && isset($_POST['seed']) && $_POST['level'] != 0 &&  $_POST['seed'] != 0) {
 				
 			$user_id = $_POST['user_id'];
@@ -3364,7 +3292,7 @@ class Api extends REST_Controller {
 
 	public function search_user_post() {
 		$name = isset($_POST['name']) ? $_POST['name'] : '';
-		$sender_id = $_POST['sender_id'];
+		$requester_id = $_POST['requester_id'];
 
 		
 		if (empty($name)) {
@@ -3383,7 +3311,7 @@ class Api extends REST_Controller {
 			foreach ($results as $user) {
 				$user['image_url'] = isset($user['image']) ? base_url('uploads/app_users/') . $user['image'] : $defaultImagePath;
 		
-				$connection_query = $this->common_model->select_where('*', 'connection', ['sender_id' => $sender_id, 'receiver_id' => $user['id']]);
+				$connection_query = $this->common_model->select_where('*', 'connection', ['requester_id' => $requester_id, 'approver_id' => $user['id']]);
 		
 				if ($connection_query->num_rows() > 0) {
 					$connection_data = $connection_query->row_array();
@@ -3418,13 +3346,13 @@ class Api extends REST_Controller {
 	}
 	
 	public function connection_request_post() {
-		$sender_id = $_POST['sender_id'];
-		$receiver_email = $_POST['receiver_email'];
-		$receiver_role = $_POST['role']; 
-
-		$sender = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
-	
-		if (empty($sender)) {
+		
+		$requester_id = $_POST['requester_id'];
+		$approver_email = $_POST['approver_email'];
+		$approver_role = $_POST['role']; 
+		$requester = $this->common_model->select_where('*', 'users', ['id' => $requester_id])->row_array();
+		
+		if (empty($requester)) {
 			$response = [
 				'status' => 404,
 				'message' => 'Sender not found.',
@@ -3433,30 +3361,34 @@ class Api extends REST_Controller {
 			return;
 		}
 	
-		$receiver = $this->common_model->select_where('*', 'users', ['email' => $receiver_email])->row_array();
-	
-		if (empty($receiver)) {
+		$approver = $this->common_model->select_where('*', 'users', ['email' => $approver_email])->row_array();
+		// print_r("kddkdkk");exit;
+		
+		if (empty($approver)) {
 			$url = base_url();
-	
-			$message = "<p>Hi " . $receiver_email . ",</p>";
-			$message .= "<p>" . $sender['name'] . " has sent you the invitation for " . $receiver_role . "</p>";
+			$message = "<p>Hi " . $approver_email . ",</p>";
+			
+			$message .= "<p>" . $requester['name'] . " has sent you the invitation for " . $approver_role . "</p>";
+		
 			$message .= "<p>If you are interested, please click on the link below</p>";
 			$message .= "<p><a href='" . $url . "'>Invitation Link</a></p>";
-	
+			
 			$this->email->set_newline("\r\n");
 			$this->email->set_mailtype('html');
 			$this->email->from($this->smtp_user, 'Burgeon');
-			$this->email->to($receiver_email);
+			$this->email->to($approver_email);
 			$this->email->subject('Burgeon Invitation');
 			$this->email->message($message);
-	
-			if ($this->email->send()) {
-                  
+
+			if ($this->email->send()) {	
 				$data_array = [
-					'sender_id' => $sender_id,
-					'receiver_email' => $receiver_email,
-					'receiver_role' => $receiver_role,
+					'requester_id' => $requester_id,
+					'approver_email' => $approver_email,
+					'approver_role' => $approver_role,
 				];
+			
+			
+		
 				 
 				$this->common_model->insert_array('sage_invitations', $data_array);
 
@@ -3476,95 +3408,102 @@ class Api extends REST_Controller {
 			}
 			return;
 		}
-	
+
 		$existing_notification = $this->common_model->select_where('*', 'connection', [
-			'receiver_id' => $receiver['id'],
-			'sender_id' => $sender_id,
-			'role' => $receiver_role,
+			'approver_id' => $approver['id'],
+			'requester_id' => $requester_id,
+			'role' => $approver_role,
 		])->row_array();
-	
-		if (empty($existing_notification)) {
+
+		if(empty($existing_notification)) {
+		
 			$notification_data = [
-				'sender_id' => $sender_id,
-				'receiver_id' => $receiver['id'],
-				'role' => $receiver_role,
-				'message' => $sender['name'] . ' has sent you the invitation for ' . $receiver_role,
+				'requester_id' => $requester_id,
+				'approver_id' => $approver['id'],
+				'role' => $approver_role,
+				'message' => $requester['name'] . ' has sent you the invitation for ' . $approver_role,
 			];
-	
+			// print_r("anz==aaajfdd");exit;
 			$this->common_model->insert_array('connection', $notification_data);
 			$get_id = $this->common_model->select_where('id', 'connection', [
-				'sender_id' => $sender_id,
-				'receiver_id' => $receiver['id'],
-				'role' => $receiver_role,
-			])->row_array(); 
-			$this->firestore->addData($receiver['id'] , 'con_request');
+				'requester_id' => $requester_id,
+				'approver_id' => $approver['id'],
+				'role' => $approver_role,
+				])->row_array(); 
+				
+				
+				$this->firestore->addData($approver['id'] , 'con_request');
+				$data_array = [
+					'approver_name' => $approver['name'],
+					'receiver_role' => $approver_role,
+					'requester_name' => $requester['name'],
+					'approver_id' => $approver['id'],
+					'requester_id' => $requester_id
+				];
+				
+				$data_json = json_encode($data_array);
 
-			$data_array = [
-				'receiver_name' => $receiver['name'],
-				'receiver_role' => $receiver_role,
-				'sender_name' => $sender['name'],
-				'receiver_id' => $receiver['id'],
-				'sender_id' => $sender_id
-			];
-	
-			$data_json = json_encode($data_array);
-			$data_encoded = urlencode($data_json);
-			$url = base_url() . "welcome/invitation_email?data=" . $data_encoded;
-	
-			$message = "<p>Hi " . $receiver['name'] . ",</p>";
-			$message .= "<p>" . $sender['name'] . " has sent you the invitation for " . $receiver_role . "</p>";
-			$message .= "<p>Click the link below to accept or reject the invitation</p>";
-			$message .= "<p><a href='" . $url . "'>Invitation Link</a></p>";
-	
-			$this->email->set_newline("\r\n");
-			$this->email->set_mailtype('html');
-			$this->email->from($this->smtp_user, 'Burgeon');
-			$this->email->to($receiver_email);
-			$this->email->subject('Burgeon Invitation');
-			$this->email->message($message);
-	
-			if ($this->email->send()) {
-               
-				if (isset($_POST['module'])) {
+				$data_encoded = urlencode($data_json);
+				$url = base_url() . "welcome/invitation_email?data=" . $data_encoded;
+				
+				$message = "<p>Hi " . $approver['name'] . ",</p>"; 
+				$message .= "<p>" . $requester['name'] . " has sent you the invitation for " . $approver_role . "</p>";
+				$message .= "<p>Click the link below to accept or reject the invitation</p>";
+				$message .= "<p><a href='" . $url . "'>Invitation Link</a></p>";
+				
+				$this->email->set_newline("\r\n");
+				$this->email->set_mailtype('html');
+				$this->email->from($this->smtp_user, 'Burgeon');
+				$this->email->to($approver_email);
+				$this->email->subject('Burgeon Invitation');
+				$this->email->message($message);
+				if($this->email->send()){
+					if (isset($_POST['module'])) {
 					$modules = explode(',', $_POST['module']);
-		
 					foreach ($modules as $module) {
-						$shared_module = [
+						$module_request = [
+							'requester_id' => $requester_id,
+							'approver_id'  => $approver['id'],
 							'connection_id' => $get_id['id'],
 							'module' => trim($module),
+							'permission' => 'accept'
 						];
-		
-						$this->common_model->insert_array('shared_module', $shared_module);
+					
+						
+						// $this->common_model->insert_array('shared_module', $shared_module);
+						$this->common_model->insert_array('module_requested', $module_request);
 					}
 				}
 
-				$module = $this->common_model->select_where('*', 'shared_module', ['connection_id' => $get_id['id']])->result_array();
-
-				$module_values = array_column($module, 'module');
+				$requested_module = $this->common_model->select_where('*', 'module_requested', ['connection_id' => $get_id['id']])->result_array();
+				// print_r($requested_module);exit;
+				$module_values = array_column($requested_module, 'module');
 				$defaultImagePath = base_url('uploads/app_users/default.png');
 				$connection_data = [
-					'id' => $receiver['id'],
-					'sender_id' => $sender_id,
+					'connectionid' => $approver['id'],
+					'requester_id' => $requester_id,
 					'accept' => 'no',
-					'receiver_id' => $receiver['id'],
-					'role' => $receiver_role,
-					'modules' => implode(',', $module_values),
-					'message' => $sender['name'] . ' has sent you the invitation for ' . $receiver_role,
-					'sender_name' => $sender['name'],
-					'receiver_name' => $receiver['name'],
+					'approver_id' => $approver['id'],
+					'role' => $approver_role,
+					'sharing_modules' => implode(',', $module_values),
+					'accepted_modules' => "",
+					'message' => $requester['name'] . ' has sent you the invitation for ' . $approver_role,
+					'requester_name' => $requester['name'],
+					'approver_name' => $approver['name'],
 
 				];
+				
 				$first_user_detail = [
-					'id' => $sender['id'],
-					'name' => $sender['name'],
-					'email' => $sender['email'],
-					'image' => isset($sender['image']) ? base_url('uploads/app_users/') . $sender['image'] : $defaultImagePath,
+					'id' => $requester['id'],
+					'name' => $requester['name'],
+					'email' => $requester['email'],
+					'image' => isset($requester['image']) ? base_url('uploads/app_users/') . $requester['image'] : $defaultImagePath,
 				];
 				$second_user_detail = [
-					'id' => $receiver['id'],
-					'name' => $receiver['name'],
-					'email' => $receiver['email'],
-					'image' => isset($receiver['image']) ? base_url('uploads/app_users/') . $receiver['image'] : $defaultImagePath,
+					'id' => $approver['id'],
+					'name' => $approver['name'],
+					'email' => $approver['email'],
+					'image' => isset($approver['image']) ? base_url('uploads/app_users/') . $approver['image'] : $defaultImagePath,
 				];
 				$response = [
 					'status' => 200,
@@ -3574,12 +3513,14 @@ class Api extends REST_Controller {
 						'second_user_detail' => $second_user_detail,
 					],
 				];
-			} else {
+			}
+		 	else {
 				$response = [
 					'status' => 500,
 					'message' => 'Failed to send invitation email',
 				];
 			}
+			
 		} else {
 			$response = [
 				'status' => 400,
@@ -3592,15 +3533,15 @@ class Api extends REST_Controller {
 	}
 
 	public function accept_invite_get() {
-		$receiver_id = $this->input->get('receiver_id');
-		$sender_id = $this->input->get('sender_id');
-		$receiver_role = $this->input->get('receiver_role');
+		$approver_id = $this->input->get('approver_id');
+		$requester_id = $this->input->get('requester_id');
+		$approver_role = $this->input->get('approver_role');
 		
 		$update_data = ['accept' => 'yes'];
 	
 		$conditions = [
-			'receiver_id' => $receiver_id,
-			'sender_id' => $sender_id,
+			'approver_id' => $approver_id,
+			'requester_id' => $requester_id,
 		];
 	
 		$tribe_new = $this->common_model->select_where("*", "connection", $conditions)->row_array();
@@ -3614,24 +3555,24 @@ class Api extends REST_Controller {
 	}
 	
 	public function reject_invite_get() {
-		$sender_id = $_GET['sender_id'];
-		$receiver_id = $_GET['receiver_id'];
+		$requester_id = $_GET['requester_id'];
+		$approver_id = $_GET['approver_id'];
 
-		$this->db->where(['sender_id' => $sender_id, 'receiver_id' => $receiver_id])->delete('connection');
+		$this->db->where(['requester_id' => $requester_id, 'approver_id' => $approver_id])->delete('connection');
 
-		$this->db->where(['sender_id' => $sender_id, 'receiver_id' => $receiver_id])->delete('connection');
-		$sender = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
-		$receiver = $this->common_model->select_where('*', 'users', ['id' => $receiver_id])->row_array();	
+		$this->db->where(['requester_id' => $requester_id, 'approver_id' => $approver_id])->delete('connection');
+		$requester = $this->common_model->select_where('*', 'users', ['id' => $requester_id])->row_array();
+		$approver = $this->common_model->select_where('*', 'users', ['id' => $approver_id])->row_array();	
 
-		$message = 'Hi ' . $sender['name'] . ',<br /><br />';
-		$message .= $receiver['name']. ' has rejected your invitation.<br />';
+		$message = 'Hi ' . $requester['name'] . ',<br /><br />';
+		$message .= $approver['name']. ' has rejected your invitation.<br />';
 
 		$this->email->set_newline("\r\n");
 		$this->email->set_mailtype('html');
 		$this->email->from($this->smtp_user, 'Burgeon');
-		$this->email->to($sender['email']);
+		echo $this->email->to($requester['email']);
 		$this->email->subject('Burgeon Invitation Rejected');
-		$this->email->message($message);
+		echo $this->email->message($message);
 
 		if ($this->email->send()) {
 			redirect('welcome/thank_you');
@@ -3648,7 +3589,7 @@ class Api extends REST_Controller {
 	public function invite_notification_post() {
 		$user_id = $_POST['user_id'];
 		$defaultImagePath = base_url('uploads/app_users/default.png');
-		$connection_data = $this->common_model->select_where('*', 'connection', ['receiver_id' => $user_id])->result_array();
+		$connection_data = $this->common_model->select_where('*', 'connection', ['approver_id' => $user_id])->result_array();
 	
 		if (empty($connection_data)) {
 			$response = [
@@ -3662,20 +3603,20 @@ class Api extends REST_Controller {
 			];
 	
 			foreach ($connection_data as $connection) {
-				$sender_id = $connection['sender_id'];
+				$requester_id = $connection['requester_id'];
 	
 				$user_data = $this->common_model->select_where('*', 'users', ['id' => $user_id])->row_array();
-				$sender_data = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
+				$requester_data = $this->common_model->select_where('*', 'users', ['id' => $requester_id])->row_array();
 	
 				$connection_info = [
 					'id' => $connection['id'],
-					'sender_id' => $sender_id,
-					'receiver_id' => $connection['receiver_id'],
+					'requester_id' => $requester_id,
+					'approver_id' => $connection['approver_id'],
 					'role' => $connection['role'],
 					'message' => $connection['message'],
 					'image' => isset($user_data['image']) ? base_url('uploads/app_users/') . $user_data['image'] : $defaultImagePath,
-					'sender_name' => $sender_data['name'],
-					'receiver_name' => $user_data['name'],
+					'requester_name' => $requester_data['name'],
+					'approver_name' => $user_data['name'],
 				];
 	
 				$response['data'][] = $connection_info;
@@ -3691,7 +3632,7 @@ class Api extends REST_Controller {
 		$this->firestore->resetCount($user_id , 'con_request');
 
 		$condition = [
-			'receiver_id' => $user_id,
+			'approver_id' => $user_id,
 			'accept' => 'no',
 		];
 	
@@ -3709,28 +3650,33 @@ class Api extends REST_Controller {
 			];
 	
 			foreach ($connection_data as $connection) {
-				$sender_id = $connection['sender_id'];
+				$requester_id = $connection['requester_id'];
 				$connection_id = $connection['id'];
 	
 				$user_data = $this->common_model->select_where('*', 'users', ['id' => $user_id])->row_array();
-				$sender_data = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
+				$requester_data = $this->common_model->select_where('*', 'users', ['id' => $requester_id])->row_array();
 				$module = $this->common_model->select_where('*', 'shared_module', ['connection_id' => $connection_id])->result_array();
+				$sharing_modules = $this->common_model->select_where('module', 'module_requested', ['connection_id' => $connection_id,'requester_id' => $user_id])->result_array();
+				$accepted_modules = $this->common_model->select_where('module', 'module_requested', ['connection_id' => $connection_id, 'permission' => 'accept', 'approver_id' => $user_id])->result_array();
+				$role = ($requester_id == $user_id) ? $connection['role'] : ($connection['role'] === 'mentor' ? 'mentee' : ($connection['role'] === 'mentee' ? 'mentor' : 'peer'));
 
-				$role = ($sender_id == $user_id) ? $connection['role'] : ($connection['role'] === 'mentor' ? 'mentee' : ($connection['role'] === 'mentee' ? 'mentor' : 'peer'));
+				// $module_values = array_column($module, 'module');
+				$module_values_sharing = array_column($sharing_modules, 'module');
+				$module_values_accepted = array_column($accepted_modules, 'module');
 
-				$module_values = array_column($module, 'module');
 	
 				$connection_info = [
 					'id' => $connection['id'],
 					'accept' => $connection['accept'],
-					'sender_id' => $sender_id,
-					'receiver_id' => $connection['receiver_id'],
+					'requester_id' => $requester_id,
+					'approver_id' => $connection['approver_id'],
 					'role' => $role,
-					'modules' => implode(',', $module_values),
+					'sharing_modules' => implode(',', array_filter($module_values_sharing)),
+					'accepted_modules' => implode(',', array_filter($module_values_accepted)),
 					'message' => $connection['message'],
 					'image' => isset($user_data['image']) ? base_url('uploads/app_users/') . $user_data['image'] : $defaultImagePath,
-					'sender_name' => $sender_data['name'],
-					'receiver_name' => $user_data['name'],
+					'requester_name' => $requester_data['name'],
+					'approver_name' => $user_data['name'],
 				];
 
 				$first_user_detail = [
@@ -3741,10 +3687,10 @@ class Api extends REST_Controller {
 				];
 
 				$second_user_detail = [
-					'id' => $sender_data['id'],
-					'name' => $sender_data['name'],
-					'email' => $sender_data['email'],
-					'image' => isset($sender_data['image']) ? base_url('uploads/app_users/') . $sender_data['image'] : $defaultImagePath,
+					'id' => $requester_data['id'],
+					'name' => $requester_data['name'],
+					'email' => $requester_data['email'],
+					'image' => isset($requester_data['image']) ? base_url('uploads/app_users/') . $requester_data['image'] : $defaultImagePath,
 				];
 	
 				$combined_data = [
@@ -3765,7 +3711,7 @@ class Api extends REST_Controller {
 		$user_id = $_POST['user_id'];
 	
 		$condition = [
-			'receiver_id' => $user_id,
+			'approver_id' => $user_id,
 			'accept' => 'no',
 		];
 	
@@ -3782,96 +3728,99 @@ class Api extends REST_Controller {
 	
 		$this->set_response($response, REST_Controller::HTTP_OK);
 	}
-	
+
 	public function accept_connection_post() {
    	 	$user_id = $_POST['user_id'];
 		$defaultImagePath = base_url('uploads/app_users/default.png');
-    	// Update the condition to find connections where the user is either the sender or receiver and the request is accepted.
-		$condition = "accept = 'yes' AND (receiver_id = $user_id OR sender_id = $user_id) AND role IN ('peer', 'mentor', 'mentee')";
 
-   	 $connection_data = $this->common_model->select_where('*', 'connection', $condition)->result_array();
-
-   	 if (empty($connection_data)) {
-        $response = [
-            'status' => 200,
-            'data' => [], 
-        ];
-    	} else {
-        $response = [
-            'status' => 200,
-            'data' => [],
-        ];
-
-        foreach ($connection_data as $connection) {
-            $sender_id = $connection['sender_id'];
-            $receiver_id = $connection['receiver_id'];
-			$connection_id = $connection['id'];
-
-            $user_data = $this->common_model->select_where('*', 'users', ['id' => $user_id])->row_array();
-            $sender_data = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
-            $receiver_data = $this->common_model->select_where('*', 'users', ['id' => $receiver_id])->row_array();
-			$module = $this->common_model->select_where('*', 'shared_module', ['connection_id' => $connection_id])->result_array();
-
-			$role = ($sender_id == $user_id) ? $connection['role'] : ($connection['role'] === 'mentor' ? 'mentee' : ($connection['role'] === 'mentee' ? 'mentor' : 'peer'));
-
-			$module_values = array_column($module, 'module');
-
-            $connection_info = [
-                'id' => $connection['id'],
-                'accept' => $connection['accept'],
-                'sender_id' => $sender_id,
-                'receiver_id' => $receiver_id,
-				'role' => $role,
-				'modules' => implode(',', array_filter($module_values)),
-				'message' => $connection['message'],
-				'image' => isset($user_data['image']) ? base_url('uploads/app_users/') . $user_data['image'] : $defaultImagePath,
-                'sender_name' => $sender_data['name'],
-                'receiver_name' => $receiver_data['name'],
-            ];
-
-            $first_user_detail = [
-                'id' => $sender_data['id'],
-                'name' => $sender_data['name'],
-                'email' => $sender_data['email'],
-				'role' => $connection['role'],
-				'image' => isset($sender_data['image']) ? base_url('uploads/app_users/') . $sender_data['image'] : $defaultImagePath,
-            ];
-
-            $second_user_detail = [
-                'id' => $receiver_data['id'],
-                'name' => $receiver_data['name'],
-                'email' => $receiver_data['email'],
-				'role' => $connection['role'] === 'peer' ? 'peer' : ($connection['role'] === 'mentor' ? 'mentee' : 'mentor'),
-				'image' => isset($receiver_data['image']) ? base_url('uploads/app_users/') . $receiver_data['image'] : $defaultImagePath,
-            ];
-
-            $combined_data = [
-                'connection_info' => $connection_info,
-                'first_user_detail' => $first_user_detail,
-                'second_user_detail' => $second_user_detail,
+		$condition = "accept = 'yes' AND (approver_id = $user_id OR requester_id = $user_id) AND role IN ('peer', 'mentor', 'mentee')";
+		$connection_data = $this->common_model->select_where('*', 'connection', $condition)->result_array();
+		
+		if (empty($connection_data)) {
+			$response = [
+				'status' => 200,
+				'data' => [], 
+			];
+			} else {
+			$response = [
+				'status' => 200,
+				'data' => [],
 			];
 
-            $response['data'][] = $combined_data;
-        }
-   	 }
+			foreach ($connection_data as $connection) {
+				$requester_id = $connection['requester_id'];
+				$approver_id = $connection['approver_id'];
+				$connection_id = $connection['id'];
+				$user_data = $this->common_model->select_where('*', 'users', ['id' => $user_id])->row_array();
+				$requester_data = $this->common_model->select_where('*', 'users', ['id' => $requester_id])->row_array();
+				$approver_data = $this->common_model->select_where('*', 'users', ['id' => $approver_id])->row_array();
+				$sharing_modules = $this->common_model->select_where('module', 'module_requested', ['connection_id' => $connection_id,'permission' => 'accept','requester_id' => $user_id])->result_array();
+				$accepted_modules = $this->common_model->select_where('module', 'module_requested', ['connection_id' => $connection_id, 'permission' => 'accept', 'approver_id' => $user_id])->result_array();
+				$role = ($requester_id == $user_id) ? $connection['role'] : ($connection['role'] === 'mentor' ? 'mentee' : ($connection['role'] === 'mentee' ? 'mentor' : 'peer'));
+				
+				$module_values_sharing = array_column($sharing_modules, 'module');
+				$module_values_accepted = array_column($accepted_modules, 'module');
 
-   	 	$this->set_response($response, REST_Controller::HTTP_OK);
+
+				$connection_info = [
+					'id' => $connection['id'],
+					'accept' => $connection['accept'],
+					'requester_id' => $requester_id,
+					'approver_id' => $approver_id,
+					'role' => $role,
+					'sharing_modules' => implode(',', array_filter($module_values_sharing)),
+					'accepted_modules' => implode(',', array_filter($module_values_accepted)),
+					'message' => $connection['message'],
+					'image' => isset($user_data['image']) ? base_url('uploads/app_users/') . $user_data['image'] : $defaultImagePath,
+					'requester_name' => $requester_data['name'],
+					'approver_name' => $approver_data['name'],
+				];
+
+				$first_user_detail = [
+					'id' => $requester_data['id'],
+					'name' => $requester_data['name'],
+					'email' => $requester_data['email'],
+					'role' => $connection['role'],
+					'image' => isset($requester_data['image']) ? base_url('uploads/app_users/') . $requester_data['image'] : $defaultImagePath,
+				];
+
+				$second_user_detail = [
+					'id' => $approver_data['id'],
+					'name' => $approver_data['name'],
+					'email' => $approver_data['email'],
+					'role' => $connection['role'] === 'peer' ? 'peer' : ($connection['role'] === 'mentor' ? 'mentee' : 'mentor'),
+					'image' => isset($approver_data['image']) ? base_url('uploads/app_users/') . $approver_data['image'] : $defaultImagePath,
+				];
+			
+				$combined_data = [
+					'connection_info' => $connection_info,
+					'first_user_detail' => $first_user_detail,
+					'second_user_detail' => $second_user_detail,
+				];
+
+
+				$response['data'][] = $combined_data;
+			}
+		}
+
+		$this->set_response($response, REST_Controller::HTTP_OK);
 	}
 
 	public function send_connection_post() {
 		$user_id = $_POST['user_id'];
 		$defaultImagePath = base_url('uploads/app_users/default.png');
+	
 		$condition = [
-			'sender_id' => $user_id,
+			'requester_id' => $user_id,
 			'accept' => 'no',
 		];
 	
 		$connection_data = $this->common_model->select_where('*', 'connection', $condition)->result_array();
-        	
+	
 		if (empty($connection_data)) {
 			$response = [
 				'status' => 200,
-                'data' => [], 
+				'data' => [],
 			];
 		} else {
 			$response = [
@@ -3880,61 +3829,67 @@ class Api extends REST_Controller {
 			];
 	
 			foreach ($connection_data as $connection) {
-				$receiver_id = $connection['receiver_id'];
+				$approver_id = $connection['approver_id'];
 				$connection_id = $connection['id'];
 	
 				$user_data = $this->common_model->select_where('*', 'users', ['id' => $user_id])->row_array();
-				$receiver_data = $this->common_model->select_where('*', 'users', ['id' => $receiver_id])->row_array();
-				$module = $this->common_model->select_where('*', 'shared_module', ['connection_id' => $connection_id])->result_array();
 
-				$module_values = array_column($module, 'module');
-	
+				$approver_data = $this->common_model->select_where('*', 'users', ['id' => $approver_id])->row_array();
+
+				$sharing_modules = $this->common_model->select_where('module', 'module_requested', ['connection_id' => $connection_id,'requester_id' => $user_id])->result_array();
+
+				$accepted_modules = $this->common_model->select_where('module', 'module_requested', ['connection_id' => $connection_id, 'permission' => 'accept', 'approver_id' => $user_id])->result_array();
+
+				$module_values_sharing = array_column($sharing_modules, 'module');
+				$module_values_accepted = array_column($accepted_modules, 'module');
+
 				$connection_info = [
 					'id' => $connection['id'],
 					'accept' => $connection['accept'],
-					'sender_id' => $user_id,
-					'receiver_id' => $connection['receiver_id'],
+					'requester_id' => $user_id,
+					'approver_id' => $connection['approver_id'],
 					'role' => $connection['role'],
-					'modules' => implode(',', $module_values),
+					'sharing_modules' => implode(',', array_filter($module_values_sharing)),
+					'accepted_modules' => implode(',', array_filter($module_values_accepted)),
 					'message' => $connection['message'],
 					'image' => isset($user_data['image']) ? base_url('uploads/app_users/') . $user_data['image'] : $defaultImagePath,
-					'sender_name' => $user_data['name'],
-					'receiver_name' => $receiver_data['name'],
+					'requester_name' => $user_data['name'],
+					'approver_name' => $approver_data['name'],
 				];
-
+	
 				$first_user_detail = [
 					'id' => $user_data['id'],
 					'name' => $user_data['name'],
 					'email' => $user_data['email'],
 					'image' => isset($user_data['image']) ? base_url('uploads/app_users/') . $user_data['image'] : $defaultImagePath,
 				];
-
-				$second_user_detail = [
-					'id' => $receiver_data['id'],
-					'name' => $receiver_data['name'],
-					'email' => $receiver_data['email'],
-					'image' => isset($receiver_data['image']) ? base_url('uploads/app_users/') . $receiver_data['image'] : $defaultImagePath,
-				];
 	
+				$second_user_detail = [
+					'id' => $approver_data['id'],
+					'name' => $approver_data['name'],
+					'email' => $approver_data['email'],
+					'image' => isset($approver_data['image']) ? base_url('uploads/app_users/') . $approver_data['image'] : $defaultImagePath,
+				];
+			
 				$combined_data = [
 					'connection_info' => $connection_info,
 					'first_user_detail' => $first_user_detail,
 					'second_user_detail' => $second_user_detail,
 				];
-				
+	
 				$response['data'][] = $combined_data;
 			}
 		}
 	
 		$this->set_response($response, REST_Controller::HTTP_OK);
-
 	}
+	
 	
 	public function chat_connection_post() {
 		$user_id = $_POST['user_id'];
 	
 		$condition = [
-			'receiver_id' => $user_id,
+			'approver_id' => $user_id,
 			'accept' => 'yes',
 		];
 	
@@ -3952,21 +3907,21 @@ class Api extends REST_Controller {
 			];
 	
 			foreach ($connection_data as $connection) {
-				$sender_id = $connection['sender_id'];
+				$requester_id = $connection['requester_id'];
 	
 				$user_data = $this->common_model->select_where('*', 'users', ['id' => $user_id])->row_array();
-				$sender_data = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
+				$requester_data = $this->common_model->select_where('*', 'users', ['id' => $requester_id])->row_array();
 	
 				$connection_info = [
 					'id' => $connection['id'],
 					'accept' => $connection['accept'],
-					'sender_id' => $sender_id,
-					'receiver_id' => $connection['receiver_id'],
+					'requester_id' => $requester_id,
+					'approver_id' => $connection['approver_id'],
 					'role' => $connection['role'],
 					'message' => $connection['message'],
 					'image' => base_url()."uploads/app_users/" . $user_data['image'],
-					'sender_name' => $sender_data['name'],
-					'receiver_name' => $user_data['name'],
+					'requester_name' => $requester_data['name'],
+					'approver_name' => $user_data['name'],
 				];
 
 				$first_user_detail = [
@@ -3977,10 +3932,10 @@ class Api extends REST_Controller {
 				];
 
 				$second_user_detail = [
-					'id' => $sender_data['id'],
-					'name' => $sender_data['name'],
-					'email' => $sender_data['email'],
-					'image' => base_url()."uploads/app_users/" . $sender_data['image'],
+					'id' => $requester_data['id'],
+					'name' => $requester_data['name'],
+					'email' => $requester_data['email'],
+					'image' => base_url()."uploads/app_users/" . $requester_data['image'],
 				];
 	
 				$combined_data = [
@@ -3998,10 +3953,10 @@ class Api extends REST_Controller {
 	}
 	
 	public function chat_connection_delete_post() {
-		$sender_id = $_POST['sender_id'];
-		$receiver_id = $_POST['receiver_id'];
+		$requester_id = $_POST['requester_id'];
+		$approver_id = $_POST['approver_id'];
 
-		$delete_co = $this->db-> where(['sender_id' => $sender_id, 'receiver_id' => $receiver_id])->delete('connection');
+		$delete_co = $this->db-> where(['requester_id' => $requester_id, 'approver_id' => $approver_id])->delete('connection');
 
 		if ($delete_co) {
 			$response = [
@@ -4020,18 +3975,18 @@ class Api extends REST_Controller {
 	}
 
 	public function share_response_post() {
-		$sender_id = $_POST['sender_id'];
+		$requester_id = $_POST['requester_id'];
 		$type = $_POST['type'];
 		$entity_id = $_POST['entity_id'];
 		$connection_ids = $_POST['connection_ids']; 
-		$receivers = $_POST['receivers'];
+		$approvers = $_POST['receivers'];
 	
 		$connection_ids = explode(',', $connection_ids);
-		$receiver_ids = explode(',', $receivers);
+		$approver_ids = explode(',', $approvers);
 	
 		$inserted_entries = array();
 	
-		if (count($connection_ids) != count($receiver_ids)) {
+		if (count($connection_ids) != count($approver_ids)) {
 			$error_response = [
 				'status' => 400, 
 				'message' => 'Invalid input data: Chat ID and Receiver ID counts do not match.',
@@ -4042,11 +3997,11 @@ class Api extends REST_Controller {
 	
 		for ($i = 0; $i < count($connection_ids); $i++) {
 			$connection_id = $connection_ids[$i];
-			$receiver_id = $receiver_ids[$i];
+			$approver_id = $approver_ids[$i];
 	
 			$data = [
-				'receiver_id' => $receiver_id,
-				'sender_id' => $sender_id,
+				'approver_id' => $approver_id,
+				'requester_id' => $requester_id,
 				'connection_id' => $connection_id,
 				'type' => $type,
 				'entity_id' => $entity_id,
@@ -4054,7 +4009,7 @@ class Api extends REST_Controller {
 			];
 	
 			$insert_result = $this->common_model->insert_array('share_response', $data);
-			$this->firestore->addData($receiver_id , 'shared_response');
+			$this->firestore->addData($approver_id , 'shared_response');
 			
 			if ($insert_result) {
 				$inserted_entries[] = $data;
@@ -4088,20 +4043,15 @@ class Api extends REST_Controller {
 		} elseif ($type === 'ladder') {
 			$data = $this->common_model->select_where('*', 'ladder', ['id' => $entity_id])->row_array();
 		} elseif ($type === 'naq' || $type === 'pire') {
-			// Check if it's 'naq' or 'pire', then look in the 'answers' table
 			$answers = $this->common_model->select_where('id, type, options, text, question_id', 'answers', ['response_id' => $entity_id])->result_array();
 			
-			// Initialize an array to store questions and their titles
 			$questions_with_titles = array();
 	
-			// Iterate through the answers and fetch their associated questions
 			foreach ($answers as $answer) {
 				$question_id = $answer['question_id'];
 				
-				// Retrieve the question title from the "question" table
 				$question = $this->common_model->select_where('title', 'questions', ['id' => $question_id])->row_array();
 				
-				// Add the question and its title to the array
 				$questions_with_titles[] = [
 					'question' => $question,
 					'answer' => $answer,
@@ -4136,21 +4086,21 @@ class Api extends REST_Controller {
 	}
 
 	public function accept_invite_app_get() {
-		$receiver_id = $this->input->get('receiver_id');
-		$sender_id = $this->input->get('sender_id');
-		$receiver_role = $this->input->get('receiver_role');
+		$approver_id = $this->input->get('approver_id');
+		$requester_id = $this->input->get('requester_id');
+		$approver_role = $this->input->get('approver_role');
 		$defaultImagePath = base_url('uploads/app_users/default.png');
 		
 		$update_data = ['accept' => 'yes'];
 	
 		$conditions = [
-			'receiver_id' => $receiver_id,
-			'sender_id' => $sender_id,
+			'approver_id' => $approver_id,
+			'requester_id' => $requester_id,
 		];
 	
 		$tribe_new = $this->common_model->select_where("*", "connection", $conditions)->row_array();
-		$user_data = $this->common_model->select_where('*', 'users', ['id' => $receiver_id])->row_array();
-		$sender_data = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
+		$user_data = $this->common_model->select_where('*', 'users', ['id' => $approver_id])->row_array();
+		$requester_data = $this->common_model->select_where('*', 'users', ['id' => $requester_id])->row_array();
 	
 		if ($tribe_new) {
 			$this->common_model->update_array($conditions, 'connection', $update_data);
@@ -4158,18 +4108,18 @@ class Api extends REST_Controller {
 		   $connection_data = [
 			     'id' => $tribe_new['id'],
 			     'accept' => $tribe_new['accept'],
-			     'sender_id' => $sender_id,
-			     'receiver_id' => $receiver_id,
-			     'role' => $receiver_role,
+			     'requester_id' => $requester_id,
+			     'approver_id' => $approver_id,
+			     'role' => $approver_role,
 				 'message' => $tribe_new['message'],
-				'image' => isset($sender_data['image']) ? base_url('uploads/app_users/') . $sender_data['image'] : $defaultImagePath,
-				 'sender_name' => $sender_data['name'],
-				 'receiver_name' => $user_data['name'],
+				'image' => isset($requester_data['image']) ? base_url('uploads/app_users/') . $requester_data['image'] : $defaultImagePath,
+				 'requester_name' => $requester_data['name'],
+				 'approver_name' => $user_data['name'],
 		   ];
 			$first_user_detail = [
-				'name' => $sender_data['name'],
-				'email' => $sender_data['email'],
-				'image' => isset($sender_data['image']) ? base_url('uploads/app_users/') . $sender_data['image'] : $defaultImagePath,
+				'name' => $requester_data['name'],
+				'email' => $requester_data['email'],
+				'image' => isset($requester_data['image']) ? base_url('uploads/app_users/') . $requester_data['image'] : $defaultImagePath,
 			];
 			$second_user_detail = [
 				'name' => $user_data['name'],
@@ -4197,20 +4147,20 @@ class Api extends REST_Controller {
 	}
 	
 	public function reject_invite_app_get() {
-		$sender_id = $_GET['sender_id'];
-		$receiver_id = $_GET['receiver_id'];
+		$requester_id = $_GET['requester_id'];
+		$approver_id = $_GET['approver_id'];
 	
-		$this->db->where(['sender_id' => $sender_id, 'receiver_id' => $receiver_id])->delete('connection');
-		$sender = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
-		$receiver = $this->common_model->select_where('*', 'users', ['id' => $receiver_id])->row_array(); 
+		$this->db->where(['requester_id' => $requester_id, 'approver_id' => $approver_id])->delete('connection');
+		$requester = $this->common_model->select_where('*', 'users', ['id' => $requester_id])->row_array();
+		$approver = $this->common_model->select_where('*', 'users', ['id' => $approver_id])->row_array(); 
 
-		$message = 'Hi ' . $sender['name'] . ',<br /><br />';
-		$message .= $receiver['name']. ' has rejected your invitation.<br />';
+		$message = 'Hi ' . $requester['name'] . ',<br /><br />';
+		$message .= $approver['name']. ' has rejected your invitation.<br />';
 
 		$this->email->set_newline("\r\n");
 		$this->email->set_mailtype('html');
 		$this->email->from($this->smtp_user, 'Burgeon');
-		$this->email->to($sender['email']);
+		$this->email->to($requester['email']);
 		$this->email->subject('Burgeon Invitation Rejected');
 		$this->email->message($message);
 
@@ -4301,8 +4251,15 @@ class Api extends REST_Controller {
 		$user_id = $_POST['user_id'];
 		$type = $_POST['type'];
 
-		$data = $this->common_model->select_where_groupby('type, response_id, created_at', 'answers', ['user_id' => $user_id, 'type' => $type], 'response_id')->result_array();
-
+		$data = $this->common_model->select_where_groupby_join(
+			'answers.type, answers.response_id, answers.created_at, naq_scores.score',
+			'answers',
+			['answers.user_id' => $user_id, 'answers.type' => $type],
+			'answers.response_id',
+			'naq_scores',
+			'answers.response_id = naq_scores.response_id'
+		)->result_array();
+		
 		if (empty($data)) {
 			$response = [
 				'status' => 200,
@@ -4320,7 +4277,7 @@ class Api extends REST_Controller {
 
 	public function share_with_other_post() {
 		$user_id = $_POST['user_id'];
-		$data = $this->common_model->select_where('*', 'share_response', ['sender_id' => $user_id])->result_array();
+		$data = $this->common_model->select_where('*', 'share_response', ['requester_id' => $user_id])->result_array();
 
 		if (empty($data)) {
 			$response = [
@@ -4330,11 +4287,11 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
 		} else {
 			foreach ($data as &$row) {
-				$receiver_id = $row['receiver_id'];
+				$approver_id = $row['approver_id'];
 
-				$receiver_data = $this->common_model->select_where('name', 'users', ['id' => $receiver_id])->row_array();
+				$approver_data = $this->common_model->select_where('name', 'users', ['id' => $approver_id])->row_array();
 
-				$row['receiver_name'] = $receiver_data['name'];
+				$row['approver_name'] = $approver_data['name'];
 			}
 
 			$response = [
@@ -4347,7 +4304,7 @@ class Api extends REST_Controller {
 
 	public function share_with_me_post() {
 		$user_id = $_POST['user_id'];
-		$data = $this->common_model->select_where('*', 'share_response', ['sender_id' => $user_id])->result_array();
+		$data = $this->common_model->select_where('*', 'share_response', ['requester_id' => $user_id])->result_array();
 
 		if (empty($data)) {
 			$response = [
@@ -4356,11 +4313,11 @@ class Api extends REST_Controller {
 			];
 		} else {
 			foreach ($data as &$row) {
-				$sender_id = $row['sender_id'];
+				$requester_id = $row['requester_id'];
 
-				$sender_data = $this->common_model->select_where('name', 'users', ['id' => $sender_id])->row_array();
+				$requester_data = $this->common_model->select_where('name', 'users', ['id' => $requester_id])->row_array();
 
-				$row['sender_name'] = $sender_data['name'];
+				$row['requester_name'] = $requester_data['name'];
 			}
 			$this->firestore->resetCount($user_id , 'shared_response');
 
@@ -4372,7 +4329,6 @@ class Api extends REST_Controller {
 
 		$this->set_response($response, REST_Controller::HTTP_OK);
 	}
-
 
 	public function pro_users_post() {
 		
@@ -4416,8 +4372,10 @@ class Api extends REST_Controller {
 		if (!empty($token) && !empty($user_id)) {
 			$type = $_POST['type'];
 			$entity_id = $_POST['entity_id'];
-			$receiver_id = $_POST['receiver_id'];
-			$receiver_email = $_POST['receiver_email'];
+			$approver_id = $_POST['approver_id'];
+			// $approver_email = $_POST['approver_email'];
+			$approver_email = 'm.hamza.nabil@gmail.com';
+			
 			$user = $this->common_model->select_where("*", "users", array('id' => $user_id))->row_array();
 	
 			if ($user) {
@@ -4436,35 +4394,35 @@ class Api extends REST_Controller {
 	
 						$this->common_model->insert_array('sage_payments', $sub_data);
 	
-						$existingConnection = $this->common_model->select_where('id', 'connection', ['sender_id' => $user_id, 'receiver_id' => $receiver_id])->row_array();
+						$existingConnection = $this->common_model->select_where('id', 'connection', ['requester_id' => $user_id, 'approver_id' => $approver_id])->row_array();
 
 						if ($existingConnection) {
 							$chatRoomData = [
-								'sender_id' => $user_id,
+								'requester_id' => $user_id,
 								'type' => $type,
 								'entity_id' => $entity_id,
-								'receiver_id' => $receiver_id,
+								'approver_id' => $approver_id,
 								'paid' => 'true',
 								'connection_id' => $existingConnection['id']
 							];
 						} else {
 							$notification_data = [
-								'sender_id' => $user_id,
-								'receiver_id' => $receiver_id,
+								'requester_id' => $user_id,
+								'approver_id' => $approver_id,
 								'role' => 'coach',
 								'message' => 'You have a new connection request',
 								'accept' => 'yes'
 							];
 
 							$this->common_model->insert_array('connection', $notification_data);
-							$this->firestore->addData($receiver_id , 'con_request');
-							$newConnection = $this->common_model->select_where('id', 'connection', ['sender_id' => $user_id, 'receiver_id' => $receiver_id])->row_array();
+							$this->firestore->addData($approver_id , 'con_request');
+							$newConnection = $this->common_model->select_where('id', 'connection', ['requester_id' => $user_id, 'approver_id' => $approver_id])->row_array();
 
 							$chatRoomData = [
-								'sender_id' => $user_id,
+								'requester_id' => $user_id,
 								'type' => $type,
 								'entity_id' => $entity_id,
-								'receiver_id' => $receiver_id,
+								'approver_id' => $approver_id,
 								'paid' => 'true',
 								'connection_id' => $newConnection['id']
 							];
@@ -4473,7 +4431,7 @@ class Api extends REST_Controller {
 						$insertResult = $this->common_model->insert_array('share_response', $chatRoomData);
 
 						if ($insertResult) {
-							$this->firestore->addData($receiver_id , 'shared_response');
+							$this->firestore->addData($approver_id , 'shared_response');
 							$url = base_url();
 	
 							$message = "<p>Hi " . $user['name'] . ",</p>";
@@ -4482,7 +4440,7 @@ class Api extends REST_Controller {
 							$this->email->set_newline("\r\n");
 							$this->email->set_mailtype('html');
 							$this->email->from($this->smtp_user, 'Burgeon');
-							$this->email->to($receiver_email);
+							$this->email->to($approver_email);
 							$this->email->subject('Burgeon submission response required.');
 							$this->email->message($message);
 							if($this->email->send()) {
@@ -4537,8 +4495,8 @@ class Api extends REST_Controller {
 	}
 
 	public function sage_feedback_post() {
-		$sender_id = $_POST['sender_id'];
-		$receiver_id = $_POST['receiver_id'];
+		$requester_id = $_POST['requester_id'];
+		$approver_id = $_POST['approver_id'];
 		$message = $_POST['message'];
 		$shared_id = $_POST['shared_id'];
 	
@@ -4547,8 +4505,8 @@ class Api extends REST_Controller {
 	
 			if ($row_count < 5) {
 				$data = array(
-					'receiver_id' => $receiver_id,
-					'sender_id' => $sender_id,
+					'approver_id' => $approver_id,
+					'requester_id' => $requester_id,
 					'message' => $message,
 					'shared_id' => $shared_id
 				);
@@ -4674,20 +4632,25 @@ class Api extends REST_Controller {
 			$current_response_id = null;
 			$grouped_data = array();
 			$group_number = 1;
-	
+			$score = 0;
+
 			foreach ($answers as $answer) {
 				$response_id = $answer['response_id'];
-	
+
 				if ($response_id !== $current_response_id) {
 					if (!empty($grouped_data)) {
-						$data[] = ['group' => $group_number, 'created_at' => $date, 'response' => $grouped_data];
-						$group_number++;
+						$data[] = ['group' => $group_number, 'created_at' => $date, 'score' => $score, 'response' => $grouped_data];
+						$group_number++; 
 					}
 					$grouped_data = array();
 				}
 				$date = $answer['created_at'];
+				
 				$question_id = $answer['question_id'];
-	
+
+				$score = $this->common_model->select_where('*', 'naq_scores', ['response_id' => $response_id])->row_array();
+				$score = $score['score'];
+
 				$question = $this->common_model->select_where('title', 'questions', ['id' => $question_id])->row_array();
 	
 				$grouped_data[] = [
@@ -4697,9 +4660,8 @@ class Api extends REST_Controller {
 	
 				$current_response_id = $response_id;
 			}
-	
 			if (!empty($grouped_data)) {
-				$data[] = ['group' => $group_number, 'created_at' => $date, 'response' => $grouped_data];
+				$data[] = ['group' => $group_number, 'created_at' => $date, 'score' => $score, 'response' => $grouped_data];
 			}
 		} else {
 			$response = [
@@ -4747,63 +4709,85 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
 	}
-	
+
 	public function edit_module_post() {
 		$connection_id = $this->input->post('connection_id');
-		$sender_id = $this->input->post('sender_id');
-		$receiver_id = $this->input->post('receiver_id');
+		$requester_id = $this->input->post('requester_id');
+		$approver_id = $this->input->post('approver_id');
 		$role = $this->input->post('role');
-		
-		if (!empty($connection_id)) {
-			if ($this->input->post('module') !== null) {
-				$new_modules = explode(',', $this->input->post('module'));
-				
-				if (!empty($role)) {
-					 $this->common_model->update_array(array('id'=>$connection_id), "connection", array('role'=>$role));
-				}
-				
-				$this->db->delete('module_requested', array('connection_id' => $connection_id));
 	
-				foreach ($new_modules as $module) {
-					$shared_module = [
-						'connection_id' => $connection_id,
-						'module' => trim($module),
-						'sender_id' => $sender_id,
-						'receiver_id' => $receiver_id,
-					];
-					$this->db->insert('module_requested', $shared_module);
-
-				}
-
-				$update_data = $this->common_model->select_where('connection_id, module', 'module_requested', ['connection_id' => $connection_id])->result_array();
-				
-				$response = [
-					'status' => 200,
-					'message' => 'success',
-					'data' => $update_data
-				];
-				$this->set_response($response, REST_Controller::HTTP_OK);
-			} else {
-				$response = [
-					'status' => 400,
-					'message' => 'module parameter is missing',
-				];
-				$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
-			}
-		} else {
+		if (empty($connection_id)) {
 			$response = [
 				'status' => 400,
-				'message' => 'connection_id parameter is missing',
+				'message' => 'Connection_id parameter is missing',
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+			return;
 		}
+	
+		if (empty($this->input->post('module'))) {
+			$this->db->delete('module_requested', array('connection_id' => $connection_id, 'requester_id' => $requester_id));
+			$response = [
+				'status' => 200,
+				'message' => 'Module deleted successfully',
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+			return;
+		}
+	
+		$raw_modules = explode(', ', $this->input->post('module'));
+		$new_modules = array_map('lcfirst', $raw_modules);
+	
+		if (!empty($role)) {
+			$this->common_model->update_array(['id' => $connection_id], "connection", ['role' => $role]);
+		}
+	
+		$old_modules = $this->common_model->select_where(['module', 'permission'], 'module_requested', ['connection_id' => $connection_id, 'requester_id' => $requester_id])->result_array();
+
+		foreach ($old_modules as $old_module) {
+			$module_name = $old_module['module'];
+			$old_permission = $old_module['permission'];
+		
+			if (in_array($module_name, $new_modules)) {
+				$key = array_search($module_name, $new_modules);
+				unset($new_modules[$key]);
+			} else {
+				$this->db->delete('module_requested', ['connection_id' => $connection_id, 'module' => $module_name, 'requester_id' => $requester_id]);
+			}
+		}
+	
+		foreach ($new_modules as $new_module) {
+			$module_exists = $this->common_model->select_where('module', 'module_requested', ['connection_id' => $connection_id, 'module' => trim($new_module), 'requester_id' => $requester_id])->row_array();
+	
+			if (!$module_exists) {
+				$shared_module = [
+					'connection_id' => $connection_id,
+					'module' => trim($new_module),
+					'requester_id' => $requester_id,
+					'approver_id' => $approver_id,
+					'permission' => 'pending',
+				];
+				$this->db->insert('module_requested', $shared_module);	
+			}
+		}
+		$this->firestore->addData($approver_id , 'module_requested');
+	
+		$update_data = $this->common_model->select_where('connection_id, module', 'module_requested', ['connection_id' => $connection_id])->result_array();
+	
+		$response = [
+			'status' => 200,
+			'message' => 'success',
+			'data' => $update_data
+		];
+		$this->set_response($response, REST_Controller::HTTP_OK);
 	}
 
 	public function accept_shared_module_post() {
 		$permission = $_POST['permission'];
 		$connection_id = $_POST['connection_id'];
+		$approver_id = $_POST['approver_id'];
 	
-		$this->db->where(['connection_id' => $connection_id]);
+		$this->db->where(['connection_id' => $connection_id,'approver_id' => $approver_id]);
 		$this->db->update('module_requested', ['permission' => $permission]);
 	
 		$affected_rows = $this->db->affected_rows();
@@ -4813,36 +4797,30 @@ class Api extends REST_Controller {
 			$response_message = 'Permission is rejected.';
 		} elseif ($permission === 'accept') {
 			$data = $this->common_model->select_where('*', 'module_requested', ['connection_id' => $connection_id])->result_array();
-	
+		
 			if (!empty($data)) {
-				$this->db->delete('shared_module', ['connection_id' => $connection_id]);
-	
-				foreach ($data as $row) {
-					$module = $row['module'];
-					$data = [
-						'module' => $module,
-						'connection_id' => $connection_id
-					];
-					$this->common_model->insert_array('shared_module', $data);
-				}
-	
-				$this->db->delete('module_requested', ['connection_id' => $connection_id]);
-
-				$response_message = 'Permission accepted and record updated successfully';
+				$response_message = 'Permission is accepted.';
+				$response_status = 200;  
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			} else {
 				$response_message = 'No records found for the specified connection_id';
+				$response_status = 400;  
 			}
 		} elseif ($affected_rows > 0) {
-			$response_message = 'Permission updated successfully';
+			$response_message = 'Permission is updated successfully.';
+			$response_status = 200;
 		} else {
 			$response_message = 'Data is not found.';
+			$response_status = 400; 
 		}
-	
+		
 		$response = [
-			'status' => ($affected_rows > 0) ? 200 : 400,
+			'status' => $response_status,
 			'message' => $response_message
 		];
+		
+		$this->set_response($response, REST_Controller::HTTP_OK);
+		
 	
 		$this->set_response($response, REST_Controller::HTTP_OK);
 	}	
@@ -4862,23 +4840,31 @@ class Api extends REST_Controller {
 				$data[] = $this->common_model->select_where('*', 'session_entry', ['id' => $entity_id])->row_array();
 			} elseif ($type === 'trellis') {
 				$data[] = $this->common_model->select_where('*', 'trellis', ['id' => $entity_id])->row_array();
-			} elseif ($type === 'naq' || $type === 'pire') {
+			} elseif($type === 'ladder') {
+				$data[] = $this->common_model->select_where('*', 'ladder', ['id' => $entity_id])->row_array();
+			}
+			 elseif ($type === 'naq' || $type === 'pire') {
 				$answers = $this->common_model->select_where('id, response_id, type, options, text, question_id, created_at', 'answers', ['response_id' => $entity_id, 'type' => $type])->result_array();
 				
 				$grouped_data = array();
 				$current_response_id = null;
 				$group_number = 1;
+
 	
 				foreach ($answers as $answer) {
 					$response_id = $answer['response_id'];
 					
 					if ($response_id !== $current_response_id) {
 						if (!empty($grouped_data)) {
-							$data[] = ['group' => $group_number, 'created_at' => $date, 'response' => $grouped_data];
+							$data[] = ['group' => $group_number, 'score' => $score, 'created_at' => $date, 'response' => $grouped_data];
 							$group_number++;
 						}
 						$grouped_data = array();
 					}
+
+					$score = $this->common_model->select_where('*', 'naq_scores', ['response_id' => $response_id])->row_array();
+					$score = $score['score'];
+
 					$date = $answer['created_at'];
 					$question_id = $answer['question_id'];
 					
@@ -4891,9 +4877,13 @@ class Api extends REST_Controller {
 	
 					$current_response_id = $response_id;
 				}
+
+				if($type === 'pire'){
+					$score = "";
+					}
 	
 				if (!empty($grouped_data)) {
-					$data[] = ['group' => $group_number, 'created_at' => $date, 'response' => $grouped_data];
+					$data[] = ['group' => $group_number, 'score' => $score, 'created_at' => $date, 'response' => $grouped_data];
 				}
 			}
 		}
@@ -4958,17 +4948,18 @@ class Api extends REST_Controller {
 		
 		$module_type = $_POST['module_type'];
 		$connection_id = $_POST['connection_id'];
-		$sender_id = $_POST['sender_id'];
-		$receiver_id = $_POST['receiver_id']; 
+		$requester_id = $_POST['requester_id'];
+		$approver_id = $_POST['approver_id']; 
 
 		$data = [
 			'connection_id' => $connection_id,
 			'module' => $module_type,
-			'sender_id' => $sender_id,
-			'receiver_id' => $receiver_id
+			'requester_id' => $requester_id,
+			'approver_id' => $approver_id,
+			'permission' => 'accept',
 			];
 	
-			$insert_result = $this->common_model->insert_array('shared_module', $data);
+			$insert_result = $this->common_model->insert_array('module_requested', $data);
 			
 			
 			if ($insert_result) {
@@ -5056,8 +5047,8 @@ class Api extends REST_Controller {
 		
 		$module_type = $_POST['module_type'];
 		$connection_id = $_POST['connection_id'];
-		$sender_id = $_POST['sender_id'];
-		$receiver_id = $_POST['receiver_id'];
+		$requester_id = $_POST['requester_id'];
+		$approver_id = $_POST['approver_id'];
 
 		$data = [
 			'connection_id' => $connection_id,
@@ -5097,7 +5088,7 @@ class Api extends REST_Controller {
 	public function paid_share_response_post() {
 
 		$user_id = $_POST['user_id'];
-		$data = $this->common_model->select_where('*', 'share_response', array('sender_id' => $user_id, 'paid' => 'true'))->result_array();
+		$data = $this->common_model->select_where('*', 'share_response', array('requester_id' => $user_id, 'paid' => 'true'))->result_array();
 
 		if (empty($data)) {
 			$response = [
@@ -5107,11 +5098,11 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_NOT_FOUND);
 		} else {
 			foreach ($data as &$row) {
-				$receiver_id = $row['receiver_id'];
+				$approver_id = $row['approver_id'];
 
-				$receiver_data = $this->common_model->select_where('name', 'users', ['id' => $receiver_id])->row_array();
+				$approver_data = $this->common_model->select_where('name', 'users', ['id' => $approver_id])->row_array();
 
-				$row['receiver_name'] = $receiver_data['name'];
+				$row['approver_name'] = $approver_data['name'];
 			}
 
 			$response = [
@@ -5121,20 +5112,24 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
 	}
-	// Here is the addition that modules should be in a array on the basis of connection id.
-	public function receiver_pending_request_post() {
+	
+	public function approver_sending_request_post() {
 		$user_id = $this->input->post('user_id');
 		$defaultImagePath = base_url('uploads/app_users/default.png');
-		$condition = [
-			'receiver_id' => $user_id,
-			'permission' => 'pending',
-		];
-	
-		$pending_data = $this->common_model->select_where('*', 'module_requested', $condition)->result_array();
+		$this->firestore->resetCount($user_id , 'module_requested');
 
+	
+		$condition = [
+			'approver_id' => $user_id,
+			'permission' => 'pending',
+		];
+	
+		$pending_data = $this->common_model->select_where('*', 'module_requested', $condition)->result_array();
+	
 		if (empty($pending_data)) {
 			$response = [
 				'status' => 200,
+
 				'data' => [],
 			];
 		} else {
@@ -5157,36 +5152,36 @@ class Api extends REST_Controller {
 					];
 				}
 	
-				$sender_id = $pendingdata['sender_id'];
-				$receiver_id = $pendingdata['receiver_id'];
-				$user_data = $this->common_model->select_where('*', 'users', ['id' => $receiver_id])->row_array();
-				$sender_data = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
+				$requester_id = $pendingdata['requester_id'];
+				$approver_id = $pendingdata['approver_id'];
+				$approver_data = $this->common_model->select_where('*', 'users', ['id' => $approver_id])->row_array();
+				$requester_data = $this->common_model->select_where('*', 'users', ['id' => $requester_id])->row_array();
 				$pending_info = [
 					'id' => $pendingdata['id'],
 					'permission' => $pendingdata['permission'],
-					'sender_id' => $sender_id,
-					'receiver_id' => $pendingdata['receiver_id'],
+					'requester_id' => $requester_id,
+					'approver_id' => $pendingdata['approver_id'],
 					'connection_id' => $pendingdata['connection_id'],
 					// 'image' => base_url()."uploads/app_users/" . $user_data['image'],
-					'image' => isset($user_data['image']) ? base_url('uploads/app_users/') . $user_data['image'] : $defaultImagePath,
-					'sender_name' => $sender_data['name'],
-					'receiver_name' => $user_data['name'],
+					'image' => isset($approver_data['image']) ? base_url('uploads/app_users/') . $approver_data['image'] : $defaultImagePath,
+					'requester_name' => $requester_data['name'],
+					'approver_name' => $approver_data['name'],
 				];
 	
 				$first_user_detail = [
-					'id' => $user_data['id'],
-					'name' => $user_data['name'],
-					'email' => $user_data['email'],
+					'id' => $approver_data['id'],
+					'name' => $approver_data['name'],
+					'email' => $approver_data['email'],
 					// 'image' => base_url()."uploads/app_users/" . $user_data['image'],
-					'image' => isset($user_data['image']) ? base_url('uploads/app_users/') . $user_data['image'] : $defaultImagePath,
+					'image' => isset($approver_data['image']) ? base_url('uploads/app_users/') . $approver_data['image'] : $defaultImagePath,
 				];
 	
 				$second_user_detail = [
-					'id' => $sender_data['id'],
-					'name' => $sender_data['name'],
-					'email' => $sender_data['email'],
-					// 'image' => base_url()."uploads/app_users/" . $sender_data['image'],
-					'image' => isset($sender_data['image']) ? base_url('uploads/app_users/') . $sender_data['image'] : $defaultImagePath,
+					'id' => $requester_data['id'],
+					'name' => $requester_data['name'],
+					'email' => $requester_data['email'],
+					// 'image' => base_url()."uploads/app_users/" . $requester_data['image'],
+					'image' => isset($requester_data['image']) ? base_url('uploads/app_users/') . $requester_data['image'] : $defaultImagePath,
 				];
 	
 				// Collect module values for each connection_id
@@ -5203,14 +5198,14 @@ class Api extends REST_Controller {
 		}
 	
 		$this->set_response($response, REST_Controller::HTTP_OK);
-	
 	}
-	public function Sender_sending_requests_post() {
+
+	public function requester_sending_request_post() {
 		$user_id = $this->input->post('user_id');
 		$defaultImagePath = base_url('uploads/app_users/default.png');
 	
 		$condition = [
-			'sender_id' => $user_id,
+			'requester_id' => $user_id,
 			'permission' => 'pending',
 		];
 	
@@ -5241,36 +5236,36 @@ class Api extends REST_Controller {
 					];
 				}
 	
-				$sender_id = $pendingdata['sender_id'];
-				$receiver_id = $pendingdata['receiver_id'];
-				$user_data = $this->common_model->select_where('*', 'users', ['id' => $receiver_id])->row_array();
-				$sender_data = $this->common_model->select_where('*', 'users', ['id' => $sender_id])->row_array();
+				$requester_id = $pendingdata['requester_id'];
+				$approver_id = $pendingdata['approver_id'];
+				$approver_data = $this->common_model->select_where('*', 'users', ['id' => $approver_id])->row_array();
+				$requester_data = $this->common_model->select_where('*', 'users', ['id' => $requester_id])->row_array();
 				$pending_info = [
 					'id' => $pendingdata['id'],
 					'permission' => $pendingdata['permission'],
-					'sender_id' => $sender_id,
-					'receiver_id' => $pendingdata['receiver_id'],
+					'requester_id' => $requester_id,
+					'approver_id' => $pendingdata['approver_id'],
 					'connection_id' => $pendingdata['connection_id'],
 					// 'image' => base_url()."uploads/app_users/" . $user_data['image'],
-					'image' => isset($user_data['image']) ? base_url('uploads/app_users/') . $user_data['image'] : $defaultImagePath,
-					'sender_name' => $sender_data['name'],
-					'receiver_name' => $user_data['name'],
+					'image' => isset($approver_data['image']) ? base_url('uploads/app_users/') . $approver_data['image'] : $defaultImagePath,
+					'requester_name' => $requester_data['name'],
+					'approver_name' => $approver_data['name'],
 				];
 	
 				$first_user_detail = [
-					'id' => $user_data['id'],
-					'name' => $user_data['name'],
-					'email' => $user_data['email'],
+					'id' => $approver_data['id'],
+					'name' => $approver_data['name'],
+					'email' => $approver_data['email'],
 					// 'image' => base_url()."uploads/app_users/" . $user_data['image'],
-					'image' => isset($user_data['image']) ? base_url('uploads/app_users/') . $user_data['image'] : $defaultImagePath,
+					'image' => isset($approver_data['image']) ? base_url('uploads/app_users/') . $approver_data['image'] : $defaultImagePath,
 				];
 	
 				$second_user_detail = [
-					'id' => $sender_data['id'],
-					'name' => $sender_data['name'],
-					'email' => $sender_data['email'],
-					// 'image' => base_url()."uploads/app_users/" . $sender_data['image'],
-					'image' => isset($sender_data['image']) ? base_url('uploads/app_users/') . $sender_data['image'] : $defaultImagePath,
+					'id' => $requester_data['id'],
+					'name' => $requester_data['name'],
+					'email' => $requester_data['email'],
+					// 'image' => base_url()."uploads/app_users/" . $requester_data['image'],
+					'image' => isset($requester_data['image']) ? base_url('uploads/app_users/') . $requester_data['image'] : $defaultImagePath,
 				];
 	
 				// Collect module values for each connection_id
@@ -5288,29 +5283,33 @@ class Api extends REST_Controller {
 	
 		$this->set_response($response, REST_Controller::HTTP_OK);
 	}
-	// To update the module even if there is connection accept has value no
 	public function pending_connection_update_post() {
 		$connection_id = $this->input->post('connection_id');
 		$module = $this->input->post('module');
 		$role = $this->input->post('role');
 		
 		if (!empty($connection_id)) {
-			$this->db->delete('shared_module', array('connection_id' => $connection_id));
+			$this->db->delete('module_requested', array('connection_id' => $connection_id));
 			if ($this->input->post('module') !== null) {
 				$new_modules = explode(',', $this->input->post('module'));
 				if (!empty($role)) {
 					$this->common_model->update_array(array('id'=>$connection_id), "connection", array('role'=>$role));
 			   }
+			   $connection_data = $this->common_model->select_where('requester_id,approver_id',"connection",['id'=>$connection_id])->row_array();
+			  
 				foreach ($new_modules as $module) {
 					$shared_module = [
+						'requester_id' => $connection_data['requester_id'],
+						'approver_id' => $connection_data['approver_id'],
 						'connection_id' => $connection_id,
 						'module' => trim($module),
+						'permission' => 'accept'
 					];
-					$this->db->insert('shared_module', $shared_module);
+					$this->db->insert('module_requested', $shared_module);
 
 				}
 
-				$update_data = $this->common_model->select_where('connection_id, module', 'shared_module', ['connection_id' => $connection_id])->result_array();
+				$update_data = $this->common_model->select_where('connection_id, module', 'module_requested', ['connection_id' => $connection_id])->result_array();
 				
 				$response = [
 					'status' => 200,
@@ -5333,4 +5332,50 @@ class Api extends REST_Controller {
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
+
+	public function getTimeZoneSecondIndex($firstIndex) {
+		$time_zone_map = array(
+            "European Central Time (GMT+1:00)" => "Europe/Amsterdam",
+            "Eastern European Time (GMT+2:00)" => "Europe/Athens",
+            "Egypt Standard Time (GMT+2:00)" => "Africa/Cairo",
+            "Eastern African Time (GMT+3:00)" => "Africa/Nairobi",
+            "Middle East Time (GMT+3:30)" => "Asia/Tehran",
+            "Near East Time (GMT+4:00)" => "Asia/Dubai",
+            "Pakistan Lahore Time (GMT+5:00)" => "Asia/Karachi",
+            "India Standard Time (GMT+5:30)" => "Asia/Kolkata",
+            "Bangladesh Standard Time (GMT+6:00)" => "Asia/Dhaka",
+            "Vietnam Standard Time (GMT+7:00)" => "Asia/Bangkok",
+            "China Taiwan Time (GMT+8:00)" => "Asia/Taipei",
+            "Japan Standard Time (GMT+9:00)" => "Asia/Tokyo",
+            "Australia Central Time (GMT+9:30)" => "Australia/Darwin",
+            "Australia Eastern Time (GMT+10:00)" => "Australia/Sydney",
+            "Solomon Standard Time (GMT+11:00)" => "Pacific/Guadalcanal",
+            "New Zealand Standard Time (GMT+12:00)" => "Pacific/Auckland",
+            "Midway Islands Time (GMT-11:00)" => "Pacific/Midway",
+            "Hawaii Standard Time (GMT-10:00)" => "Pacific/Honolulu",
+            "Alaska Standard Time (GMT-9:00)" => "America/Anchorage",
+            "Yukon Standard Time (GMT-8:00)" => "America/Whitehorse",
+            "Alaska-Hawaii Standard Time (GMT-9:00)" => "America/Adak",
+            "Pacific Standard Time (GMT-8:00)" => "America/Los_Angeles",
+            "Phoenix Standard Time (GMT-7:00)" => "America/Phoenix",
+            "Central Standard Time (GMT-6:00)" => "America/Chicago",
+            "Mountain Standard Time (GMT-7:00)" => "America/Denver",
+            "Eastern Standard Time (GMT-5:00)" => "America/New_York",
+            "Indiana Eastern Standard Time (GMT-5:00)" => "America/Indiana/Indianapolis",
+            "Puerto Rico and US Virgin Islands Time (GMT-4:00)" => "America/Puerto_Rico",
+            "Canada Newfoundland Time (GMT-3:30)" => "America/St_Johns",
+            "Argentina Standard Time (GMT-3:00)" => "America/Argentina/Buenos_Aires",
+            "Brazil Eastern Time (GMT-3:00)" => "America/Sao_Paulo",
+            "Central African Time (GMT-1:00)" => "Africa/Luanda"
+        );
+
+        // Check if the first index exists in the array
+        if (array_key_exists($firstIndex, $time_zone_map)) {
+            // Return the corresponding second index
+            return $time_zone_map[$firstIndex];
+        } else {
+            // If the first index is not found, you can return a default value or handle the error as needed
+            return "Unknown Time Zone";
+        }
+    }
 }
