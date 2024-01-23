@@ -44,7 +44,7 @@ class Api extends REST_Controller {
 		$name	=	$_POST['name'];
 		$email	=	$_POST['email'];
 		$password	=	$_POST['password'];
-		$result = $this->common_model->select_where("*", "users", array('email'=>$email , 'type'=>'user'))->result_array();
+		$result = $this->common_model->select_where("*", "users", array('email'=>$email))->result_array();
 		if($result){
 			$response = [
 				'status' => 400,
@@ -170,7 +170,7 @@ class Api extends REST_Controller {
 		$email	=	$_POST['email'];
 		$password	=	$_POST['password'];
 			
-		$data['login'] = $this->common_model->select_where("*","users", array('email'=>$email,'password'=>sha1($password), 'type'=>'user', 'status' => 'active'));
+		$data['login'] = $this->common_model->select_where("*","users", array('email'=>$email,'password'=>sha1($password), 'status' => 'active'));
 		
 		if($data['login']->num_rows()>0){
 			$row = $data['login']->row_array();
@@ -308,7 +308,7 @@ class Api extends REST_Controller {
 		$time_zone	=	$_POST['time_zone'];
 		$device_token	=	$_POST['device_token'];
 		if(!empty($auth_id)){
-			$result = $this->common_model->select_where("*", "users", array('email'=>$email, 'type'=>'user'));
+			$result = $this->common_model->select_where("*", "users", array('email'=>$email));
 			if($result->num_rows()>0){
 				$valid_user = $result->row_array();
 				
@@ -862,7 +862,7 @@ class Api extends REST_Controller {
 	public function forgot_password_post()
 	{
 		$email = $_POST['email'];
-		$response = $this->common_model->select_where("id", "users", array('email'=>$email , 'type'=>'user')); 
+		$response = $this->common_model->select_where("id", "users", array('email'=>$email)); 
 	
 		if($response->num_rows()>0) {
 			$row = $response->row();
@@ -1657,7 +1657,7 @@ public function delete_user_get(){
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
-	
+
 	public function identity_post(){
 		$user_id = $_POST['user_id'];
 
@@ -1734,7 +1734,7 @@ public function delete_user_get(){
 		}
 	}
 
-	// Trellis Insert End
+	
 
 	public function all_trellis_read_post(){
 		$user_id = $_POST['user_id'];
@@ -2074,7 +2074,7 @@ public function delete_user_get(){
 	public function payment_settings_post() {
 		$user_id	=	$_POST['user_id'];
 			
-		$valid_user = $this->common_model->select_where("*","users", array('id'=>$user_id, 'type'=>'user'));
+		$valid_user = $this->common_model->select_where("*","users", array('id'=>$user_id));
 		
 		if($valid_user->num_rows()>0){
 			$payment_keys = $this->common_model->select_all("test_public_key, live_public_key", 'payment_settings')->row_array();
@@ -2341,7 +2341,7 @@ public function delete_user_get(){
 
 		$user_id	=	$_POST['user_id'];
 			
-		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id, 'type'=>'user'));
+		$data['login'] = $this->common_model->select_where("*","users", array('id'=>$user_id));
 		
 		if($data['login']->num_rows()>0){
 			$row = $data['login']->row_array();
@@ -3302,7 +3302,6 @@ public function delete_user_get(){
 			$where_condition = "name LIKE '%" . $name . "%' AND (type = 'user' OR type = 'admin')";
 			$results = $this->common_model->select_where("id, name, email, time_zone, image", 'users', $where_condition)->result_array();
 		}
-			
 	
 		if (!empty($results)) {
 
@@ -3362,7 +3361,6 @@ public function delete_user_get(){
 		}
 	
 		$approver = $this->common_model->select_where('*', 'users', ['email' => $approver_email])->row_array();
-		// print_r("kddkdkk");exit;
 		
 		if (empty($approver)) {
 			$url = base_url();
@@ -3386,10 +3384,6 @@ public function delete_user_get(){
 					'approver_email' => $approver_email,
 					'approver_role' => $approver_role,
 				];
-			
-			
-		
-				 
 				$this->common_model->insert_array('sage_invitations', $data_array);
 
 				$response = [
@@ -3423,7 +3417,7 @@ public function delete_user_get(){
 				'role' => $approver_role,
 				'message' => $requester['name'] . ' has sent you the invitation for ' . $approver_role,
 			];
-			// print_r("anz==aaajfdd");exit;
+		
 			$this->common_model->insert_array('connection', $notification_data);
 			$get_id = $this->common_model->select_where('id', 'connection', [
 				'requester_id' => $requester_id,
@@ -3884,7 +3878,6 @@ public function delete_user_get(){
 		$this->set_response($response, REST_Controller::HTTP_OK);
 	}
 	
-	
 	public function chat_connection_post() {
 		$user_id = $_POST['user_id'];
 	
@@ -3980,7 +3973,7 @@ public function delete_user_get(){
 		$entity_id = $_POST['entity_id'];
 		$connection_ids = $_POST['connection_ids']; 
 		$approvers = $_POST['receivers'];
-	
+		
 		$connection_ids = explode(',', $connection_ids);
 		$approver_ids = explode(',', $approvers);
 	
@@ -3996,13 +3989,13 @@ public function delete_user_get(){
 		}
 	
 		for ($i = 0; $i < count($connection_ids); $i++) {
-			$connection_id = $connection_ids[$i];
+			$connection_id = $connection_ids[$i]; 
 			$approver_id = $approver_ids[$i];
 	
 			$data = [
 				'approver_id' => $approver_id,
 				'requester_id' => $requester_id,
-				'connection_id' => $connection_id,
+				'connection_id' => trim($connection_id), // trim the connection
 				'type' => $type,
 				'entity_id' => $entity_id,
 				'paid' => 'false',
@@ -4647,9 +4640,7 @@ public function delete_user_get(){
 				$date = $answer['created_at'];
 				
 				$question_id = $answer['question_id'];
-
-				$score = $this->common_model->select_where('*', 'naq_scores', ['response_id' => $response_id])->row_array();
-				$score = $score['score'];
+				$score = ($type !== 'pire') ? $this->common_model->select_where('*', 'naq_scores', ['response_id' => $response_id])->row_array()['score'] : '';
 
 				$question = $this->common_model->select_where('title', 'questions', ['id' => $question_id])->row_array();
 	
@@ -4770,7 +4761,7 @@ public function delete_user_get(){
 				$this->db->insert('module_requested', $shared_module);	
 			}
 		}
-		$this->firestore->addData($approver_id , 'module_requested');
+		$this->firestore->addData($approver_id , 'con_request');
 	
 		$update_data = $this->common_model->select_where('connection_id, module', 'module_requested', ['connection_id' => $connection_id])->result_array();
 	
@@ -4828,8 +4819,9 @@ public function delete_user_get(){
 	public function single_type_list_post() {
 		$type = $_POST['module_type'];
 		$connection_id = $_POST['connection_id'];
+		$approver_id = $_POST['approver_id'];
 	
-		$share_responses = $this->common_model->select_where('*', 'share_response', ['connection_id' => $connection_id, 'type' => $type])->result_array();
+		$share_responses = $this->common_model->select_where('*', 'share_response', ['connection_id' => $connection_id, 'type' => $type, 'approver_id' => $approver_id])->result_array();
 	
 		$data = array();
 	
@@ -4850,7 +4842,6 @@ public function delete_user_get(){
 				$current_response_id = null;
 				$group_number = 1;
 
-	
 				foreach ($answers as $answer) {
 					$response_id = $answer['response_id'];
 					
@@ -4903,6 +4894,66 @@ public function delete_user_get(){
 			];
 			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
+	}
+
+	public function single_share_list_post(){
+		$requester_id = $_POST['requester_id'];
+	
+		$share_responses = $this->common_model->select_where('*', 'share_response', ['requester_id' => $requester_id])->result_array();
+	
+		if (!empty($share_responses)) {
+			$data = array();
+	
+			foreach ($share_responses as $share_response) {
+				$connection_id = $share_response['connection_id'];
+	
+				$share_item = [
+					'id' => $share_response['id'],
+					'requester_id' => $share_response['requester_id'],
+					'approver_id' => $share_response['approver_id'],
+					'type' => $share_response['type'],
+					'paid' => $share_response['paid'],
+					'connection_id' => $share_response['connection_id'],
+					'entity_id' => $share_response['entity_id'],
+					'status' => $share_response['status'],
+					'created_at' => $share_response['created_at']
+				];
+	
+				if (!isset($data[$connection_id])) {
+					$data[$connection_id] = [
+						'connection_id' => $connection_id,
+						'share_list' => []
+					];
+				}
+	
+				$data[$connection_id]['share_list'][] = $share_item;
+			}
+	
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'data' => array_values($data) // Re-index the array numerically
+			];
+	
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$response = [
+				'status' => 200,
+				'message' => 'Data not found.',
+				'data' => []
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}
+	}
+
+	public function delete_single_share_post(){
+		$delete_id = $_POST['delete_id'];
+		$this->db->delete('share_response', array('id' => $delete_id));
+		$response = [
+			'status' => 200,
+			'message' => 'Your share has been deleted successfully.'
+		];
+		$this->set_response($response, REST_Controller::HTTP_OK);
 	}
 
 	public function completed_chk_post(){
@@ -5116,7 +5167,7 @@ public function delete_user_get(){
 	public function approver_sending_request_post() {
 		$user_id = $this->input->post('user_id');
 		$defaultImagePath = base_url('uploads/app_users/default.png');
-		$this->firestore->resetCount($user_id , 'module_requested');
+		$this->firestore->resetCount($user_id , 'con_request');
 
 	
 		$condition = [
