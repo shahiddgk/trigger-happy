@@ -1382,7 +1382,7 @@ public function delete_user_get(){
 
 
 	public function ladder_update_post() {
-		$id = $_POST['user_id']; 
+		$id = $_POST['id']; 
 		$response_id = random_string('numeric', 8);
 
 		$ladder_entry = $this->common_model->select_where("*", "ladder", array('id' => $id))->row_array();
@@ -2569,30 +2569,51 @@ public function delete_user_get(){
 		}
 	}
 	
-	public function history_details_post(){
-		$response_id = $_POST['response_id'];
-
-		if(!empty($response_id)){
-			$result = $this->common_model->join_tab_where_left("q.id, a.user_id, a.type, q.title as question, a.options, a.text, a.created_at",'answers a', 'questions q', 'a.question_id=q.id', array('a.response_id'=>$response_id), 'q.id', 'ASC')->result_array();
-
-			$score = $this->common_model->select_where('*', 'naq_scores', ['response_id' => $response_id])->row_array();
-			$score = $score['score'];
-
+	public function history_details_post() {
+		$response_id = $this->input->post('response_id'); // Use CodeIgniter input class for better security
+	
+		if (!empty($response_id)) {
+			$result = $this->common_model
+				->join_tab_where_left(
+					"q.id, a.user_id, a.type, q.title as question, a.options, a.text, a.created_at",
+					'answers a',
+					'questions q',
+					'a.question_id=q.id',
+					array('a.response_id' => $response_id),
+					'q.id',
+					'ASC'
+				)
+				->result_array();
+	
+			$score = '';
+	
+			if (!empty($result) && isset($result[0]['type'])) {
+				if ($result[0]['type'] == 'naq') {
+					$score_result = $this->common_model
+						->select_where('*', 'naq_scores', ['response_id' => $response_id])
+						->row_array();
+					$score = !empty($score_result['score']) ? $score_result['score'] : '';
+				}
+			}
+	
 			$response = [
 				'status' => 200,
 				'message' => 'success',
 				'score' => $score,
 				'data' => $result
 			];
+	
 			$this->set_response($response, REST_Controller::HTTP_OK);
-		}else{
+		} else {
 			$response = [
 				'status' => 400,
 				'message' => 'empty parameters'
 			];
+	
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
 	}
+	
 
 	public function naq_data_exist_post(){
 
@@ -3005,38 +3026,33 @@ public function delete_user_get(){
 		}
 	}
 	public function waitings_reminders_post() {
-		if (!empty($_POST['user_id'])) {
+		if (isset($_POST['user_id']) && !empty($_POST['user_id'])) {
 			$user_id = $_POST['user_id'];
 	
 			$skipped_reminders = $this->db
-				->select('reminder_history.*, reminders.text, DATE(reminder_history.created_at) as created_date')
-				->join('reminders', 'reminder_history.entity_id = reminders.id')
+				->select('reminder_history.*, reminders.text, reminder_history.created_at as created_date')
+				->join('reminders', 'reminder_history.entity_id = reminders.id') 
 				->where(['reminder_history.user_id' => $user_id, 'reminder_history.reminder_stop' => 'waiting'])
 				->get('reminder_history')
 				->result_array();
-	
-			$waiting_reminders = $this->db
-				->select('snooze_reminder.*, reminders.text, DATE(snooze_reminder.created_at) as created_date')
-				->join('reminders', 'snooze_reminder.entity_id = reminders.id')
-				->where(['snooze_reminder.user_id' => $user_id, 'snooze_reminder.snooze' => 'waiting'])
-				->get('snooze_reminder')
-				->result_array();
-	
-			// Merge the two arrays
-			$all_reminders = array_merge($skipped_reminders, $waiting_reminders);
-	
-			foreach ($all_reminders as &$reminder) {
-				$due_time = $reminder['due_time'];
-				$created_date = $reminder['created_date'];
-				$reminder['date_time'] = $created_date . ' ' . $due_time;
-			}
-	
+
+				foreach ($skipped_reminders as &$reminder) {
+					$due_time = $reminder['due_time'];
+					$created_date = $reminder['created_date'];
+					
+					// Extract only the date portion from created_date
+					$created_date_only = date('Y-m-d', strtotime($created_date));
+					
+					// Concatenate the date portion and due_time
+					$reminder['date_time'] = $created_date_only . ' ' . $due_time;
+				}
+
 			$response = [
 				'status' => REST_Controller::HTTP_OK,
-				'result' => $all_reminders
+				'result' => $skipped_reminders
 			];
 	
-			if (!empty($all_reminders)) {
+			if (!empty($skipped_reminders)) {
 				$response['message'] = 'Due reminders found';
 			} else {
 				$response['message'] = 'No due reminders found';
@@ -3064,7 +3080,7 @@ public function delete_user_get(){
 		
 	}
 
-	public function new_garden_levels_post(){
+	public function web_garden_levels_post(){
 	
 		$garden_levels = $this->common_model->select_where("*" , 'garden_levels', array('status' => 'active'))->result_array();
 		$response = [
@@ -3291,15 +3307,15 @@ public function delete_user_get(){
 	}
 
 	public function search_user_post() {
-		$name = isset($_POST['name']) ? $_POST['name'] : '';
-		$requester_id = $_POST['requester_id'];
+		// $name = isset($_POST['name']) ? $_POST['name'] : '';
+		$requester_id = $_POST['sender_id'];
 
 		
 		if (empty($name)) {
-			$condition = "type = 'user' OR type = 'admin'";
-			$results = $this->common_model->select_where("id, name, email, time_zone, image", 'users', $condition)->result_array();
+			$results = $this->common_model->select_all("id, name, email, time_zone, image", 'users')->result_array();
 		} else {
-			$where_condition = "name LIKE '%" . $name . "%' AND (type = 'user' OR type = 'admin')";
+			// $where_condition = "name LIKE '%" . $name . "%' AND (type = 'user' OR type = 'admin')";
+			$where_condition = "name LIKE '%" . $name . "%'";
 			$results = $this->common_model->select_where("id, name, email, time_zone, image", 'users', $where_condition)->result_array();
 		}
 	
@@ -3649,7 +3665,6 @@ public function delete_user_get(){
 	
 				$user_data = $this->common_model->select_where('*', 'users', ['id' => $user_id])->row_array();
 				$requester_data = $this->common_model->select_where('*', 'users', ['id' => $requester_id])->row_array();
-				$module = $this->common_model->select_where('*', 'shared_module', ['connection_id' => $connection_id])->result_array();
 				$sharing_modules = $this->common_model->select_where('module', 'module_requested', ['connection_id' => $connection_id,'requester_id' => $user_id])->result_array();
 				$accepted_modules = $this->common_model->select_where('module', 'module_requested', ['connection_id' => $connection_id, 'permission' => 'accept', 'approver_id' => $user_id])->result_array();
 				$role = ($requester_id == $user_id) ? $connection['role'] : ($connection['role'] === 'mentor' ? 'mentee' : ($connection['role'] === 'mentee' ? 'mentor' : 'peer'));
@@ -4366,8 +4381,7 @@ public function delete_user_get(){
 			$type = $_POST['type'];
 			$entity_id = $_POST['entity_id'];
 			$approver_id = $_POST['approver_id'];
-			// $approver_email = $_POST['approver_email'];
-			$approver_email = 'm.hamza.nabil@gmail.com';
+			$approver_email = $_POST['approver_email'];
 			
 			$user = $this->common_model->select_where("*", "users", array('id' => $user_id))->row_array();
 	
@@ -4785,35 +4799,41 @@ public function delete_user_get(){
 	
 		if ($permission === 'reject' && $affected_rows > 0) {
 			$this->db->delete('module_requested', ['connection_id' => $connection_id]);
-			$response_message = 'Permission is rejected.';
+
+			$response = [
+				'status' => 200,
+				'message' => 'Permission is rejected.'
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
 		} elseif ($permission === 'accept') {
 			$data = $this->common_model->select_where('*', 'module_requested', ['connection_id' => $connection_id])->result_array();
 		
 			if (!empty($data)) {
-				$response_message = 'Permission is accepted.';
-				$response_status = 200;  
+				$response = [
+					'status' => 200,
+					'data' => $data
+				]; 
 				$this->set_response($response, REST_Controller::HTTP_OK);
 			} else {
-				$response_message = 'No records found for the specified connection_id';
-				$response_status = 400;  
+				$response = [
+					'status' => 400,
+					'message' => 'Data is not found.'
+				];
+				$this->set_response($response, REST_Controller::HTTP_OK);  
 			}
 		} elseif ($affected_rows > 0) {
-			$response_message = 'Permission is updated successfully.';
-			$response_status = 200;
+			$response = [
+				'status' => 200,
+				'message' => 'Permission is accepted.'
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
 		} else {
-			$response_message = 'Data is not found.';
-			$response_status = 400; 
+			$response = [
+				'status' => 400,
+				'message' => 'Permission is not accepted.'
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
 		}
-		
-		$response = [
-			'status' => $response_status,
-			'message' => $response_message
-		];
-		
-		$this->set_response($response, REST_Controller::HTTP_OK);
-		
-	
-		$this->set_response($response, REST_Controller::HTTP_OK);
 	}	
 	
 	public function single_type_list_post() {
@@ -4854,7 +4874,8 @@ public function delete_user_get(){
 					}
 
 					$score = $this->common_model->select_where('*', 'naq_scores', ['response_id' => $response_id])->row_array();
-					$score = $score['score'];
+					// $score = $score['score'];
+					$score = ($score) ? $score['score'] : '';
 
 					$date = $answer['created_at'];
 					$question_id = $answer['question_id'];
