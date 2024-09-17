@@ -137,6 +137,13 @@ else{
 				</a>
 			</li>
 
+			<li class="nav-item">
+				<a class="nav-link" href="<?php echo site_url('admin/sub_cancel_reason'); ?>">
+				<i class="link-icon" data-feather="x"></i>
+				<span class="link-title">Cancel Subcriptions</span>
+				</a>
+			</li>
+
 			<li class="nav-item nav-category">Reports</li>
 			<li class="nav-item">
 				<a class="nav-link" href="<?php echo site_url('admin/user_activity'); ?>">

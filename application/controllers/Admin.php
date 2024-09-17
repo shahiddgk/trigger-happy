@@ -242,6 +242,59 @@ class Admin extends CI_Controller {
 		$this->load->view('admin/trellis', $data);
 		$this->load->view('admin/include/footer'); 
 	}
+	
+	public function sub_cancel_reason() {
+		$filter_reason = $this->input->get('filter_reason');
+		
+		// Get all reasons from database
+		$reasons = $this->common_model->select_all("*", "cancelled_subscriptions")->result_array();
+		$filtered_reasons = [];
+	
+		foreach ($reasons as $key => $value) {
+			$user_id = $value['user_id'];
+			$user = $this->common_model->select_where("*", "users", array('id' => $user_id))->row_array();
+	
+			// Filter by cancel_reason if filter is set
+			if ($filter_reason) {
+				if (strtolower($filter_reason) == 'other') {
+
+					// exclude id 6 data reson
+					$this->db->where('id !=', 6);
+					$result_array = $this->common_model->select_all("reason", "leaving_reasons")->result_array();
+					$predefined_reasons = array_column($result_array, 'reason');
+					if (in_array($value['cancel_reason'], $predefined_reasons)) {
+						continue;
+					}
+				} else if (strtolower($value['cancel_reason']) != strtolower($filter_reason)) {
+					continue;
+				}
+			}
+	
+			$filtered_reasons[] = array(
+				'id' => $value['id'],
+				'user_name' => $user['name'],
+				'user_email' => $user['email'],
+				'cancel_reason' => $value['cancel_reason'],
+				'plan_type' => $value['plan_type'],
+				'cancel_date' => $value['created_at'],
+			);
+		}
+	
+		if ($this->input->is_ajax_request()) {
+			echo json_encode($filtered_reasons);
+			return;
+		}
+	
+		$data['page_title'] = 'Subscription Cancel Reasons';
+		$data['reasons'] = $filtered_reasons;
+		$data['filter_reason'] = $filter_reason;
+	
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/sub_cancel_reason', $data);
+		$this->load->view('admin/include/footer'); 
+	}
+	
+	
 
 	public function user_needs($id) {
 		$data['page_title'] = 'User Needs';
@@ -489,14 +542,14 @@ class Admin extends CI_Controller {
 			'entity_id' => $shared_id,
 			'type' => $param,
 		];
-		$share_response = $this->common_model->select_where('id, sender_id', 'share_response', $condition)->row();
+		$share_response = $this->common_model->select_where('id, requester_id', 'share_response', $condition)->row();
 	
 		$feedbackCount = $this->common_model->select_where('*', 'sage_feedback', ['shared_id' => $share_response->id])->num_rows();
 		if ($feedbackCount < 5) {
 			$data = array(
 				'shared_id' => $share_response->id,
-				'sender_id' => $this->session->userdata('userid'),
-				'receiver_id' => $share_response->sender_id,
+				'requester_id' => $this->session->userdata('userid'),
+				'approver_id' => $share_response->requester_id,
 				'message' => $message,
 			);
 	
@@ -602,7 +655,7 @@ class Admin extends CI_Controller {
 
    		 $receiver_id = $this->session->userdata('userid');
 
-    	$where = array('receiver_id' => $receiver_id, 'sender_id' => $sender_id);
+    	$where = array('approver_id' => $receiver_id, 'requester_id' => $sender_id);
 
    		if (!empty($type)) {
         $where['type'] = $type;
@@ -614,17 +667,17 @@ class Admin extends CI_Controller {
     	});
 
     	foreach ($share_response as $key => 		$response_item) {
-       		$sender_id = $response_item['sender_id'];
+       		$sender_id = $response_item['requester_id'];
         	$sender_name = $this->common_model->select_where('name', 'users', array('id' => $sender_id))->row()->name;
         	$share_response[$key]['sender_name'] = $sender_name;
    	 	}
 
-    $data['share_response'] = $share_response;
+		$data['share_response'] = $share_response;
 
-    $this->load->view('admin/include/header');
-    $this->load->view('admin/share_response', $data);
-    $this->load->view('admin/include/footer');
-}
+		$this->load->view('admin/include/header');
+		$this->load->view('admin/share_response', $data);
+		$this->load->view('admin/include/footer');
+	}
 
 	
 	public function response_detail() {
@@ -642,7 +695,7 @@ class Admin extends CI_Controller {
 			$data['response_data'] = $this->common_model->select_where('*', 'session_entry', array('id' => $entity_id))->result_array();
 		}
 	
-		$this->db->select('sage_feedback.message, sage_feedback.sender_id, sage_feedback.receiver_id, sage_feedback.created_at');
+		$this->db->select('sage_feedback.message, sage_feedback.requester_id, sage_feedback.approver_id, sage_feedback.created_at');
 		$this->db->from('share_response');
 		$this->db->join('sage_feedback', 'share_response.id = sage_feedback.shared_id', 'left');
 		$this->db->where('share_response.entity_id', $entity_id);
@@ -650,15 +703,15 @@ class Admin extends CI_Controller {
 		$chat_message_query = $this->db->get();
 		
 		if ($chat_message_query->num_rows() > 0) {
-			$data['chat_message'] = $chat_message_query->result();
+			$data['share_response'] = $chat_message_query->result();
 			
-			if (!empty($data['chat_message'])) {
-				$data['sender_detail'] = $this->common_model->select_where('name, image', 'users', array('id' => $data['chat_message'][0]->receiver_id))->row_array();
+			if (!empty($data['share_response'])) {
+				$data['sender_detail'] = $this->common_model->select_where('name, image', 'users', array('id' => $data['share_response'][0]->approver_id))->row_array();
 			} else {
 				$data['sender_detail'] = array();
 			}
 		} else {
-			$data['chat_message'] = array();
+			$data['share_response'] = array();
 			$data['sender_detail'] = array();
 		}
 		
@@ -672,12 +725,12 @@ class Admin extends CI_Controller {
 	}
 	
 	public function sage_list() {
-		$share_response = $this->common_model->select_where('*', 'share_response', array('receiver_id' => $this->session->userdata('userid')))->result_array();
+		$share_response = $this->common_model->select_where('*', 'share_response', array('approver_id' => $this->session->userdata('userid')))->result_array();
 	
 		$sage_list = [];
 	
 		foreach ($share_response as $share_response) {
-			$sender_id = $share_response['sender_id'];
+			$sender_id = $share_response['requester_id'];
 			$sender_info = $this->common_model->select_where('name, email', 'users', array('id' => $sender_id))->row();
 	
 			if ($sender_info) {
@@ -718,7 +771,7 @@ class Admin extends CI_Controller {
 	
 		$data['page_title'] = 'Sage List';
 		$data['sage_list'] = $sage_list;
-		$data['shared_id'] = !empty($share_response) ? $share_response[0]['id'] : null;
+		$data['shared_id'] = !empty($share_response) ? $share_response['id'] : null;
 	
 		$this->load->view('admin/include/header');
 		$this->load->view('admin/sage_list', $data);

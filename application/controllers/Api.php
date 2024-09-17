@@ -12,7 +12,7 @@ class Api extends REST_Controller {
 		date_default_timezone_set('America/New_York');
         // date_default_timezone_set('Asia/Karachi');
 		$this->load->library('stripe_lib');
-		$this->load->library('firestore');
+// 		$this->load->library('firestore');
 		// Enable CORS if configured to do so
 		if ($this->config->item('enable_cors')) {
             require(APPPATH . 'config/cors.php');
@@ -242,10 +242,14 @@ class Api extends REST_Controller {
 		if($questions){
 
 			foreach ($questions as $key=>$question) {
-				if(!empty($question['options'])){
-					$options = explode(",", json_decode($question['options']));
-					$questions[$key]['options'] = $options;
-				}
+				if(isset($question['options']) && !empty($question['options'])){
+                    if(is_array($question['options'])) {
+                        $options = $question['options'];
+                    } else {
+                        $options = explode(",", $question['options']);
+                    }
+                    $questions[$key]['options'] = $options;
+                }
 			}
 			if($type == 'naq'){
 				$questions = array_chunk($questions, 3);
@@ -277,10 +281,15 @@ class Api extends REST_Controller {
 		if($questions){
 
 			foreach ($questions as $key=>$question) {
-				if(!empty($question['options'])){
-					$options = explode(",", json_decode($question['options']));
-					$questions[$key]['options'] = $options;
-				}
+				if(isset($question['options']) && !empty($question['options'])){
+                    if(is_array($question['options'])) {
+                        $options = $question['options'];
+                    } else {
+                        $options = explode(",", $question['options']);
+                    }
+                    $questions[$key]['options'] = $options;
+                }
+
 			}
 			if($type == 'naq'){
 				$questions = array_chunk($questions, 3);
@@ -1800,7 +1809,7 @@ public function delete_user_get(){
 			$type = $_POST['type'];
 			$record_id = $_POST['record_id'];
 
-			if($type == 'goal' || $type == 'achievements'){
+			if($type == 'goal' || $type == 'achievements' || $type == 'challenges' || $type == 'memories'){
 				$table = 'ladder';
 			}else if($type == 'needs' || $type == 'identity'){
 				$table = 'identity';
@@ -2292,10 +2301,30 @@ public function delete_user_get(){
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
-	}	
+	} 
+
+	public function leaving_reasons_get() {
+		$result_array = $this->common_model->select_all("id, reason", 'leaving_reasons')->result_array();
+		if (count($result_array) > 0) {
+			$response = [
+				'status' => 200,
+				'message' => 'success',
+				'data' => $result_array
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		} else {
+			$response = [
+				'status' => 400,
+				'message' => 'no data found'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+	}
 
 	public function subscription_cancel_post(){
 		$subscription_id = $_POST['subscription_id'];
+		$cancel_reason	=	$_POST['cancel_reason'];
+		$plan_type = $_POST['plan_type'];
 
 		if(!empty($subscription_id)){
 
@@ -2307,6 +2336,15 @@ public function delete_user_get(){
 				$this->common_model->update_array(array('stripe_subscription_id'=> $subscription_id), 'user_subscriptions', $update_sub);
 				$user_id = $this->common_model->select_single_field("user_id", "user_subscriptions", array('stripe_subscription_id'=> $subscription_id));
 				if(!empty($user_id)){
+
+					if(!empty($cancel_reason) && !empty($plan_type)){
+						$data = array(
+							'user_id' => $user_id,
+							'cancel_reason' => $cancel_reason,
+							'plan_type' => $plan_type
+						);
+						$result =$this->common_model->insert_array('cancelled_subscriptions', $data);
+					}
 					
 					$update_user['is_premium'] = 'no';
 					$update_user['premium_type'] = '';
@@ -2413,6 +2451,33 @@ public function delete_user_get(){
 			];
 			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
 		}
+	}
+
+	public function sub_cancel_reason_post(){
+		$user_id	=	$_POST['user_id'];
+		$cancel_reason	=	$_POST['cancel_reason'];
+		$plan_type = $_POST['plan_type'];
+
+		$data = array(
+			'user_id' => $user_id,
+			'cancel_reason' => $cancel_reason,
+			'plan_type' => $plan_type
+		);
+		$result =$this->common_model->insert_array('cancelled_subscriptions', $data);
+		if($result){
+			$response = [
+				'status' => 200,
+				'message' => 'success'
+			];
+			$this->set_response($response, REST_Controller::HTTP_OK);
+		}else{
+			$response = [
+				'status' => 400,
+				'message' => 'failed'
+			];
+			$this->set_response($response, REST_Controller::HTTP_BAD_REQUEST);
+		}
+		
 	}
  
 	public function new_tribe_insert_post(){
@@ -3029,24 +3094,31 @@ public function delete_user_get(){
 		if (isset($_POST['user_id']) && !empty($_POST['user_id'])) {
 			$user_id = $_POST['user_id'];
 	
+			$current_date = date('Y-m-d');
+			$two_days_ago = date('Y-m-d', strtotime('-2 days'));
+	
 			$skipped_reminders = $this->db
 				->select('reminder_history.*, reminders.text, reminder_history.created_at as created_date')
-				->join('reminders', 'reminder_history.entity_id = reminders.id') 
-				->where(['reminder_history.user_id' => $user_id, 'reminder_history.reminder_stop' => 'waiting'])
+				->join('reminders', 'reminder_history.entity_id = reminders.id')
+				->where([
+					'reminder_history.user_id' => $user_id,
+					'reminder_history.reminder_stop' => 'waiting'
+				])
+				->where("DATE(reminder_history.created_at) BETWEEN '$two_days_ago' AND '$current_date'")
 				->get('reminder_history')
 				->result_array();
-
-				foreach ($skipped_reminders as &$reminder) {
-					$due_time = $reminder['due_time'];
-					$created_date = $reminder['created_date'];
-					
-					// Extract only the date portion from created_date
-					$created_date_only = date('Y-m-d', strtotime($created_date));
-					
-					// Concatenate the date portion and due_time
-					$reminder['date_time'] = $created_date_only . ' ' . $due_time;
-				}
-
+	
+			foreach ($skipped_reminders as &$reminder) {
+				$due_time = $reminder['due_time'];
+				$created_date = $reminder['created_date'];
+	
+				// Extract only the date portion from created_date
+				$created_date_only = date('Y-m-d', strtotime($created_date));
+	
+				// Concatenate the date portion and due_time
+				$reminder['date_time'] = $created_date_only . ' ' . $due_time;
+			}
+	
 			$response = [
 				'status' => REST_Controller::HTTP_OK,
 				'result' => $skipped_reminders
@@ -3442,7 +3514,7 @@ public function delete_user_get(){
 				])->row_array(); 
 				
 				
-				$this->firestore->addData($approver['id'] , 'con_request');
+				// $this->firestore->addData($approver['id'] , 'con_request');
 				$data_array = [
 					'approver_name' => $approver['name'],
 					'receiver_role' => $approver_role,
@@ -3639,7 +3711,7 @@ public function delete_user_get(){
 	public function pending_connection_post() {
 		$user_id = $_POST['user_id'];
 		$defaultImagePath = base_url('uploads/app_users/default.png');
-		$this->firestore->resetCount($user_id , 'con_request');
+// 		$this->firestore->resetCount($user_id , 'con_request');
 
 		$condition = [
 			'approver_id' => $user_id,
@@ -4017,7 +4089,7 @@ public function delete_user_get(){
 			];
 	
 			$insert_result = $this->common_model->insert_array('share_response', $data);
-			$this->firestore->addData($approver_id , 'shared_response');
+// 			$this->firestore->addData($approver_id , 'shared_response');
 			
 			if ($insert_result) {
 				$inserted_entries[] = $data;
@@ -4327,7 +4399,7 @@ public function delete_user_get(){
 
 				$row['requester_name'] = $requester_data['name'];
 			}
-			$this->firestore->resetCount($user_id , 'shared_response');
+// 			$this->firestore->resetCount($user_id , 'shared_response');
 
 			$response = [
 				'status' => 200,
@@ -4422,7 +4494,7 @@ public function delete_user_get(){
 							];
 
 							$this->common_model->insert_array('connection', $notification_data);
-							$this->firestore->addData($approver_id , 'con_request');
+				// 			$this->firestore->addData($approver_id , 'con_request');
 							$newConnection = $this->common_model->select_where('id', 'connection', ['requester_id' => $user_id, 'approver_id' => $approver_id])->row_array();
 
 							$chatRoomData = [
@@ -4438,7 +4510,7 @@ public function delete_user_get(){
 						$insertResult = $this->common_model->insert_array('share_response', $chatRoomData);
 
 						if ($insertResult) {
-							$this->firestore->addData($approver_id , 'shared_response');
+				// 			$this->firestore->addData($approver_id , 'shared_response');
 							$url = base_url();
 	
 							$message = "<p>Hi " . $user['name'] . ",</p>";
@@ -4775,7 +4847,7 @@ public function delete_user_get(){
 				$this->db->insert('module_requested', $shared_module);	
 			}
 		}
-		$this->firestore->addData($approver_id , 'con_request');
+// 		$this->firestore->addData($approver_id , 'con_request');
 	
 		$update_data = $this->common_model->select_where('connection_id, module', 'module_requested', ['connection_id' => $connection_id])->result_array();
 	
@@ -5188,7 +5260,7 @@ public function delete_user_get(){
 	public function approver_sending_request_post() {
 		$user_id = $this->input->post('user_id');
 		$defaultImagePath = base_url('uploads/app_users/default.png');
-		$this->firestore->resetCount($user_id , 'con_request');
+// 		$this->firestore->resetCount($user_id , 'con_request');
 
 	
 		$condition = [
